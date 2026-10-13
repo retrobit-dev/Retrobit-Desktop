@@ -1,5 +1,6 @@
 package dev.retrobit.desktop.data
 
+import android.annotation.SuppressLint
 import android.app.ActivityOptions
 import android.content.Context
 import android.content.Intent
@@ -54,13 +55,19 @@ object WindowedLaunch {
      * through reflection, and simply stays null on builds that refuse access to it (hidden-API
      * enforcement on release builds) — nothing here is required for the launcher to work.
      */
-    private val windowingMode: java.lang.reflect.Method? by lazy {
-        runCatching {
-            ActivityOptions::class.java
-                .getDeclaredMethod("setLaunchWindowingMode", Int::class.javaPrimitiveType)
-                .apply { isAccessible = true }
-        }.getOrNull()
-    }
+    private val windowingMode: java.lang.reflect.Method? by lazy { hiddenWindowingMode() }
+
+    /**
+     * The lookup itself, kept in its own function: lint flags reflective access to this method as
+     * blocked for apps targeting API 34+ (where the framework hides it from us — the call then
+     * quietly returns null and the launcher simply keeps asking for the rectangle alone).
+     */
+    @SuppressLint("BlockedPrivateApi")
+    private fun hiddenWindowingMode(): java.lang.reflect.Method? = runCatching {
+        ActivityOptions::class.java
+            .getDeclaredMethod("setLaunchWindowingMode", Int::class.javaPrimitiveType)
+            .apply { isAccessible = true }
+    }.getOrNull()
 
     /** `WINDOWING_MODE_FREEFORM` from the framework: a real, movable, resizable system window. */
     private const val WINDOWING_MODE_FREEFORM = 5
