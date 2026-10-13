@@ -43,9 +43,30 @@ jobs:
           cache-read-only: false
 
       - name: Compile
-        run: ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace
+        id: compile
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace --console=plain 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Report compile diagnostics
+        if: steps.compile.outcome == 'failure'
+        run: |
+          {
+            echo "### Compile failed"
+            echo '```'
+            grep -nE "^(e: |FAILURE: |\* What went wrong|Caused by:|> Task .* FAILED|Execution failed)" build.log | head -120 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -nE "^(e: |FAILURE: |\* What went wrong|Caused by:|> Task .* FAILED|Execution failed)" build.log | head -50 | while IFS= read -r line; do
+            msg=$(printf '%s' "${line#*:}" | head -c 800 | sed 's/%/%25/g')
+            echo "::error title=Kotlin/Gradle::${msg}"
+          done || true
+          exit 1
 
       - name: Name artifacts
+        if: steps.compile.outcome == 'success'
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk dist/retrobit-desktop-${{ github.run_number }}-release.apk
