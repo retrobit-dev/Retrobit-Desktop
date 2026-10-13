@@ -16,6 +16,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
@@ -65,6 +66,9 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     val inverted = vm.invertRequested % 2 == 1
     val palette = remember(settings.palette, inverted) { Palettes.of(settings.palette).let { if (inverted) it.invert() else it } }
     val drag = remember { DragState() }
+    val density = LocalDensity.current
+    // the tablet has rounded corners and a punch-hole camera: keep the chrome out of both
+    val insets = dev.retrobit.desktop.ui.theme.rememberDesktopInsets(settings.safeArea, settings.cornerInset)
     val focus = remember { FocusRequester() }
     val pointer = remember { PointerRouter() }
 
@@ -78,7 +82,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     LaunchedEffect(settings.wallpaperSource, settings.wallpaperUri, settings.wallpaperTone, settings.palette, settings.style) {
         vm.refreshWallpaper()
     }
-    LaunchedEffect(settings.iconTheme, settings.style) {
+    LaunchedEffect(settings.iconTheme, settings.style, settings.iconAccent, settings.iconMonogram) {
         dev.retrobit.desktop.data.IconCache.clear()
     }
 
@@ -86,7 +90,13 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         LocalPalette provides palette,
         LocalIconMode provides settings.iconMode,
         LocalIconTheme provides IconTheme.resolve(settings.iconThemeEnum, settings.style),
+        LocalIconOptions provides dev.retrobit.desktop.ui.theme.IconOptions(
+            accent = if (settings.iconAccent) palette.accentColor else null,
+            monogram = settings.iconMonogram,
+            labels = settings.iconLabels,
+        ),
         LocalDesktopStyle provides settings.style,
+        dev.retrobit.desktop.ui.theme.LocalDesktopInsets provides insets,
         LocalUiScale provides settings.uiScale,
         LocalViewModel provides vm,
         LocalDragState provides drag,
@@ -136,21 +146,33 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxSize(),
             )
 
-            when (settings.style) {
-                DesktopStyle.LINUX -> LinuxShell(vm)
-                DesktopStyle.MACOS -> MacosShell(vm)
-                DesktopStyle.WINDOWS -> WindowsShell(vm)
+            // everything except the wallpaper honours the safe area
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(
+                        start = with(density) { insets.left.toDp() },
+                        top = with(density) { insets.top.toDp() },
+                        end = with(density) { insets.right.toDp() },
+                        bottom = with(density) { insets.bottom.toDp() },
+                    ),
+            ) {
+                when (settings.style) {
+                    DesktopStyle.LINUX -> LinuxShell(vm)
+                    DesktopStyle.MACOS -> MacosShell(vm)
+                    DesktopStyle.WINDOWS -> WindowsShell(vm)
+                }
+
+                vm.menu?.let { m ->
+                    ContextMenu(items = m.items, anchor = m.anchors, onDismiss = { vm.menu = null })
+                }
+
+                if (vm.spotlight) Spotlight(vm)
+
+                DragGhost(dp(64f))
+
+                if (vm.booting) BootScreen(vm) { vm.booting = false }
             }
-
-            vm.menu?.let { m ->
-                ContextMenu(items = m.items, anchor = m.anchors, onDismiss = { vm.menu = null })
-            }
-
-            if (vm.spotlight) Spotlight(vm)
-
-            DragGhost(dp(64f))
-
-            if (vm.booting) BootScreen(vm) { vm.booting = false }
 
             // e-paper pointer for the M-Pencil / mouse, drawn above everything else
             StylusCursorOverlay(pointer)

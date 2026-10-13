@@ -53,6 +53,7 @@ import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
+import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import dev.retrobit.desktop.ui.wm.ShellMetrics
@@ -70,6 +71,7 @@ fun WindowsShell(vm: LauncherViewModel) {
     val p = LocalPalette.current
     val density = LocalDensity.current
     val drag = LocalDragState.current
+    val dockSlots = remember { DockSlots(horizontal = true) }
     var size by remember { mutableStateOf(IntSize.Zero) }
 
     val taskH = px(44f)
@@ -193,6 +195,31 @@ fun WindowsShell(vm: LauncherViewModel) {
                 RetroText("Start", size = 13f, display = true, weight = FontWeight.Bold, color = if (vm.startMenu) p.paper else p.ink)
             }
             Box(Modifier.width(dp(1.4f)).height(dp(26f)).background(p.ink.copy(alpha = 0.4f)))
+            // quick launch: the taskbar's own dock, reorderable by dragging an icon along it
+            Row(
+                Modifier
+                    .height(dp(38f))
+                    .border(dp(1.2f), p.ink.copy(alpha = 0.45f))
+                    .padding(horizontal = dp(3f)),
+                horizontalArrangement = Arrangement.spacedBy(dp(2f)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                val quick = vm.appsByPackages(vm.settings.pinnedDock).take(6)
+                dockSlots.trim(quick.size)
+                quick.forEachIndexed { index, app ->
+                    Box(Modifier.onGloballyPositioned { pos -> dockSlots.record(index, pos.boundsInRoot().center) }) {
+                        AppIconTile(
+                            app = app,
+                            iconSize = dp(24f),
+                            showLabel = false,
+                            onOpen = { vm.launch(it) },
+                            onContextMenu = { a, pos -> vm.appMenu(a, pos) },
+                            onDrop = { a, target -> dockDrop(vm, a, dockSlots, drag.lastPosition, target) },
+                        )
+                    }
+                }
+                DockInsertMarker(dockSlots, horizontal = true)
+            }
             Row(
                 Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(dp(5f)),

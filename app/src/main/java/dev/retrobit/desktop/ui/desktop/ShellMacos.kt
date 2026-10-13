@@ -50,6 +50,7 @@ import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
+import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import dev.retrobit.desktop.ui.wm.ShellMetrics
@@ -189,16 +190,25 @@ fun MacosShell(vm: LauncherViewModel) {
             ) {
                 DockItem(Glyph.GRID, "launch") { vm.launchpad = true }
                 Box(Modifier.width(dp(1.4f)).height(dp(52f)).background(p.ink.copy(alpha = 0.45f)))
-                vm.appsByPackages(vm.settings.pinnedDock).take(9).forEach { app ->
-                    AppIconTile(
-                        app = app,
-                        iconSize = dp(46f),
-                        showLabel = false,
-                        onOpen = { vm.launch(it) },
-                        onContextMenu = { a, pos -> vm.appMenu(a, pos) },
-                        onDrop = { a, _ -> vm.toggleDockPin(a) },
-                    )
+                val dockApps = vm.appsByPackages(vm.settings.pinnedDock).take(9)
+                dockSlots.trim(dockApps.size)
+                dockApps.forEachIndexed { index, app ->
+                    Box(
+                        Modifier.onGloballyPositioned { pos -> dockSlots.record(index, pos.boundsInRoot().center) },
+                    ) {
+                        AppIconTile(
+                            app = app,
+                            iconSize = dp(46f),
+                            showLabel = false,
+                            onOpen = { vm.launch(it) },
+                            onContextMenu = { a, pos -> vm.appMenu(a, pos) },
+                            onDrop = { a, target ->
+                                dockDrop(vm, a, dockSlots, drag.lastPosition, target)
+                            },
+                        )
+                    }
                 }
+                DockInsertMarker(dockSlots, horizontal = true)
                 Box(Modifier.width(dp(1.4f)).height(dp(52f)).background(p.ink.copy(alpha = 0.45f)))
                 DockItem(Glyph.TERMINAL, "term") { vm.openWindow(WinKind.TERMINAL) }
                 DockItem(Glyph.SETTINGS, "setup") { vm.openWindow(WinKind.SETTINGS) }

@@ -42,6 +42,8 @@ import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
+import dev.retrobit.desktop.ui.wm.DockMath
+import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.GridMath
 import dev.retrobit.desktop.ui.wm.GridSpec
@@ -217,6 +219,8 @@ private fun placeAtPointer(
     app: AppEntry,
     dropPosition: Offset,
 ) {
+    // an icon dragged out of the dock moves onto the grid (and vice versa)
+    vm.moveToDesktop(app)
     val local = dropPosition - rootOffset
     if (!GridMath.contains(spec, local.x, local.y)) return
     val wanted = GridMath.cellAt(spec, local.x, local.y)
@@ -231,6 +235,36 @@ private fun placeAtPointer(
         val cell = GridMath.nearestFree(spec, taken, wanted)
         vm.settings.setIconCell(app.pkg, cell.first, cell.second)
     }
+}
+
+/**
+ * Handles an icon dropped onto a dock / sidebar / taskbar: reorder it into the nearest slot, or
+ * pin it there when it came from the desktop. Drops on the desktop pull the app out of the dock.
+ */
+fun dockDrop(vm: LauncherViewModel, app: AppEntry, slots: DockSlots, pointer: Offset, target: DragState.Drop) {
+    when (target) {
+        DragState.Drop.DOCK, DragState.Drop.SIDEBAR, DragState.Drop.TASKBAR ->
+            vm.moveToDock(app, slots.indexFor(pointer))
+        DragState.Drop.DESKTOP -> vm.moveToDesktop(app)
+        DragState.Drop.NONE -> if (vm.settings.pinnedDock.contains(app.pkg)) vm.moveToDock(app, slots.indexFor(pointer))
+    }
+}
+
+/** A thin bar showing where a dragged icon will land in the dock. */
+@Composable
+fun DockInsertMarker(slots: DockSlots, horizontal: Boolean) {
+    val p = LocalPalette.current
+    val drag = LocalDragState.current
+    val info = drag.info ?: return
+    if (!DockMath.inside(info.position, drag.dockBounds) && !DockMath.inside(info.position, drag.sidebarBounds)) return
+    val index = slots.indexFor(info.position)
+    val center = slots.centerOf(index) ?: return
+    Box(
+        Modifier
+            .offset { IntOffset((center.x - 14f).toInt(), (center.y - 1.5f).toInt()) }
+            .size(if (horizontal) dp(28f) else dp(3f), if (horizontal) dp(3f) else dp(30f))
+            .background(p.ink),
+    )
 }
 
 /**

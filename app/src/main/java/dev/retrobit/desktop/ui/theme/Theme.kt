@@ -42,7 +42,19 @@ object Palettes {
     fun of(id: PaletteId): Palette = all.getValue(id)
 }
 
+/**
+ * How app icons are decorated: the palette accent used for icon frames, the first-letter monogram
+ * and whether name chips are printed under the icons.
+ */
+@Immutable
+data class IconOptions(
+    val accent: Color? = null,
+    val monogram: Boolean = false,
+    val labels: Boolean = true,
+)
+
 val LocalPalette = staticCompositionLocalOf { Palettes.of(PaletteId.PAPER) }
+val LocalIconOptions = staticCompositionLocalOf { IconOptions() }
 val LocalIconMode = staticCompositionLocalOf { IconMode.MONO }
 val LocalDesktopStyle = staticCompositionLocalOf { DesktopStyle.LINUX }
 val LocalIconTheme = staticCompositionLocalOf { IconTheme.FLAT }

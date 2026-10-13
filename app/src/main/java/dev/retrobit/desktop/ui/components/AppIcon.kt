@@ -49,12 +49,16 @@ fun rememberAppIcon(app: AppEntry, inverted: Boolean = false): ImageBitmap? {
     val p = LocalPalette.current
     val mode = LocalIconMode.current
     val theme = LocalIconTheme.current
+    val options = dev.retrobit.desktop.ui.theme.LocalIconOptions.current
     val ink = if (inverted) p.paper else p.ink
     val paper = if (inverted) p.ink else p.paper
-    val cached = IconCache.peek(app, mode, theme, ink, paper)
-    val state by produceState(cached, app.key, mode, theme, ink, paper) {
+    val accent = if (inverted) null else options.accent
+    val cached = IconCache.peek(app, mode, theme, ink, paper, accent, options.monogram)
+    val state by produceState(cached, app.key, mode, theme, ink, paper, accent, options.monogram) {
         if (value == null) {
-            value = withContext(Dispatchers.Default) { IconCache.get(app, mode, theme, ink, paper) }
+            value = withContext(Dispatchers.Default) {
+                IconCache.get(app, mode, theme, ink, paper, accent, options.monogram, app.label)
+            }
         }
     }
     return state
@@ -78,6 +82,7 @@ fun AppIconTile(
 ) {
     val p = LocalPalette.current
     val drag = LocalDragState.current
+    val labelsEnabled = dev.retrobit.desktop.ui.theme.LocalIconOptions.current.labels
     var origin by remember { mutableStateOf(Offset.Zero) }
     var moved by remember { mutableStateOf(0f) }
     val icon = rememberAppIcon(app, inverted = selected)
@@ -153,7 +158,8 @@ fun AppIconTile(
                 }
             }
         }
-        if (showLabel) {
+        if (showLabel && labelsEnabled) {
+            // name chip: on e-paper a printed plate behind the name is far easier to read
             RetroText(
                 text = app.label,
                 size = labelSize,
@@ -161,8 +167,9 @@ fun AppIconTile(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier
-                    .then(if (selected) Modifier.background(p.ink) else Modifier)
-                    .padding(horizontal = dp(3f)),
+                    .background(if (selected) p.ink else p.paper)
+                    .border(dp(1f), if (selected) p.paper else p.ink.copy(alpha = 0.45f))
+                    .padding(horizontal = dp(4f), vertical = dp(1f)),
             )
         }
     }

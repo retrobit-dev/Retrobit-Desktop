@@ -202,6 +202,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         settings.pinnedDesktop = list
     }
 
+    /** Puts an app in the dock (or sidebar / taskbar) at [index], taking it off the desktop. */
+    fun moveToDock(app: AppEntry, index: Int) {
+        settings.pinnedDesktop = settings.pinnedDesktop.filterNot { it == app.pkg }
+        settings.moveDockPin(app.pkg, index)
+    }
+
+    /** Puts an app on the desktop grid, taking it off the dock. */
+    fun moveToDesktop(app: AppEntry) {
+        settings.pinnedDock = settings.pinnedDock.filterNot { it == app.pkg }
+        if (!settings.pinnedDesktop.contains(app.pkg)) settings.pinnedDesktop = settings.pinnedDesktop + app.pkg
+    }
+
     fun unpin(app: AppEntry) {
         settings.pinnedDock = settings.pinnedDock.filterNot { it == app.pkg }
         settings.pinnedDesktop = settings.pinnedDesktop.filterNot { it == app.pkg }

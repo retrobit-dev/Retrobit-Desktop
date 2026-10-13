@@ -88,6 +88,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "wallpaper", "wall" -> wallpaper(args.firstOrNull())
             "seconds" -> seconds(args.firstOrNull())
             "arrange" -> arrange()
+            "safearea" -> safeArea(args.firstOrNull())
+            "dock" -> dock(args)
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
             "notes" -> vm.openWindow(WinKind.NOTES)
@@ -131,6 +133,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             wallpaper pattern|device|image   desktop background source
             seconds on|off         seconds in the clock
             arrange                auto arrange desktop icons
+            safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
+            dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
             workspace 1..4         switch virtual desktop (also: ws)
             wsmove 1..4            send the focused window to a desktop
             wmctrl list|close|tile | invert | boot
@@ -299,6 +303,49 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "on", "1", "true" -> { vm.settings.showSeconds = true; print("seconds -> on") }
             "off", "0", "false" -> { vm.settings.showSeconds = false; print("seconds -> off") }
             else -> { vm.settings.showSeconds = !vm.settings.showSeconds; print("seconds -> ${if (vm.settings.showSeconds) "on" else "off"}") }
+        }
+    }
+
+    private fun safeArea(arg: String?) {
+        when (arg?.lowercase()) {
+            "on", "1", "true" -> { vm.settings.safeArea = true; print("safe area -> on (corner inset ${vm.settings.cornerInset}dp)") }
+            "off", "0", "false" -> { vm.settings.safeArea = false; print("safe area -> off (desktop draws to the physical edge)") }
+            null -> { vm.settings.safeArea = !vm.settings.safeArea; print("safe area -> ${if (vm.settings.safeArea) "on" else "off"}") }
+            else -> {
+                val radius = arg.toIntOrNull()
+                if (radius == null) print("usage: safearea on|off|<radius in dp>", Kind.ERR)
+                else {
+                    vm.settings.cornerInset = radius.coerceIn(0, 48)
+                    vm.settings.safeArea = radius > 0
+                    print("corner inset -> ${vm.settings.cornerInset}dp")
+                }
+            }
+        }
+    }
+
+    private fun dock(args: List<String>) {
+        val pinned = vm.settings.pinnedDock
+        when (args.firstOrNull()?.lowercase()) {
+            "move", "mv" -> {
+                val raw = args.drop(1).dropLast(1).joinToString(" ")
+                val index = args.lastOrNull()?.toIntOrNull()
+                val app = vm.apps.firstOrNull { it.label.equals(raw, true) || it.pkg.equals(raw, true) }
+                if (app == null || index == null) {
+                    print("usage: dock move <app name> <slot>", Kind.ERR)
+                } else {
+                    vm.settings.moveDockPin(app.pkg, index)
+                    print("${app.label} -> dock slot ${index + 1}")
+                }
+            }
+            else -> {
+                if (pinned.isEmpty()) { print("dock is empty — drag an app onto it or use \"pin\"", Kind.DIM); return }
+                print("dock (${pinned.size} apps)", Kind.HEAD)
+                pinned.forEachIndexed { i, pkg ->
+                    val label = vm.apps.firstOrNull { it.pkg == pkg }?.label ?: pkg
+                    print("  ${i + 1}. $label")
+                }
+                print("drag icons along the dock to reorder them", Kind.DIM)
+            }
         }
     }
 

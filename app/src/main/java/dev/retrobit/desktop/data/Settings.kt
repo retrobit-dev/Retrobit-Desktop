@@ -54,6 +54,16 @@ class Settings(context: Context) {
     var snapWindows: Boolean by boolPref("snapWindows", true)
     /** Virtual desktops (workspaces), 1..4. */
     var workspaceCount: Int by intPref("workspaceCount", 3)
+    /** Keep the desktop chrome clear of the punch-hole camera and the rounded display corners. */
+    var safeArea: Boolean by boolPref("safeArea", true)
+    /** Radius of the display corner the chrome must stay out of, in dp. */
+    var cornerInset: Int by intPref("cornerInset", 20)
+    /** Draw a name chip under desktop / dock icons so every app is easy to recognise. */
+    var iconLabels: Boolean by boolPref("iconLabels", true)
+    /** Mark icons with the app's first letter when the dithered artwork is hard to read. */
+    var iconMonogram: Boolean by boolPref("iconMonogram", true)
+    /** Tint the icon frame with the palette accent colour (red on tri-colour, green on phosphor). */
+    var iconAccent: Boolean by boolPref("iconAccent", true)
     var setupDone: Boolean by boolPref("setupDone", false)
     var defaultsSeeded: Boolean by boolPref("defaultsSeeded", false)
     var notes: String by stringPref("notes", "RETROBIT NOTES\n==============\n\n- tap & hold any icon for options\n- type `help` in the terminal\n")
@@ -93,6 +103,16 @@ class Settings(context: Context) {
             .getOrDefault(dev.retrobit.desktop.data.WallpaperTone.HALFTONE)
 
     // ── desktop icon grid ----------------------------------------------------------
+    /** Moves a pinned dock / sidebar app to [index]; drag-to-reorder lives in the shells. */
+    fun moveDockPin(pkg: String, index: Int) {
+        pinnedDock = dev.retrobit.desktop.ui.wm.DockMath.move(pinnedDock, pkg, index)
+    }
+
+    /** Same, for the desktop pin list (used when an icon is dropped from the dock onto the grid). */
+    fun moveDesktopPin(pkg: String, index: Int) {
+        pinnedDesktop = dev.retrobit.desktop.ui.wm.DockMath.move(pinnedDesktop, pkg, index)
+    }
+
     fun iconCell(pkg: String): Pair<Int, Int>? = parseCells()[pkg]
 
     fun setIconCell(pkg: String, col: Int, row: Int) {

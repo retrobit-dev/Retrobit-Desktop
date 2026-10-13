@@ -48,6 +48,7 @@ import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.WindowLayer
 import dev.retrobit.desktop.ui.wm.ShellMetrics
+import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import java.text.SimpleDateFormat
@@ -65,6 +66,7 @@ fun LinuxShell(vm: LauncherViewModel) {
     val drag = LocalDragState.current
     var size by remember { mutableStateOf(IntSize.Zero) }
 
+    val dockSlots = remember { DockSlots(horizontal = false) }
     val panelH = px(30f)
     val dockW = px(78f)
     val winMargin = px(10f)
@@ -185,16 +187,25 @@ fun LinuxShell(vm: LauncherViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(dp(6f)),
             ) {
-                vm.appsByPackages(vm.settings.pinnedDock).forEach { app ->
-                    AppIconRow(
-                        app = app,
-                        iconSize = dp(34f),
-                        showLabel = false,
-                        onOpen = { vm.launch(it) },
-                        onContextMenu = { a, pos -> vm.appMenu(a, pos) },
-                        onDrop = { a, target -> if (target == DragState.Drop.SIDEBAR || target == DragState.Drop.DOCK) vm.toggleDockPin(a) },
-                    )
+                val pinnedDock = vm.appsByPackages(vm.settings.pinnedDock)
+                dockSlots.trim(pinnedDock.size)
+                pinnedDock.forEachIndexed { index, app ->
+                    Box(
+                        Modifier.onGloballyPositioned { pos ->
+                            dockSlots.record(index, pos.boundsInRoot().center)
+                        },
+                    ) {
+                        AppIconRow(
+                            app = app,
+                            iconSize = dp(34f),
+                            showLabel = false,
+                            onOpen = { vm.launch(it) },
+                            onContextMenu = { a, pos -> vm.appMenu(a, pos) },
+                            onDrop = { a, target -> dockDrop(vm, a, dockSlots, drag.lastPosition, target) },
+                        )
+                    }
                 }
+                DockInsertMarker(dockSlots, horizontal = false)
             }
             DockGlyph(Glyph.SYSMON, "mon") { vm.openWindow(WinKind.SYSMON) }
             DockGlyph(Glyph.NOTES, "note") { vm.openWindow(WinKind.NOTES) }

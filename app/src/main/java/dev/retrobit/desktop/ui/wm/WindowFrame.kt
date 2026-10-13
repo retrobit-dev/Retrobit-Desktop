@@ -6,8 +6,10 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,6 +56,12 @@ import dev.retrobit.desktop.ui.theme.ChromePattern
 import androidx.compose.foundation.Image
 import kotlin.math.roundToInt
 
+
+/** Double tap / double click on a title bar maximizes the window (or restores it). */
+private fun Modifier.maximizeOnDoubleTap(win: WinState, wm: WindowManager): Modifier =
+    this.pointerInput(win.id) {
+        detectTapGestures(onDoubleTap = { wm.toggleMaximize(win.id) })
+    }
 
 /** Click-to-focus helper: any press on a title bar raises and focuses that window. */
 private fun Modifier.raiseOnPress(win: WinState, wm: WindowManager): Modifier = this.pointerInput(win.id) {
@@ -108,14 +116,24 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
     val density = LocalDensity.current
     val titleH = dp(24f + 6f)
 
+    // the outer box is the window plus a grab margin, so every edge can be dragged from outside
+    val grab = with(density) { HandleGrab.toPx() }
     Box(
         Modifier
-            .offset { IntOffset(win.x.roundToInt(), win.y.roundToInt()) }
-            .size(with(density) { win.width.toDp() }, with(density) { win.height.toDp() })
-            .then(if (focused) Modifier.retroShadowOffset(dp(5f)) else Modifier)
-            .background(p.paper)
-            .border(dp(if (focused) 2.4f else 1.4f), if (focused) p.ink else p.mid),
+            .offset { IntOffset((win.x - grab).roundToInt(), (win.y - grab).roundToInt()) }
+            .size(
+                with(density) { (win.width + grab * 2f).toDp() },
+                with(density) { (win.height + grab * 2f).toDp() },
+            ),
     ) {
+        Box(
+            Modifier
+                .offset { IntOffset(grab.roundToInt(), grab.roundToInt()) }
+                .size(with(density) { win.width.toDp() }, with(density) { win.height.toDp() })
+                .then(if (focused) Modifier.retroShadowOffset(dp(5f)) else Modifier)
+                .background(p.paper)
+                .border(dp(if (focused) 2.4f else 1.4f), if (focused) p.ink else p.mid),
+        ) {
         Column(Modifier.fillMaxSize()) {
             when (style) {
                 DesktopStyle.MACOS -> MacTitleBar(win, wm, focused, titleH)
@@ -126,21 +144,8 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
                 WindowContent(win, wm)
             }
         }
-        if (focused && !win.maximized) {
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .size(dp(26f))
-                    .pointerInput(win.id) {
-                        detectDragGestures { change, amount ->
-                            change.consume()
-                            wm.resize(win.id, amount)
-                        }
-                    },
-            ) {
-                Grippy()
-            }
         }
+        if (!win.maximized) ResizeHandles(win, wm, grab)
     }
 }
 
@@ -157,18 +162,6 @@ private fun Modifier.drawBehindBrush(brush: androidx.compose.ui.graphics.Brush, 
         drawRect(brush, topLeft = Offset(o, o), size = Size(size.width, size.height))
     }
 
-@Composable
-private fun Grippy() {
-    val p = LocalPalette.current
-    Canvas(Modifier.fillMaxSize().padding(dp(2f))) {
-        val step = size.width / 4f
-        for (i in 1..3) for (j in 1..3) {
-            if (i + j >= 3) {
-                drawRect(p.ink.copy(alpha = 0.65f), Offset(i * step - 1f, j * step - 1f), Size(2f, 2f))
-            }
-        }
-    }
-}
 
 @Composable
 private fun TitleLabel(win: WinState, focused: Boolean, color: Color? = null) {
@@ -233,6 +226,7 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
             Modifier
                 .fillMaxSize()
                 .raiseOnPress(win, wm)
+                .maximizeOnDoubleTap(win, wm)
                 .pointerInput(win.id) {
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
@@ -247,12 +241,98 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
         ) {
             GlyphIcon(if (win.isApp) Glyph.GRID else Glyph.TERMINAL, dp(12f))
             Box(Modifier.weight(1f)) { TitleLabel(win, focused, p.paper) }
+            if (wm.resizingId == win.id) {
+                RetroText("${win.width.toInt()}x${win.height.toInt()}", size = 9.5f, color = p.paper, maxLines = 1)
+            }
+            TitleButton(Sym.FLOAT, inverted = true, active = win.floating, onClick = { wm.toggleFloat(win.id) })
             TitleButton(Sym.MIN, inverted = true, onClick = { wm.minimize(win.id) })
             TitleButton(Sym.MAX, inverted = true, onClick = { wm.toggleMaximize(win.id) })
             TitleButton(Sym.CLOSE, inverted = true, onClick = { wm.close(win.id) })
         }
+        }
+        if (!win.maximized) ResizeHandles(win, wm, grab)
     }
 }
+
+/** Grab width of every resize handle, in dp. */
+private val HandleGrab = dp(16f)
+
+/** Corner size of the resize handles, in dp. */
+private val HandleCorner = dp(20f)
+
+/**
+ * Manual window sizing: eight invisible handles (four edges, four corners) that resize the window
+ * under the pointer. A small grip is printed in the bottom-right corner like on a classic desktop.
+ */
+@Composable
+private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float) {
+    val p = LocalPalette.current
+    val density = LocalDensity.current
+    val corner = with(density) { HandleCorner.toPx() }
+    val w = win.width
+    val h = win.height
+
+    fun strip(edge: ResizeEdge, x: Float, y: Float, sw: Float, sh: Float) {
+        Box(
+            Modifier
+                .offset { IntOffset(x.roundToInt(), y.roundToInt()) }
+                .size(with(density) { sw.toDp() }, with(density) { sh.toDp() })
+                .resizeHandle(win, wm, edge),
+        )
+    }
+
+    strip(ResizeEdge.LEFT, 0f, grab + corner * 0.5f, grab, h - corner)
+    strip(ResizeEdge.RIGHT, grab + w, grab + corner * 0.5f, grab, h - corner)
+    strip(ResizeEdge.TOP, grab + corner * 0.5f, 0f, w - corner, grab)
+    strip(ResizeEdge.BOTTOM, grab + corner * 0.5f, grab + h, w - corner, grab)
+    strip(ResizeEdge.TOP_LEFT, 0f, 0f, grab + corner * 0.5f, grab + corner * 0.5f)
+    strip(ResizeEdge.TOP_RIGHT, grab + w - corner * 0.5f, 0f, grab + corner * 0.5f, grab + corner * 0.5f)
+    strip(ResizeEdge.BOTTOM_LEFT, 0f, grab + h - corner * 0.5f, grab + corner * 0.5f, grab + corner * 0.5f)
+    strip(ResizeEdge.BOTTOM_RIGHT, grab + w - corner * 0.5f, grab + h - corner * 0.5f, grab + corner * 0.5f, grab + corner * 0.5f)
+
+    // grip marks: a live size readout while resizing, a printed corner grip otherwise
+    Box(
+        Modifier
+            .offset { IntOffset((grab + w - corner).roundToInt(), (grab + h - corner).roundToInt()) }
+            .size(with(density) { corner.toDp() }, with(density) { corner.toDp() }),
+        contentAlignment = Alignment.BottomEnd,
+    ) {
+        if (wm.resizingId == win.id) {
+            Box(Modifier.background(p.paper).border(dp(1.2f), p.ink).padding(horizontal = dp(3f))) {
+                RetroText("${win.width.toInt()}x${win.height.toInt()}", size = 9f, color = p.ink, maxLines = 1)
+            }
+        } else {
+            Canvas(Modifier.size(dp(14f))) {
+                val ink = p.ink
+                for (i in 0 until 3) {
+                    val o = size.width - i * 4f - 2f
+                    drawLine(ink, Offset(o, size.height - 1f), Offset(size.width - 1f, size.height - o), 1.6f)
+                }
+            }
+        }
+    }
+}
+
+/** Turns any composable into a resize grip for one window edge. */
+private fun Modifier.resizeHandle(win: WinState, wm: WindowManager, edge: ResizeEdge): Modifier =
+    this.pointerInput(win.id, edge) {
+        awaitEachGesture {
+            val down = awaitFirstDown(requireUnconsumed = false)
+            wm.beginResize(win.id, edge)
+            down.consume()
+            var last = down.position
+            while (true) {
+                val event = awaitPointerEvent()
+                val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                if (!change.pressed) break
+                val delta = change.position - last
+                last = change.position
+                change.consume()
+                wm.updateResize(win.id, delta.x, delta.y)
+            }
+            wm.endResize()
+        }
+    }
 
 @Composable
 private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, height: androidx.compose.ui.unit.Dp) {
@@ -264,6 +344,7 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
                 .height(height)
                 .background(p.paper)
                 .raiseOnPress(win, wm)
+                .maximizeOnDoubleTap(win, wm)
                 .pointerInput(win.id) {
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
@@ -320,13 +401,13 @@ private fun TrafficLight(sym: Sym, onClick: () -> Unit) {
     }
 }
 
-enum class Sym { MIN, MAX, CLOSE }
+enum class Sym { MIN, MAX, CLOSE, FLOAT }
 
 @Composable
-private fun TitleButton(sym: Sym, inverted: Boolean = false, onClick: () -> Unit) {
+private fun TitleButton(sym: Sym, inverted: Boolean = false, active: Boolean = false, onClick: () -> Unit) {
     val p = LocalPalette.current
-    val fg = if (inverted) p.ink else p.ink
-    val bg = if (inverted) p.paper else p.paper
+    val fg = if (active) p.paper else p.ink
+    val bg = if (active) p.ink else p.paper
     Box(
         Modifier
             .size(dp(18f))
@@ -345,6 +426,11 @@ private fun TitleButton(sym: Sym, inverted: Boolean = false, onClick: () -> Unit
                 }
                 Sym.MIN -> drawRect(fg, Offset(c.x - r * 1.2f, c.y - 1f), Size(r * 2.4f, 2f))
                 Sym.MAX -> drawRect(fg, Offset(c.x - r * 1.2f, c.y - r * 1.2f), Size(r * 2.4f, r * 2.4f), style = Stroke(2f))
+                Sym.FLOAT -> {
+                    // two offset frames: "this window floats above the tiling layout"
+                    drawRect(fg, Offset(c.x - r * 1.3f, c.y - r * 0.6f), Size(r * 1.8f, r * 1.5f), style = Stroke(1.6f))
+                    drawRect(fg, Offset(c.x - r * 0.5f, c.y - r * 1.3f), Size(r * 1.8f, r * 1.5f), style = Stroke(1.6f))
+                }
             }
         }
     }

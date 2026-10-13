@@ -29,6 +29,12 @@ class WinState(
     var maximized by mutableStateOf(false)
     var minimized by mutableStateOf(false)
 
+    /**
+     * Floating windows stay out of the tiling layout and keep the size the user gave them, which is
+     * how a tablet feels like a desktop: apps sit in windows you can move and resize by hand.
+     */
+    var floating by mutableStateOf(true)
+
     /** Virtual desktop this window lives on (0-based). */
     var desktop by mutableStateOf(0)
     var z by mutableStateOf(0)
@@ -61,6 +67,11 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
     var snapPreview by mutableStateOf<Rect?>(null)
         private set
 
+    /** The window currently being resized, and from which handle. */
+    var resizingId by mutableStateOf<Int?>(null)
+        private set
+    private var resizeEdge: ResizeEdge? = null
+
     private var nextId = 1
     private var topZ = 1
     private var base = Rect.Zero
@@ -86,7 +97,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         metrics = m
         cascadeIndex = 0
         for (w in windows) {
-            if (w.maximized || (tiling && !w.minimized && w.desktop == desktop)) {
+            if (w.maximized || (tiling && !w.minimized && !w.floating && w.desktop == desktop)) {
                 w.x = area.left; w.y = area.top; w.width = area.width; w.height = area.height
                 continue
             }
@@ -278,6 +289,52 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         w.height = (w.height + delta.y).coerceIn(metrics.minH, max(metrics.minH, area.bottom - w.y))
     }
 
+    // ── manual resizing (every edge and corner) ─────────────────────────────────
+    /** Starts a resize gesture on [edge]; [id] is raised and taken out of the tiling layout. */
+    fun beginResize(id: Int, edge: ResizeEdge) {
+        val w = windows.firstOrNull { it.id == id } ?: return
+        focus(id)
+        if (tiling && w.floating) {
+            // a window the user is shaping by hand must not be re-tiled under their finger
+            retile(true)
+        }
+        resizeEdge = edge
+        resizingId = id
+    }
+
+    fun updateResize(id: Int, dx: Float, dy: Float) {
+        val w = windows.firstOrNull { it.id == id } ?: return
+        val edge = resizeEdge ?: return
+        val area = base
+        if (w.maximized) {
+            // dragging a handle of a maximized window restores it to a floating size first
+            w.maximized = false
+            w.width = (area.width * 0.6f).coerceAtLeast(metrics.minW)
+            w.height = (area.height * 0.6f).coerceAtLeast(metrics.minH)
+            w.x = area.left + metrics.margin
+            w.y = area.top + metrics.margin
+        }
+        val next = LayoutMath.resize(w.rect, edge, dx, dy, metrics.minW, metrics.minH, area)
+        w.x = next.left
+        w.y = next.top
+        w.width = next.width
+        w.height = next.height
+    }
+
+    fun endResize() {
+        val id = resizingId
+        resizingId = null
+        resizeEdge = null
+        if (id != null && tiling) retile(true)
+    }
+
+    /** Floats or tiles a single window (the title-bar "float" toggle). */
+    fun toggleFloat(id: Int) {
+        val w = windows.firstOrNull { it.id == id } ?: return
+        w.floating = !w.floating
+        if (tiling) retile(true)
+    }
+
     fun cycleFocus() {
         val vs = visible
         if (vs.size < 2) return
@@ -297,7 +354,8 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         settings.tiling = tiling
         cascadeIndex = 0
         val area = base
-        val list = visible
+        // floating windows keep their own geometry; the rest follow the master-stack layout
+        val list = visible.filter { !it.floating }
         if (area.width <= 0f) return
         if (!tiling || list.isEmpty()) {
             list.forEach { w ->

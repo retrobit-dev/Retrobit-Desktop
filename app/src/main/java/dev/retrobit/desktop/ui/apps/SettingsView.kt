@@ -191,6 +191,45 @@ fun SettingsView(vm: LauncherViewModel) {
             }
         }
 
+        Section("display corners & camera hole")
+        RetroText(
+            "The tablet has rounded corners and a punch-hole camera in the top-left corner. The desktop " +
+                "chrome stops short of both so nothing important is ever hidden.",
+            size = 10.5f, color = p.mid, maxLines = 4,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            RetroButton(
+                label = if (s.safeArea) "safe area: ON" else "safe area: OFF",
+                active = s.safeArea,
+                modifier = Modifier.weight(1f),
+                onClick = { s.safeArea = !s.safeArea },
+            )
+            listOf(0, 12, 20, 28).forEach { radius ->
+                RetroButton(
+                    label = if (radius == 0) "flat" else "${radius}dp",
+                    active = s.cornerInset == radius,
+                    modifier = Modifier.weight(1f),
+                    onClick = { s.cornerInset = radius },
+                )
+            }
+        }
+
+        Section("app icon readability")
+        RetroText(
+            "Icons are redrawn for e-paper: the frame follows the active palette, an optional letter " +
+                "plate marks the app, and a printed name chip sits under every desktop icon.",
+            size = 10.5f, color = p.mid, maxLines = 4,
+        )
+        ToggleRow("Name chips under icons", s.iconLabels, onGlyph = Glyph.GRID) { s.iconLabels = it }
+        ToggleRow("First-letter plate on icons", s.iconMonogram, onGlyph = Glyph.ABOUT) {
+            s.iconMonogram = it
+            dev.retrobit.desktop.data.IconCache.clear()
+        }
+        ToggleRow("Palette accent colour on icon frames", s.iconAccent, onGlyph = Glyph.SETTINGS) {
+            s.iconAccent = it
+            dev.retrobit.desktop.data.IconCache.clear()
+        }
+
         Section("app icon shape")
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             IconTheme.values().forEach { theme ->

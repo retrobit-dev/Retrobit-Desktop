@@ -30,14 +30,37 @@ object IconCache {
 
     fun clear() = cache.evictAll()
 
-    private fun key(app: AppEntry, mode: IconMode, theme: IconTheme, ink: Color, paper: Color) =
-        "${app.key}|$mode|$theme|${ink.toArgb()}|${paper.toArgb()}"
+    private fun key(
+        app: AppEntry,
+        mode: IconMode,
+        theme: IconTheme,
+        ink: Color,
+        paper: Color,
+        accent: Color?,
+        monogram: Boolean,
+    ) = "${app.key}|$mode|$theme|${ink.toArgb()}|${paper.toArgb()}|${accent?.toArgb() ?: 0}|$monogram"
 
-    fun peek(app: AppEntry, mode: IconMode, theme: IconTheme, ink: Color, paper: Color): ImageBitmap? =
-        cache.get(key(app, mode, theme, ink, paper))
+    fun peek(
+        app: AppEntry,
+        mode: IconMode,
+        theme: IconTheme,
+        ink: Color,
+        paper: Color,
+        accent: Color? = null,
+        monogram: Boolean = false,
+    ): ImageBitmap? = cache.get(key(app, mode, theme, ink, paper, accent, monogram))
 
-    fun get(app: AppEntry, mode: IconMode, theme: IconTheme, ink: Color, paper: Color): ImageBitmap? {
-        val k = key(app, mode, theme, ink, paper)
+    fun get(
+        app: AppEntry,
+        mode: IconMode,
+        theme: IconTheme,
+        ink: Color,
+        paper: Color,
+        accent: Color? = null,
+        monogram: Boolean = false,
+        label: String? = null,
+    ): ImageBitmap? {
+        val k = key(app, mode, theme, ink, paper, accent, monogram)
         cache.get(k)?.let { return it }
         val drawable = runCatching { app.info.getBadgedIcon(0) }.getOrNull()
             ?: runCatching { app.info.getIcon(0) }.getOrNull()
@@ -47,7 +70,8 @@ object IconCache {
             IconMode.MONO -> mono(render(drawable, 128), ink.toArgb(), paper.toArgb())
             IconMode.DITHER -> dither(render(drawable, 40), ink.toArgb(), paper.toArgb())
         }
-        val framed = frame(bmp, theme, ink.toArgb(), paper.toArgb())
+        val framed = frame(bmp, theme, ink.toArgb(), paper.toArgb(), accent?.toArgb() ?: 0)
+        if (monogram) stamp(framed, label ?: app.label, ink.toArgb(), paper.toArgb(), theme)
         val img = framed.asImageBitmap()
         cache.put(k, img)
         return img
@@ -57,7 +81,7 @@ object IconCache {
      * Desktop-theme icon shapes: the app icon is masked/framed so a mixed set of third-party icons
      * still looks like it belongs to the active desktop.
      */
-    private fun frame(src: Bitmap, theme: IconTheme, ink: Int, paper: Int): Bitmap {
+    private fun frame(src: Bitmap, theme: IconTheme, ink: Int, paper: Int, accent: Int = 0): Bitmap {
         if (theme == IconTheme.PLAIN) return src
         val size = src.width
         val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
@@ -81,10 +105,11 @@ object IconCache {
         canvas.drawBitmap(src, null, body, paint)
         canvas.restore()
         // 1-bit style outline so the icon sits on the paper like a print
+        // the outline follows the palette: plain ink on paper, the accent colour when one exists
         val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = size * 0.035f
-            color = ink
+            strokeWidth = size * 0.05f
+            color = if (accent != 0) accent else ink
         }
         when (theme) {
             IconTheme.CLASSIC -> {
@@ -98,6 +123,46 @@ object IconCache {
             else -> Unit
         }
         return out
+    }
+
+    /**
+     * Stamps the app's first letter into the lower-left corner of the icon. After dithering, a
+     * folder-shaped or unfamiliar icon is hard to tell apart — the letter makes it obvious.
+     */
+    private fun stamp(bmp: Bitmap, label: String, ink: Int, paper: Int, theme: IconTheme) {
+        val letter = label.trim().firstOrNull()?.uppercaseChar() ?: return
+        if (!letter.isLetterOrDigit()) return
+        val size = bmp.width
+        val canvas = Canvas(bmp)
+        val plate = size * 0.42f
+        val left = size * 0.03f
+        val top = size - plate - size * 0.03f
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+        paint.style = Paint.Style.FILL
+        paint.color = paper
+        val radius = if (theme == IconTheme.ROUNDED) plate * 0.28f else 0f
+        if (radius > 0f) {
+            canvas.drawRoundRect(left, top, left + plate, top + plate, radius, radius, paint)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = size * 0.04f
+            paint.color = ink
+            canvas.drawRoundRect(left, top, left + plate, top + plate, radius, radius, paint)
+        } else {
+            canvas.drawRect(left, top, left + plate, top + plate, paint)
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = size * 0.04f
+            paint.color = ink
+            canvas.drawRect(left, top, left + plate, top + plate, paint)
+        }
+        val text = Paint(Paint.ANTI_ALIAS_FLAG)
+        text.color = ink
+        text.textSize = plate * 0.82f
+        text.typeface = android.graphics.Typeface.MONOSPACE
+        text.textAlign = Paint.Align.CENTER
+        val metrics = text.fontMetrics
+        val cx = left + plate / 2f
+        val cy = top + plate / 2f - (metrics.ascent + metrics.descent) / 2f
+        canvas.drawText(letter.toString(), cx, cy, text)
     }
 
     private fun render(d: Drawable, size: Int): Bitmap {

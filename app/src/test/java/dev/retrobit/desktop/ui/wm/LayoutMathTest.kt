@@ -1,5 +1,6 @@
 package dev.retrobit.desktop.ui.wm
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -141,5 +142,73 @@ class LayoutMathTest {
     fun `snapping is disabled on a degenerate desktop`() {
         val tiny = Rect(0f, 0f, 10f, 10f)
         assertNull(LayoutMath.zoneFor(tiny, Rect(0f, 0f, 10f, 10f)))
+    }
+
+    // ── manual resizing: every edge and corner is a handle ───────────────────────
+
+    private val win = Rect(400f, 300f, 800f, 600f)
+
+    @Test
+    fun `dragging the right edge only changes the width`() {
+        val r = LayoutMath.resize(win, ResizeEdge.RIGHT, 60f, 0f, 200f, 120f, area)
+        assertEquals(win.left, r.left, 0.01f)
+        assertEquals(win.top, r.top, 0.01f)
+        assertEquals(win.bottom, r.bottom, 0.01f)
+        assertEquals(860f, r.right, 0.01f)
+    }
+
+    @Test
+    fun `dragging the left edge moves the left side and keeps the right side`() {
+        val r = LayoutMath.resize(win, ResizeEdge.LEFT, -50f, 0f, 200f, 120f, area)
+        assertEquals(350f, r.left, 0.01f)
+        assertEquals(win.right, r.right, 0.01f)
+    }
+
+    @Test
+    fun `the bottom right corner resizes both axes at once`() {
+        val r = LayoutMath.resize(win, ResizeEdge.BOTTOM_RIGHT, 30f, 40f, 200f, 120f, area)
+        assertEquals(830f, r.right, 0.01f)
+        assertEquals(640f, r.bottom, 0.01f)
+        assertEquals(win.left, r.left, 0.01f)
+        assertEquals(win.top, r.top, 0.01f)
+    }
+
+    @Test
+    fun `the top left corner resizes up and to the left`() {
+        val r = LayoutMath.resize(win, ResizeEdge.TOP_LEFT, -20f, -30f, 200f, 120f, area)
+        assertEquals(380f, r.left, 0.01f)
+        assertEquals(area.top, r.top, 0.01f)
+    }
+
+    @Test
+    fun `a window never shrinks below the minimum size`() {
+        val tiny = Rect(100f, 100f, 340f, 260f)
+        val r = LayoutMath.resize(tiny, ResizeEdge.RIGHT, -500f, 0f, 200f, 120f, area)
+        assertEquals(220f, r.width, 0.01f)
+        val r2 = LayoutMath.resize(tiny, ResizeEdge.BOTTOM, 0f, -500f, 200f, 120f, area)
+        assertEquals(120f, r2.height, 0.01f)
+    }
+
+    @Test
+    fun `resizing stops at the desktop edge`() {
+        val r = LayoutMath.resize(win, ResizeEdge.RIGHT, 5000f, 5000f, 200f, 120f, area)
+        assertEquals(area.right, r.right, 0.01f)
+    }
+
+    @Test
+    fun `a hit on the left border reports the left handle`() {
+        val edge = LayoutMath.edgeAt(Offset(win.left + 3f, win.center.y), win, 14f)
+        assertEquals(ResizeEdge.LEFT, edge)
+    }
+
+    @Test
+    fun `a hit on the bottom right corner reports the corner handle`() {
+        val edge = LayoutMath.edgeAt(Offset(win.right - 4f, win.bottom - 4f), win, 14f)
+        assertEquals(ResizeEdge.BOTTOM_RIGHT, edge)
+    }
+
+    @Test
+    fun `a hit in the middle of the window reports no handle`() {
+        assertNull(LayoutMath.edgeAt(win.center, win, 14f))
     }
 }
