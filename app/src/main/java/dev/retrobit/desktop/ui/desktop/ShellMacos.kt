@@ -68,6 +68,7 @@ fun MacosShell(vm: LauncherViewModel) {
     val p = LocalPalette.current
     val density = LocalDensity.current
     val drag = LocalDragState.current
+    val dockSlots = remember { DockSlots(horizontal = true) }
     var size by remember { mutableStateOf(IntSize.Zero) }
 
     val barH = px(26f)

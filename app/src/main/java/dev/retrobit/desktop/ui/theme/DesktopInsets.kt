@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
 /**
@@ -41,11 +42,12 @@ val LocalDesktopInsets = staticCompositionLocalOf { DesktopInsets.Zero }
 fun rememberDesktopInsets(enabled: Boolean, cornerDp: Int): DesktopInsets {
     if (!enabled) return DesktopInsets.Zero
     val density = LocalDensity.current
+    val layoutDirection = LocalLayoutDirection.current
     val cutout = WindowInsets.displayCutout
     val corner = with(density) { cornerDp.dp.toPx() }
-    val left = maxOf(cutout.getLeft(density), corner)
+    val left = maxOf(cutout.getLeft(density, layoutDirection), corner)
     val top = maxOf(cutout.getTop(density), corner)
-    val right = maxOf(cutout.getRight(density), corner)
+    val right = maxOf(cutout.getRight(density, layoutDirection), corner)
     val bottom = maxOf(cutout.getBottom(density), corner)
     return DesktopInsets(left, top, right, bottom)
 }
