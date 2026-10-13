@@ -1,0 +1,243 @@
+package dev.retrobit.desktop.ui.components
+
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.size
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.unit.Dp
+import dev.retrobit.desktop.ui.theme.LocalPalette
+
+/**
+ * 16×16 pixel-art icons.  '#' = ink, 'o' = paper, '+' = mid-tone, anything else = transparent.
+ */
+enum class Glyph(vararg raw: String) {
+    FOLDER(
+        "",
+        " #####",
+        "#ooooo#",
+        "#oooooo#######",
+        "#oooooooooooooo#",
+        "################",
+        "#oooooooooooooo#",
+        "#oooooooooooooo#",
+        "#oooooooooooooo#",
+        "#oooooooooooooo#",
+        "#oooooooooooooo#",
+        "#oooooooooooooo#",
+        "################",
+    ),
+    TERMINAL(
+        "################",
+        "#oooooooooooooo#",
+        "################",
+        "################",
+        "##o#############",
+        "###o############",
+        "####o###########",
+        "###o############",
+        "##o####ooooo####",
+        "################",
+        "################",
+        "################",
+    ),
+    NOTES(
+        "  #########",
+        "  #ooooooo##",
+        "  #ooooooo#o#",
+        "  #ooooooo####",
+        "  #oooooooooo#",
+        "  #o######ooo#",
+        "  #oooooooooo#",
+        "  #o########o#",
+        "  #oooooooooo#",
+        "  #o#######oo#",
+        "  #oooooooooo#",
+        "  #o#####oooo#",
+        "  #oooooooooo#",
+        "  ############",
+    ),
+    SETTINGS(
+        "   ###",
+        "   #o#",
+        "################",
+        "   #o#",
+        "   ###",
+        "          ###",
+        "          #o#",
+        "################",
+        "          #o#",
+        "          ###",
+        "      ###",
+        "      #o#",
+        "################",
+        "      #o#",
+        "      ###",
+    ),
+    SYSMON(
+        "################",
+        "#oooooooooooooo#",
+        "#ooooooooooo#oo#",
+        "#oooooooooo#o#o#",
+        "#ooo#oooooo#o#o#",
+        "#oo#o#oooo#ooo##",
+        "#o#ooo#ooo#oooo#",
+        "##ooooo#o#ooooo#",
+        "#oooooo#o#ooooo#",
+        "#ooooooo#oooooo#",
+        "#oooooooooooooo#",
+        "################",
+        "     ######",
+        "   ##########",
+    ),
+    ABOUT(
+        "  ############",
+        " #oooooooooooo#",
+        "#oooooo##oooooo#",
+        "#oooooo##oooooo#",
+        "#oooooooooooooo#",
+        "#ooooo###oooooo#",
+        "#oooooo##oooooo#",
+        "#oooooo##oooooo#",
+        "#oooooo##oooooo#",
+        "#oooooo##oooooo#",
+        "#ooooo####ooooo#",
+        " #oooooooooooo#",
+        "  ############",
+    ),
+    GRID(
+        "####  ####  ####",
+        "#oo#  #oo#  #oo#",
+        "#oo#  #oo#  #oo#",
+        "####  ####  ####",
+        "",
+        "",
+        "####  ####  ####",
+        "#oo#  #oo#  #oo#",
+        "#oo#  #oo#  #oo#",
+        "####  ####  ####",
+        "",
+        "",
+        "####  ####  ####",
+        "#oo#  #oo#  #oo#",
+        "#oo#  #oo#  #oo#",
+        "####  ####  ####",
+    ),
+    HDD(
+        "################",
+        "#oooooooooooooo#",
+        "#o++++++++++++o#",
+        "#oooooooooooooo#",
+        "################",
+        "#oooooooooooooo#",
+        "#o##oooooooo#oo#",
+        "#oooooooooooooo#",
+        "################",
+    ),
+    HOME(
+        "       ##",
+        "      #oo#",
+        "     #oooo#",
+        "    #oooooo#",
+        "   #oooooooo#",
+        "  #oooooooooo#",
+        " ##############",
+        "  #oooooooooo#",
+        "  #ooo###oooo#",
+        "  #ooo#o#oooo#",
+        "  #ooo#o#o##o#",
+        "  #ooo#o#o##o#",
+        "  #ooo#o#oooo#",
+        "  ############",
+    ),
+    COMPUTER(
+        " ##############",
+        " #oooooooooooo#",
+        " #o##########o#",
+        " #o#++++++++#o#",
+        " #o#++++++++#o#",
+        " #o#++++++++#o#",
+        " #o#++++++++#o#",
+        " #o##########o#",
+        " #oooooooooo#o#",
+        " ##############",
+        "      #oo#",
+        "    ########",
+        "  ############",
+        "  #oooooooooo#",
+        "  ############",
+    ),
+    LOGO(
+        "################",
+        "################",
+        "###oooooooo#####",
+        "###ooo###ooo####",
+        "###ooo####oo####",
+        "###ooo###ooo####",
+        "###oooooooo#####",
+        "###ooo##ooo#####",
+        "###ooo###ooo####",
+        "###ooo####ooo###",
+        "###ooo#####ooo##",
+        "################",
+        "################",
+    ),
+    POWER(
+        "       ##",
+        "   ##  ##  ##",
+        "  ##   ##   ##",
+        " ##    ##    ##",
+        " #     ##     #",
+        "##            ##",
+        "##            ##",
+        "##            ##",
+        " #            #",
+        " ##          ##",
+        "  ##        ##",
+        "   ##########",
+        "     ######",
+    ),
+    SEARCH(
+        "   #####",
+        "  #ooooo#",
+        " #ooooooo#",
+        " #ooooooo#",
+        " #ooooooo#",
+        " #ooooooo#",
+        "  #ooooo#",
+        "   ######",
+        "        ###",
+        "         ###",
+        "          ###",
+        "           ##",
+    ),
+    ;
+
+    /** Normalised 16×16 grid, vertically centred. */
+    val rows: List<String> = run {
+        val r = raw.map { it.take(16).padEnd(16, ' ') }.take(16)
+        val top = (16 - r.size) / 2
+        List(top) { " ".repeat(16) } + r + List(16 - r.size - top) { " ".repeat(16) }
+    }
+}
+
+@Composable
+fun GlyphIcon(glyph: Glyph, iconSize: Dp, modifier: Modifier = Modifier) {
+    val p = LocalPalette.current
+    Canvas(modifier.size(iconSize)) {
+        val cell = this.size.width / 16f
+        val ext = Size(cell + 0.6f, cell + 0.6f)
+        glyph.rows.forEachIndexed { y, row ->
+            row.forEachIndexed { x, ch ->
+                val c = when (ch) {
+                    '#' -> p.ink
+                    'o' -> p.paper
+                    '+' -> p.mid
+                    else -> null
+                }
+                if (c != null) drawRect(c, Offset(x * cell, y * cell), ext)
+            }
+        }
+    }
+}
