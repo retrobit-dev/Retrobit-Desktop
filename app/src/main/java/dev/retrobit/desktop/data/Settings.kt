@@ -97,6 +97,22 @@ class Settings(context: Context) {
     /** How long the rails stay up before they slide away (seconds). */
     var chromeAutoHideSecs: Int by intPref("chromeAutoHideSecs", 6)
 
+    /** What the dock shows: "pinned" (the apps pinned to the dock) or "used" (most used first). */
+    var railMode: String by stringPref("railMode", "pinned")
+
+    /** Apps the cyberdeck chrome must stay away from (camera, games, video players...). */
+    var chromeNoApps: List<String> by listPref("chromeNoApps")
+
+    /** Night mode: the dark Ink palette, remembered against the day palette it replaced. */
+    var nightMode: Boolean by boolPref("nightMode", false)
+    var dayPalette: String by stringPref("dayPalette", "")
+
+    /** Rotation lock applied while the launcher is in front (quick panel). */
+    var rotateLocked: Boolean by boolPref("rotateLocked", false)
+
+    /** Screen brightness set from the quick panel, or -1 while the tablet decides. */
+    var brightness: Float by floatPref("brightness", -1f)
+
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
     /** Drag a window against a screen edge to snap it (half screen / maximize). */

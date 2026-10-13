@@ -256,6 +256,78 @@ fun SettingsView(vm: LauncherViewModel) {
                 )
             }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroText("dock shows", size = 12f, modifier = Modifier.weight(1f))
+            RetroButton(
+                label = "pinned apps",
+                active = s.railMode != "used",
+                onClick = { vm.onPanelAction("mode:pinned") },
+            )
+            RetroButton(
+                label = "most used first",
+                active = s.railMode == "used",
+                onClick = { vm.onPanelAction("mode:used") },
+            )
+        }
+        RetroText(
+            "Most used first keeps the first two pinned apps where they are and fills the rest of the " +
+                "dock (desktop dock, taskbar, sidebar, launcher widget and the cyberdeck dock) with " +
+                "the apps this tablet actually opens. Terminal: `rail mode pinned|used`.",
+            size = 10f, color = p.mid, maxLines = 4,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroText("screen", size = 12f, modifier = Modifier.weight(1f))
+            RetroButton(label = "B-", onClick = { vm.onPanelAction("bright:-") })
+            RetroButton(label = "B+", onClick = { vm.onPanelAction("bright:+") })
+            RetroButton(
+                label = "auto",
+                active = s.brightness <= 0f,
+                onClick = { vm.onPanelAction("bright:auto") },
+            )
+            RetroButton(
+                label = if (s.nightMode) "night on" else "night off",
+                active = s.nightMode,
+                onClick = { vm.onPanelAction("night:toggle") },
+            )
+            RetroButton(
+                label = if (s.rotateLocked) "rotate locked" else "auto rotate",
+                active = s.rotateLocked,
+                onClick = { vm.onPanelAction("rotate:toggle") },
+            )
+        }
+        RetroText(
+            "Brightness keeps its value while this launcher is in front (-1 means the tablet decides " +
+                "again). Night mode swaps to the dark Ink palette and back to the one you had. Rotation " +
+                "lock freezes the launcher at the current angle. All three, plus the rail switches, are " +
+                "on the quick panel: `quick panel` key on a rail, or terminal `panel`.",
+            size = 10f, color = p.mid, maxLines = 5,
+        )
+        val ruleApps = (vm.dockApps(4) + listOfNotNull(vm.appByPackage(s.chromeNoApps.firstOrNull().orEmpty())))
+            .distinctBy { it.pkg }
+        if (ruleApps.isNotEmpty()) {
+            RetroText("apps that never get the frame (tap to switch)", size = 11f, weight = FontWeight.Bold)
+            ruleApps.forEach { app ->
+                ToggleRow(app.label, s.chromeNoApps.contains(app.pkg), onGlyph = Glyph.CLOSE) {
+                    vm.toggleChromeRule(app.pkg)
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            RetroButton(
+                label = "quick panel now",
+                glyph = Glyph.SETTINGS,
+                modifier = Modifier.weight(1f),
+                onClick = { vm.openPanel() },
+            )
+            RetroButton(
+                label = "panel for 8s",
+                modifier = Modifier.weight(1f),
+                onClick = {
+                    vm.syncPanel()
+                    dev.retrobit.desktop.shell.PanelService.show(vm.appContext)
+                },
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
             RetroButton(
                 label = if (vm.chromeAllowed()) "permission granted" else "grant permission",

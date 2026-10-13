@@ -192,6 +192,21 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** When the last app was sent to a frame rectangle (evidence for the full-screen probe). */
     private var lastFloatLaunchAt = 0L
 
+    /** The package whose rails the user hid with the eye key (a "not now", not a setting). */
+    private var chromeMutedFor: String? = null
+
+    /** A short message the rails print for two seconds (pin, unpin, mode switch...). */
+    private var chromeFlash: String = ""
+    private var chromeFlashAt = 0L
+
+    /** Shows [message] on the rail that just did something, for two seconds. */
+    private fun flashChrome(message: String) {
+        chromeFlash = message
+        chromeFlashAt = System.currentTimeMillis()
+        shell.print(message)
+        syncChrome()
+    }
+
     /**
      * The app that took the whole screen right after we asked for a floating rectangle — proof that
      * this tablet would not float it. The window of that app says so instead of pretending.
@@ -297,13 +312,25 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     pkg = win.app?.pkg,
                 )
             }
-        val dock = settings.pinnedDock
+        // what the dock shows: the pinned apps, or the ones this tablet actually uses
+        val usedPkgs = settings.pinnedDock.take(2) +
+            dev.retrobit.desktop.data.AppUsage.order(
+                items = apps,
+                counts = usageCounts(),
+                pkg = { it.pkg },
+                label = { it.label },
+            ).map { it.pkg } +
+            settings.pinnedDock.drop(2)
+        val dockPkgs = if (settings.railMode == "used") usedPkgs.distinct() else settings.pinnedDock
+        val dock = dockPkgs
+            .filterNot { settings.chromeNoApps.contains(it) }
             .take(6)
             .map { pkg ->
                 dev.retrobit.desktop.shell.CyberdeckChrome.Bar(
                     appByPackage(pkg)?.label ?: pkg,
                     "app:$pkg",
                     pkg = pkg,
+                    pinned = settings.pinnedDock.contains(pkg),
                 )
             }
         CyberdeckChrome.state = dev.retrobit.desktop.shell.CyberdeckChrome.State(
@@ -326,12 +353,21 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             autoHide = settings.chromeAutoHide,
             autoHideSecs = settings.chromeAutoHideSecs.coerceIn(3, 60),
             net = snapshot.net,
+            railMode = settings.railMode,
+            flash = chromeFlash.takeIf { System.currentTimeMillis() - chromeFlashAt < 2_500L }.orEmpty(),
         )
     }
 
     /** Wired once: keeps the chrome state fresh and routes the rail buttons back into the launcher. */
     private fun wireChrome() {
         CyberdeckChrome.onRefresh = { syncChrome() }
+        CyberdeckChrome.onHideNow = { hideChromeNow() }
+        CyberdeckChrome.onToggleRails = { toggleChromeRails() }
+        CyberdeckChrome.onRailMode = { switchRailMode() }
+        CyberdeckChrome.onRailHold = { action -> onRailHold(action) }
+        CyberdeckChrome.onPanel = { openPanel() }
+        dev.retrobit.desktop.shell.PanelChrome.onRefresh = { syncPanel() }
+        dev.retrobit.desktop.shell.PanelChrome.onClose = { panelOpen = false }
         CyberdeckChrome.onHome = { goDesktop() }
         CyberdeckChrome.onHideChrome = { setCyberdeck(false) }
         CyberdeckChrome.onRefit = { refitChromeWindow() }
@@ -352,9 +388,234 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         syncChrome()
     }
 
+    /**
+     * The eye key: hide the rails for the app that is in front right now. Walking into another app
+     * brings them back, so this is a "not now" and never a setting.
+     */
+    private fun hideChromeNow() {
+        chromeMutedFor = chromeApp?.pkg
+        runCatching { ChromeService.hide(appContext) }
+        flashChrome("rails hidden for ${chromeApp?.label ?: "this app"}")
+    }
+
+    /** A tap on an empty rail spot: bring the rails up, or take them down for this app. */
+    private fun toggleChromeRails() {
+        if (ChromeService.visible) hideChromeNow() else {
+            chromeMutedFor = null
+            runCatching { ChromeService.show(appContext) }
+        }
+    }
+
+    /** The dock divider: the pinned apps, or the ones this tablet uses most. */
+    private fun switchRailMode() {
+        settings.railMode = if (settings.railMode == "used") "pinned" else "used"
+        flashChrome("dock: " + if (settings.railMode == "used") "most used first" else "pinned apps")
+        syncChrome()
+        runCatching { dev.retrobit.desktop.shell.PanelService.sync(appContext) }
+    }
+
+    /** A rail key was held: a window key opens that app's shell, a dock key pins or unpins it. */
+    private fun onRailHold(action: String) {
+        when {
+            action.startsWith("win:") -> {
+                val id = action.removePrefix("win:").toIntOrNull() ?: return
+                val win = wm.windows.firstOrNull { it.id == id } ?: return
+                val app = win.app ?: return
+                focusAppWindow(win)
+                openShellFor(app)
+            }
+            action.startsWith("app:") -> toggleDockPin(action.removePrefix("app:"))
+        }
+    }
+
+    /** Pins or unpins an app in the dock (the same list the desktop dock draws). */
+    fun toggleDockPin(pkg: String) {
+        val list = settings.pinnedDock
+        settings.pinnedDock = if (list.contains(pkg)) list - pkg else list + pkg
+        flashChrome(
+            (if (settings.pinnedDock.contains(pkg)) "pinned to the dock: " else "unpinned: ") +
+                (appByPackage(pkg)?.label ?: pkg),
+        )
+        syncChrome()
+    }
+
+    /**
+     * "Shell here": the terminal opens with the app's package already typed into the notes of the
+     * [AppShell] helper - a small, honest substitute for running a real shell in another app.
+     */
+    private fun openShellFor(app: AppEntry) {
+        shell.print("app shell: ${app.label} (${app.pkg})")
+        shell.print("  uid  target=${app.user.hashCode()}  window=${winOf(app)?.let { "${it.width.toInt()}x${it.height.toInt()}" } ?: "-"}", TerminalShell.Kind.DIM)
+        shell.print("  use `info ${app.label}` for the full package record", TerminalShell.Kind.DIM)
+        openWindow(WinKind.TERMINAL)
+        goDesktop()
+    }
+
+    private fun winOf(app: AppEntry) = wm.windows.firstOrNull { it.kind == WinKind.APPWINDOW && it.app?.pkg == app.pkg }
+
+    /** The per-app rules: apps the chrome must keep away from. */
+    fun toggleChromeRule(pkg: String) {
+        val list = settings.chromeNoApps
+        settings.chromeNoApps = if (list.contains(pkg)) list - pkg else list + pkg
+        val label = appByPackage(pkg)?.label ?: pkg
+        flashChrome((if (settings.chromeNoApps.contains(pkg)) "no chrome for " else "chrome back for ") + label)
+        // a rule for the app in front applies right away
+        if (settings.chromeNoApps.contains(pkg) && chromeApp?.pkg == pkg) {
+            runCatching { ChromeService.hide(appContext) }
+        }
+        syncChrome()
+    }
+
+    // ── quick panel ─────────────────────────────────────────────────────────────
+    /** Opens the quick panel over whatever owns the screen. */
+    fun openPanel() {
+        if (!chromeAllowed()) {
+            requestChromePermission()
+            shell.print("grant \"display over other apps\" first, then the panel can open", TerminalShell.Kind.ERR)
+            return
+        }
+        syncPanel()
+        dev.retrobit.desktop.shell.PanelService.show(appContext)
+    }
+
+    fun closePanel() {
+        dev.retrobit.desktop.shell.PanelService.hide(appContext)
+    }
+
+    /** True while the panel window is up (the launcher draws the desktop dimmed underneath it). */
+    var panelOpen: Boolean by mutableStateOf(false)
+        private set
+
+    /** Fills the panel state from the settings; the panel repaints when this changes. */
+    fun syncPanel() {
+        val palette = dev.retrobit.desktop.ui.theme.Palettes.of(settings.palette)
+        panelOpen = dev.retrobit.desktop.shell.PanelChrome.visible
+        val refs = (settings.pinnedDock.take(4) + chromeApp?.pkg.orEmpty().let { if (it.isBlank()) emptyList() else listOf(it) })
+            .distinct()
+            .mapNotNull { pkg -> appByPackage(pkg)?.let { dev.retrobit.desktop.shell.PanelChrome.AppRef(it.label, it.pkg) } }
+        dev.retrobit.desktop.shell.PanelChrome.state = dev.retrobit.desktop.shell.PanelChrome.State(
+            paper = palette.paper.toArgb(),
+            ink = palette.ink.toArgb(),
+            mid = palette.mid.toArgb(),
+            accent = palette.accent.toArgb(),
+            scale = settings.uiScale.coerceIn(0.6f, 2f),
+            brightness = settings.brightness.takeIf { it > 0f },
+            rotateLocked = settings.rotateLocked,
+            night = settings.nightMode,
+            chromeOn = settings.cyberdeckChrome,
+            chromeAllowed = chromeAllowed(),
+            railMode = settings.railMode,
+            topRail = settings.chromeTopRail,
+            dockOn = settings.chromeDock,
+            autoHide = settings.chromeAutoHide,
+            autoHideSecs = settings.chromeAutoHideSecs.coerceIn(3, 60),
+            apps = refs,
+            noChrome = settings.chromeNoApps,
+        )
+    }
+
+    /** Everything the quick panel can ask for, in one place. */
+    fun onPanelAction(action: String) {
+        when {
+            action.startsWith("bright:") -> {
+                val tail = action.removePrefix("bright:")
+                when {
+                    tail == "auto" -> setBrightness(null)
+                    tail == "+" -> setBrightness(((settings.brightness.takeIf { it > 0f } ?: currentBrightness) + 0.1f).coerceAtMost(1f))
+                    tail == "-" -> setBrightness(((settings.brightness.takeIf { it > 0f } ?: currentBrightness) - 0.1f).coerceAtLeast(0.1f))
+                    tail == "drag" -> Unit
+                    else -> tail.toFloatOrNull()?.let { setBrightness(it.coerceIn(0.05f, 1f)) }
+                }
+            }
+            action == "rotate:toggle" -> {
+                settings.rotateLocked = !settings.rotateLocked
+                shell.print("rotation: " + if (settings.rotateLocked) "locked" else "auto")
+            }
+            action == "night:toggle" -> setNight(!settings.nightMode)
+            action == "chrome:toggle" -> setCyberdeck(!settings.cyberdeckChrome)
+            action == "rails:toggle" -> hideChromeNow()
+            action == "autohide:toggle" -> {
+                settings.chromeAutoHide = !settings.chromeAutoHide
+                syncChrome()
+            }
+            action.startsWith("autohide:") ->
+                action.removePrefix("autohide:").toIntOrNull()?.let {
+                    settings.chromeAutoHideSecs = it.coerceIn(3, 60)
+                    settings.chromeAutoHide = true
+                    syncChrome()
+                }
+            action.startsWith("mode:") -> {
+                settings.railMode = action.removePrefix("mode:")
+                syncChrome()
+            }
+            action == "rail:top" -> {
+                settings.chromeTopRail = !settings.chromeTopRail
+                syncChrome()
+            }
+            action == "rail:dock" -> {
+                settings.chromeDock = !settings.chromeDock
+                syncChrome()
+            }
+            action.startsWith("win:") -> {
+                val pkg = action.removePrefix("win:")
+                appByPackage(pkg)?.let { app ->
+                    val win = winOf(app)
+                    if (win != null && win.app != null) {
+                        wm.focus(win.id)
+                        appWindows.markLaunched(win.id)
+                        chromeApp = app
+                        chromeWinId = win.id
+                        sendAppToWindow(app, win, force = true, quiet = true, float = true)
+                    } else {
+                        launch(app)
+                    }
+                }
+            }
+            action.startsWith("rule:") -> toggleChromeRule(action.removePrefix("rule:"))
+            action == "close" -> closePanel()
+        }
+        syncPanel()
+        runCatching { dev.retrobit.desktop.shell.PanelService.sync(appContext) }
+    }
+
+    /** Brightness the activity is actually using (set by it on every resume / panel change). */
+    private var currentBrightness: Float = 0.5f
+
+    /** Called from the activity so the panel's B- / B+ start from the real value. */
+    fun noteBrightness(value: Float) {
+        currentBrightness = value.coerceIn(0.05f, 1f)
+    }
+
+    private fun setBrightness(value: Float?) {
+        settings.brightness = value ?: -1f
+        brightnessRequest++
+        shell.print("brightness: " + (value?.let { "${(it * 100).toInt()}%" } ?: "device"))
+    }
+
+    /** Bumped when the panel changes the brightness: the activity applies it to its window. */
+    var brightnessRequest: Int by mutableStateOf(0)
+        private set
+
+    /** Night mode: the dark Ink palette, and back to the day palette when it is turned off. */
+    fun setNight(on: Boolean) {
+        if (on == settings.nightMode) return
+        if (on) {
+            if (settings.palette != PaletteId.INK) settings.dayPalette = settings.palette.name
+            setPalette(PaletteId.INK)
+        } else {
+            val back = runCatching { PaletteId.valueOf(settings.dayPalette) }
+                .getOrDefault(PaletteId.PAPER)
+            setPalette(if (back == PaletteId.INK) PaletteId.PAPER else back)
+        }
+        settings.nightMode = on
+        shell.print("night mode: " + if (on) "on" else "off")
+    }
+
     /** The launcher is in front again: the chrome is not needed while our own frames are visible. */
     fun onLauncherVisible() {
         chromeRev++
+        panelOpen = false
+        syncPanel()
         runCatching { ChromeService.hide(appContext) }
         // the service can be killed by the system (or by the user), and the user may have just come
         // back from granting the permission: make sure the chrome is running when it is wanted
@@ -366,9 +627,20 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Another app owns the screen: draw the frame over it when the user asked for the chrome. */
     fun onLauncherHidden() {
-        if (settings.cyberdeckChrome && chromeAllowed()) {
-            lastFullScreenApp = chromeApp?.pkg
+        val pkg = chromeApp?.pkg
+        val excluded = pkg != null && settings.chromeNoApps.contains(pkg)
+        val muted = chromeMutedFor != null && chromeMutedFor == pkg
+        if (settings.cyberdeckChrome && chromeAllowed() && !excluded && !muted) {
+            lastFullScreenApp = pkg
             runCatching { ChromeService.show(appContext) }
+        } else if (settings.cyberdeckChrome && chromeAllowed() && excluded) {
+            // "no chrome for this app" must not be a dead end: the rails fade in for a few seconds
+            // with the reason and the way back
+            lastFullScreenApp = pkg
+            chromeFlash = "no chrome for ${chromeApp?.label ?: pkg} - the eye key turns it back on"
+            chromeFlashAt = System.currentTimeMillis()
+            syncChrome()
+            runCatching { ChromeService.preview(appContext, 4) }
         } else if (lastFloatLaunchAt > 0L && System.currentTimeMillis() - lastFloatLaunchAt < 12_000L) {
             // we asked the system to float this app and it owns the whole screen a moment later
             lastFullScreenApp = chromeApp?.pkg
@@ -496,6 +768,19 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         pkg = { it.pkg },
         label = { it.label },
     )
+
+    /**
+     * The dock list every surface draws: the launcher's dock, the sidebar, the taskbar, the launcher
+     * widget and the cyberdeck dock. With [dev.retrobit.desktop.data.Settings.railMode] on "used",
+     * the two first pinned apps stay put and the apps this tablet actually uses follow - the dock
+     * then answers "what do I open every day" without any arranging.
+     */
+    fun dockApps(limit: Int = 12): List<AppEntry> {
+        val pinned = appsByPackages(settings.pinnedDock)
+        if (settings.railMode != "used") return pinned.take(limit)
+        val used = appsByUsage().take(limit * 2)
+        return (pinned.take(2) + used + pinned.drop(2)).distinctBy { it.pkg }.take(limit)
+    }
 
     /** How often [pkg] has been opened from this launcher. */
     fun usageOf(pkg: String): Int = usageCounts()[pkg] ?: 0

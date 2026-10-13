@@ -178,7 +178,7 @@ fun MacosShell(vm: LauncherViewModel) {
             ) {
                 DockItem(Glyph.GRID, "launch") { vm.launchpad = true }
                 Box(Modifier.width(dp(1.4f)).height(dp(52f)).background(p.ink.copy(alpha = 0.45f)))
-                val dockApps = vm.appsByPackages(vm.settings.pinnedDock).take(9)
+                val dockApps = vm.dockApps(9)
                 dockSlots.trim(dockApps.size)
                 dockApps.forEachIndexed { index, app ->
                     Box(

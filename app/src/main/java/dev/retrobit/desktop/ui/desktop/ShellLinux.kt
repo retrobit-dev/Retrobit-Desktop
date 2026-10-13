@@ -179,7 +179,7 @@ fun LinuxShell(vm: LauncherViewModel) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(dp(6f)),
             ) {
-                val pinnedDock = vm.appsByPackages(vm.settings.pinnedDock)
+                val pinnedDock = vm.dockApps(14)
                 dockSlots.trim(pinnedDock.size)
                 pinnedDock.forEachIndexed { index, app ->
                     Box(

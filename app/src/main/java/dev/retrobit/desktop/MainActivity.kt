@@ -37,6 +37,10 @@ class MainActivity : ComponentActivity() {
     private val vm: LauncherViewModel by viewModels()
     private val keyboard = KeyboardRequester()
 
+    /** Everything the rails and the quick panel ask for arrives on this private bus. */
+    private val bus = dev.retrobit.desktop.shell.PanelSwitch { action -> vm.onPanelAction(action) }
+    private var busRegistered = false
+
     /** Display-cutout insets (punch-hole camera) as [left, top, right, bottom] in px. */
     private val cutout = androidx.compose.runtime.mutableStateOf(IntArray(0))
 
@@ -116,11 +120,19 @@ class MainActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
+        if (!busRegistered) {
+            dev.retrobit.desktop.shell.PanelSwitch.register(this, bus)
+            busRegistered = true
+        }
         // the desktop is on screen: its own frames are visible, so the overlay chrome steps aside
         vm.onLauncherVisible()
     }
 
     override fun onStop() {
+        if (busRegistered) {
+            dev.retrobit.desktop.shell.PanelSwitch.unregister(this, bus)
+            busRegistered = false
+        }
         super.onStop()
         // An app owns the screen now. If the window manager could not float it, the chrome is what
         // keeps the frame visible around it. (A floating app only pauses us, so no chrome then.)
@@ -145,6 +157,29 @@ private fun Root(vm: LauncherViewModel) {
 
     LaunchedEffect(imeHeight > 0) { keyboard.visible = imeHeight > 0 }
 
+    // the quick panel owns the screen brightness while the launcher is in front
+    LaunchedEffect(vm.brightnessRequest, settings.brightness) {
+        val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
+        val wanted = settings.brightness
+        if (wanted > 0f) {
+            window.attributes = window.attributes.apply { screenBrightness = wanted.coerceIn(0.05f, 1f) }
+        } else {
+            // -1 hands the brightness back to the tablet; the value the window had is reported back so
+            // the panel's B- / B+ can start from something sensible
+            vm.noteBrightness(if (window.attributes.screenBrightness > 0f) window.attributes.screenBrightness else 0.5f)
+            window.attributes = window.attributes.apply { screenBrightness = -1f }
+        }
+    }
+
+    // rotation lock from the quick panel (the manifest default is fullUser)
+    LaunchedEffect(settings.rotateLocked) {
+        requestedOrientation = if (settings.rotateLocked) {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
+        } else {
+            android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
+    }
+
     LaunchedEffect(settings.hideSystemBars) {
         val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
         val controller = WindowCompat.getInsetsController(window, view)
@@ -158,6 +193,7 @@ private fun Root(vm: LauncherViewModel) {
 
     BackHandler(enabled = true) {
         when {
+            vm.panelOpen -> vm.closePanel()
             vm.menu != null -> vm.menu = null
             vm.spotlight -> vm.spotlight = false
             vm.launchpad -> vm.launchpad = false

@@ -194,7 +194,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(dp(2f)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                val quick = vm.appsByPackages(vm.settings.pinnedDock).take(6)
+                val quick = vm.dockApps(6)
                 dockSlots.trim(quick.size)
                 quick.forEachIndexed { index, app ->
                     Box(Modifier.onGloballyPositioned { pos -> dockSlots.record(index, pos.boundsInRoot().center) }) {

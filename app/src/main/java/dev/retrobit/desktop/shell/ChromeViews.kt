@@ -44,6 +44,12 @@ class RailView(
     /** Called on any press, so the service can keep the rail awake / bring it back. */
     var onInteract: (() -> Unit)? = null
 
+    /** A key that was held: the dock uses this for "shell here" / pin and unpin. */
+    var onHold: ((String) -> Unit)? = null
+
+    /** A tap on an empty spot of a rail: show or hide the rails right away. */
+    var onEmptyTap: (() -> Unit)? = null
+
     var state: CyberdeckChrome.State = CyberdeckChrome.State()
 
     /** Clock, battery and network readouts, refreshed by the service. */
@@ -127,6 +133,25 @@ class RailView(
         small.textSize = snap16(dp(13f))
 
         if (topRail) drawTop(canvas, y0, h) else drawDock(canvas, y0, h)
+        if (state.flash.isNotBlank()) flash(canvas, y0, h)
+    }
+
+    /** A short confirmation ("pinned to the dock: Files") printed centre-rail, inverted. */
+    private fun flash(canvas: Canvas, y0: Float, h: Float) {
+        val size = snap16(dp(13f))
+        small.textSize = size
+        val room = (width - dp(140f)).coerceAtLeast(dp(120f))
+        val shown = TextUtils.ellipsize(state.flash, small, room, TextUtils.TruncateAt.END).toString()
+        val w = small.measureText(shown) + dp(20f)
+        val rect = RectF((width - w) / 2f, y0 + dp(4f), (width + w) / 2f, y0 + h - dp(4f))
+        bar.color = state.ink.ink
+        canvas.drawRect(rect, bar)
+        bar.color = Color.BLACK
+        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + dp(1.6f), bar)
+        canvas.drawRect(rect.left, rect.bottom - dp(1.6f), rect.right, rect.bottom, bar)
+        small.color = state.ink.paper
+        small.textAlign = Paint.Align.LEFT
+        canvas.drawText(shown, rect.left + dp(10f), rect.centerY() + size * 0.34f, small)
     }
 
     /** What is left of an auto-hidden rail: a thin paper strip with a grip, still touchable. */
@@ -157,10 +182,12 @@ class RailView(
         // keys, right to left: hide, desktop, fit the frame
         var right = width - hPad
         right = box(canvas, right, top, key, "hide", "hide", Glyph.CLOSE, growRight = false) - dp(5f)
+        right = box(canvas, right, top, key, "eye", "hide rails", Glyph.EYE, growRight = false) - dp(5f)
         right = box(canvas, right, top, key, "home", "desktop", Glyph.HOME, growRight = false) - dp(5f)
         if (state.canRefit) {
             right = box(canvas, right, top, key, "fit", "fit frame", Glyph.GRID, growRight = false) - dp(5f)
         }
+        right = box(canvas, right, top, key, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(5f)
 
         // readouts: clock, battery, network
         val status = listOf(clock, battery, net).filter { it.isNotBlank() }.joinToString("  ")
@@ -200,13 +227,29 @@ class RailView(
         var x = hPad
         x = app(canvas, x, top, itemH, labelSize, iconSize, "home", "desktop", null, Glyph.HOME) + dp(8f)
 
-        bar.color = state.ink.mid
-        canvas.drawRect(x, top + dp(6f), x + dp(1.6f), top + itemH - dp(6f), bar)
-        x += dp(10f)
+        // the divider doubles as the pinned / most-used-first switch of the dock
+        val used = state.railMode == "used"
+        val modeW = dp(34f)
+        val modeRect = RectF(x, top, x + modeW, top + itemH)
+        bar.color = state.paper
+        canvas.drawRect(modeRect, bar)
+        bar.color = Color.BLACK
+        canvas.drawRect(modeRect.left, modeRect.top, modeRect.right, modeRect.top + dp(1.6f), bar)
+        canvas.drawRect(modeRect.left, modeRect.bottom - dp(1.6f), modeRect.right, modeRect.bottom, bar)
+        canvas.drawRect(modeRect.left, modeRect.top, modeRect.left + dp(1.6f), modeRect.bottom, bar)
+        canvas.drawRect(modeRect.right - dp(1.6f), modeRect.top, modeRect.right, modeRect.bottom, bar)
+        val mg = snap8(itemH * 0.52f)
+        drawGlyph(canvas, if (used) Glyph.STAR else Glyph.BARS, modeRect.centerX() - mg / 2f, modeRect.centerY() - mg / 2f, mg, false)
+        hits += modeRect to "rail:mode"
+        x = modeRect.right + dp(8f)
 
         // right edge belongs to the hide key: reserve it plus the open windows
         var rx = width - hPad
-        rx = box(canvas, rx, top + (itemH - snap8(itemH * 0.76f)) / 2f, snap8(itemH * 0.76f), "hide", "hide", Glyph.CLOSE, growRight = false) - dp(8f)
+        val dockKey = snap8(itemH * 0.76f)
+        val dockKeyTop = top + (itemH - dockKey) / 2f
+        rx = box(canvas, rx, dockKeyTop, dockKey, "hide", "hide", Glyph.CLOSE, growRight = false) - dp(6f)
+        rx = box(canvas, rx, dockKeyTop, dockKey, "eye", "hide rails", Glyph.EYE, growRight = false) - dp(6f)
+        rx = box(canvas, rx, dockKeyTop, dockKey, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(8f)
 
         val windows = state.windows.takeLast(3)
         val winRoom = windows.size * dp(120f)
@@ -215,13 +258,13 @@ class RailView(
         pinned.forEach { entry ->
             val w = appWidth(entry, labelSize, iconSize)
             if (x + w > endOfPinned) return@forEach
-            x = app(canvas, x, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, null, entry.active) + dp(6f)
+            x = app(canvas, x, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, null, entry.active, entry.pinned) + dp(6f)
         }
 
         windows.reversed().forEach { entry ->
             val w = minOf(appWidth(entry, labelSize, iconSize), dp(132f))
             if (rx - w < x + dp(6f)) return@forEach
-            rx = appRight(canvas, rx, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, entry.active, w) - dp(6f)
+            rx = appRight(canvas, rx, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, entry.active, entry.pinned, w) - dp(6f)
         }
     }
 
@@ -249,9 +292,10 @@ class RailView(
         pkg: String?,
         glyph: Glyph?,
         active: Boolean = false,
+        pinned: Boolean = false,
     ): Float {
         val w = minOf(appWidth(CyberdeckChrome.Bar(label, action, active, pkg), labelSize, iconSize), dp(150f))
-        return paintItem(canvas, x, top, w, itemH, labelSize, iconSize, action, label, pkg, glyph, active, growRight = true)
+        return paintItem(canvas, x, top, w, itemH, labelSize, iconSize, action, label, pkg, glyph, active, growRight = true, pinned = pinned)
     }
 
     private fun appRight(
@@ -265,8 +309,9 @@ class RailView(
         label: String,
         pkg: String?,
         active: Boolean,
+        pinned: Boolean,
         width: Float,
-    ): Float = paintItem(canvas, right - width, top, width, itemH, labelSize, iconSize, action, label, pkg, null, active, growRight = true)
+    ): Float = paintItem(canvas, right - width, top, width, itemH, labelSize, iconSize, action, label, pkg, null, active, growRight = true, pinned = pinned)
 
     private fun paintItem(
         canvas: Canvas,
@@ -282,6 +327,7 @@ class RailView(
         glyph: Glyph?,
         active: Boolean,
         growRight: Boolean,
+        pinned: Boolean = false,
     ): Float {
         val rect = RectF(left, top, left + w, top + itemH)
         // the tile: paper, ink frame, inverted when this is the window in front
@@ -309,11 +355,17 @@ class RailView(
         val textPaint = if (active) title else small
         textPaint.textSize = labelSize
         textPaint.color = if (active) state.ink.paper else state.ink.ink
-        val room = w - dp(6f)
+        val room = w - dp(6f) - if (pinned) dp(9f) else 0f
+        if (pinned) {
+            // a small filled square marks "this one is pinned": a hold takes it off the dock
+            bar.color = if (active) state.ink.paper else state.ink.ink
+            val m = snap8(dp(5f) * 1.2f)
+            canvas.drawRect(rect.left + dp(4f), rect.top + dp(4f), rect.left + dp(4f) + m, rect.top + dp(4f) + m, bar)
+        }
         val name = TextUtils.ellipsize(label, textPaint, room, TextUtils.TruncateAt.END).toString()
         canvas.drawText(name, cx - textPaint.measureText(name) / 2f, rect.bottom - dp(4f), textPaint)
 
-        hits += rect to action
+        hits += hitArea(rect) to action
         return if (growRight) rect.right else rect.left
     }
 
@@ -357,8 +409,23 @@ class RailView(
             title.color = if (active) state.ink.paper else state.ink.ink
             canvas.drawText(shown, rect.left + pad, rect.centerY() + title.textSize * 0.34f, title)
         }
-        hits += rect to action
+        hits += hitArea(rect) to action
         return if (growRight) rect.right else rect.left
+    }
+
+    /**
+     * The touch target of a key: the drawn box grown by a few dp, because a pen and a thumb are both
+     * wider than a 30 dp key. Clamped to the rail so a target never swallows its neighbour.
+     */
+    private fun hitArea(r: RectF): RectF {
+        val growX = dp(3f)
+        val growY = dp(4f)
+        return RectF(
+            (r.left - growX).coerceAtLeast(0f),
+            (r.top - growY).coerceAtLeast(0f),
+            (r.right + growX).coerceAtMost(width.toFloat()),
+            (r.bottom + growY).coerceAtMost(height.toFloat()),
+        )
     }
 
     /** One 16x16 pixel-art glyph, printed like [dev.retrobit.desktop.ui.components.GlyphIcon]. */
@@ -388,17 +455,34 @@ class RailView(
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
                 onInteract?.invoke()
+                downAt = System.currentTimeMillis()
+                downX = event.x
+                downY = event.y
                 pressed = hits.firstOrNull { it.first.contains(event.x, event.y) }?.second
                 invalidate()
                 return true
             }
+            MotionEvent.ACTION_MOVE -> {
+                // a finger that slid off the key cancels it: a rail must never fire by accident
+                val action = hits.firstOrNull { it.first.contains(event.x, event.y) }?.second
+                if (action != pressed) {
+                    pressed = null
+                    invalidate()
+                }
+                return true
+            }
             MotionEvent.ACTION_UP -> {
                 val action = hits.firstOrNull { it.first.contains(event.x, event.y) }?.second
+                val held = System.currentTimeMillis() - downAt
+                val still = kotlin.math.abs(event.x - downX) < dp(14f) &&
+                    kotlin.math.abs(event.y - downY) < dp(14f)
                 pressed = null
                 invalidate()
-                if (action != null) {
-                    performClick()
-                    runCatching { onAction?.invoke(action) }
+                performClick()
+                when {
+                    action != null && still && held >= holdMs -> runCatching { onHold?.invoke(action) }
+                    action != null && still -> runCatching { onAction?.invoke(action) }
+                    action == null && still -> runCatching { onEmptyTap?.invoke() }
                 }
                 return true
             }
@@ -413,6 +497,12 @@ class RailView(
 
     /** Id of the key under the finger right now (reserved for press feedback). */
     private var pressed: String? = null
+    private var downAt = 0L
+    private var downX = 0f
+    private var downY = 0f
+
+    /** How long a key has to rest before it counts as "held" (dock pin / shell). */
+    private var holdMs = 420L
 
     override fun performClick(): Boolean = super.performClick()
 }

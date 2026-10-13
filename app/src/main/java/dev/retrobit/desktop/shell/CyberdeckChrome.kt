@@ -26,6 +26,8 @@ object CyberdeckChrome {
         val active: Boolean = false,
         /** Package of the app, so the dock can print its real icon instead of a name only. */
         val pkg: String? = null,
+        /** True when the app is pinned to the dock: a hold toggles that. */
+        val pinned: Boolean = false,
     )
 
     data class State(
@@ -50,6 +52,10 @@ object CyberdeckChrome {
         val autoHide: Boolean = true,
         val autoHideSecs: Int = 6,
         val net: String = "",
+        /** "pinned" (the dock shows the pinned apps) or "used" (the most used apps first). */
+        val railMode: String = "pinned",
+        /** A short confirmation ("pinned to the dock: Files") drawn on the rail for a moment. */
+        val flash: String = "",
     )
 
     @Volatile
@@ -79,4 +85,24 @@ object CyberdeckChrome {
     /** Called once a second by the service so the state can be refreshed from the launcher. */
     @Volatile
     var onRefresh: (() -> Unit)? = null
+
+    /** "hide the rails for now" (the eye key): they come back with the next app, not for good. */
+    @Volatile
+    var onHideNow: (() -> Unit)? = null
+
+    /** A tap on an empty spot of a rail, or on a handle: show or hide the rails right away. */
+    @Volatile
+    var onToggleRails: (() -> Unit)? = null
+
+    /** The dock divider was tapped: switch between the pinned apps and the most used ones. */
+    @Volatile
+    var onRailMode: (() -> Unit)? = null
+
+    /** A rail key was held: "win:<id>" opens that app's shell, "app:<pkg>" pins or unpins it. */
+    @Volatile
+    var onRailHold: ((String) -> Unit)? = null
+
+    /** The panel key was tapped: open the quick panel over the running app. */
+    @Volatile
+    var onPanel: (() -> Unit)? = null
 }

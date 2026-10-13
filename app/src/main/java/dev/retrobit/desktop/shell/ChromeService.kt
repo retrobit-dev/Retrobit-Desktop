@@ -261,6 +261,8 @@ class ChromeService : Service() {
                     icons = { pkg -> appIcon(pkg) }
                     onAction = { action -> onAction(action) }
                     onInteract = { keepAwake() }
+                    onHold = { action -> onHold(action) }
+                    onEmptyTap = { runCatching { CyberdeckChrome.onToggleRails?.invoke() } }
                 }
                 wm.addView(t, params(sizeW, barsHeight(t), Gravity.TOP or Gravity.START))
                 top = t
@@ -272,6 +274,8 @@ class ChromeService : Service() {
                     icons = { pkg -> appIcon(pkg) }
                     onAction = { action -> onAction(action) }
                     onInteract = { keepAwake() }
+                    onHold = { action -> onHold(action) }
+                    onEmptyTap = { runCatching { CyberdeckChrome.onToggleRails?.invoke() } }
                 }
                 wm.addView(d, params(sizeW, barsHeight(d), Gravity.BOTTOM or Gravity.START))
                 dock = d
@@ -435,6 +439,17 @@ class ChromeService : Service() {
         }
     }
 
+    /** A rail key was held: the dock pins / unpins apps, a window key opens that app's shell. */
+    private fun onHold(action: String) {
+        keepAwake()
+        runCatching { CyberdeckChrome.onRailHold?.invoke(action) }
+    }
+
+    /** Asks the launcher for a fresh state a moment later (used right after a mode switch). */
+    private fun syncSoon() {
+        handler.postDelayed({ runCatching { CyberdeckChrome.onRefresh?.invoke() }; applyState() }, 120L)
+    }
+
     // ── what the rails do ───────────────────────────────────────────────────────
     private fun onAction(action: String) {
         hideAt = 0L
@@ -466,6 +481,21 @@ class ChromeService : Service() {
                     }
                     stopSelf()
                 }
+            }
+            action == "panel" -> {
+                val panel = CyberdeckChrome.onPanel
+                hide()
+                if (panel != null) runCatching { panel() }
+            }
+            action == "eye" -> {
+                // let the confirmation ("rails hidden for Files") be read before the rails go
+                keepAwake()
+                handler.postDelayed({ runCatching { CyberdeckChrome.onHideNow?.invoke() } }, 1_100L)
+            }
+            action == "rail:mode" -> {
+                val mode = CyberdeckChrome.onRailMode
+                keepAwake()
+                if (mode != null) runCatching { mode() } else syncSoon()
             }
             action == "fit" -> {
                 val refit = CyberdeckChrome.onRefit

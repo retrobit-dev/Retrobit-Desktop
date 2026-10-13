@@ -92,6 +92,10 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "dock" -> dock(args)
             "floating" -> floating(args.firstOrNull())
             "cyberdeck", "chrome" -> cyberdeck(args.firstOrNull(), args.getOrNull(1))
+            "panel" -> panel()
+            "rail" -> rail(args.firstOrNull(), args.getOrNull(1))
+            "pins" -> pins()
+            "night" -> night(args.firstOrNull())
             "widgets", "widget" -> widgets(args)
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
@@ -153,6 +157,10 @@ class TerminalShell(private val vm: LauncherViewModel) {
             floating on|off        ask the system to float an app inside its window frame
             cyberdeck on|off       draw the desktop frame over apps that open full screen
             cyberdeck autohide on|off|<3..60>   slide the rails away after a few seconds
+            panel                  open the quick panel (brightness, rotation, rules)
+            rail mode pinned|used  what the docks show (pinned apps or most used first)
+            pins                   the dock list, in the order it is shown
+            night on|off           dark Ink palette / back to the day palette
             cyberdeck preview|grant  show it for a few seconds / ask for the overlay permission
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
@@ -329,6 +337,51 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "on", "1", "true" -> { vm.settings.showSeconds = true; print("seconds -> on") }
             "off", "0", "false" -> { vm.settings.showSeconds = false; print("seconds -> off") }
             else -> { vm.settings.showSeconds = !vm.settings.showSeconds; print("seconds -> ${if (vm.settings.showSeconds) "on" else "off"}") }
+        }
+    }
+
+    private fun panel() {
+        vm.openPanel()
+        print("quick panel: " + if (vm.chromeAllowed()) "opening" else "no overlay permission yet", Kind.DIM)
+    }
+
+    private fun rail(mode: String?, value: String?) {
+        when (mode?.lowercase()) {
+            "mode" -> {
+                val wanted = value?.lowercase()
+                if (wanted != "pinned" && wanted != "used") {
+                    print("usage: rail mode pinned|used (now: ${vm.settings.railMode})", Kind.ERR)
+                    return
+                }
+                vm.settings.railMode = wanted
+                vm.syncChrome()
+                print("docks now show " + if (wanted == "used") "the most used apps first" else "the pinned apps")
+            }
+            null -> print("rail mode: ${vm.settings.railMode}  chrome: " +
+                if (vm.settings.cyberdeckChrome) "on" else "off", Kind.DIM)
+            else -> print("usage: rail mode pinned|used", Kind.ERR)
+        }
+    }
+
+    private fun pins() {
+        val dock = vm.dockApps(14)
+        if (dock.isEmpty()) { print("the dock is empty - pin something from an icon's menu", Kind.DIM); return }
+        print("docks show:", Kind.HEAD)
+        dock.forEachIndexed { i, app ->
+            val mark = if (vm.settings.pinnedDock.contains(app.pkg)) "*" else " "
+            print("  ${(i + 1).toString().padStart(2)}. $mark ${app.label}  (${app.pkg}, x${vm.usageOf(app.pkg)})")
+        }
+        print("  * = pinned. hold an app in the cyberdeck dock to pin or unpin it.", Kind.DIM)
+    }
+
+    private fun night(arg: String?) {
+        when (arg?.lowercase()) {
+            "on", "1", "true" -> { vm.setNight(true); print("night mode -> on") }
+            "off", "0", "false" -> { vm.setNight(false); print("night mode -> off") }
+            else -> {
+                vm.setNight(!vm.settings.nightMode)
+                print("night mode -> ${if (vm.settings.nightMode) "on" else "off"}")
+            }
         }
     }
 
