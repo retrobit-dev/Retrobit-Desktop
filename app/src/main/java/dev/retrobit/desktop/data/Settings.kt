@@ -248,6 +248,20 @@ class Settings(context: Context) {
         }.toMap()
     }
 
+    init {
+        // the calendar widget got simpler (month grid + a few agenda lines), so a stored height of
+        // exactly the old 420dp default is dropped once; any other manual size is left alone
+        if (!sp.getBoolean("migrated_180", false)) {
+            val raw = widgetSizes
+            if (raw.isNotBlank()) {
+                widgetSizes = raw.split(';')
+                    .filterNot { it.startsWith("calendar=") && it.endsWith(",420") }
+                    .joinToString(";")
+            }
+            sp.edit().putBoolean("migrated_180", true).apply()
+        }
+    }
+
     private fun listPref(key: String): PrefState<List<String>> {
         val raw = sp.getString(key, "") ?: ""
         val initial = raw.split('\n').filter { it.isNotBlank() }

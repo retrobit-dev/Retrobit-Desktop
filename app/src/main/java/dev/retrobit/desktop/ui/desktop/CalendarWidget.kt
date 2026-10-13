@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +22,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -59,10 +56,13 @@ fun CalendarWidget(
     val today = LocalDate.now()
     var month by remember { mutableStateOf(YearMonth.from(today)) }
     var selected by remember { mutableStateOf(today) }
-    var editing by remember { mutableStateOf(false) }
+    var writing by remember { mutableStateOf(false) }
 
     val marked = remember(store.entries.toList(), month) { CalendarMath.daysWithEntries(store.entries, month) }
     val dayEntries = remember(store.entries.toList(), selected) { store.on(selected) }
+    val openToday = remember(store.entries.toList(), selected) {
+        dayEntries.count { it.kind == EntryKind.TASK && !it.done }
+    }
 
     Column(
         modifier
@@ -71,30 +71,25 @@ fun CalendarWidget(
             .background(p.paper)
             .border(dp(1.6f), p.ink),
     ) {
-        // ── title bar ─────────────────────────────────────────────────────────────
+        // ── month + arrows, and a + that opens the inline writer ──────────────────
         Row(
-            Modifier.fillMaxWidth().background(p.soft).padding(horizontal = dp(6f), vertical = dp(4f)),
+            Modifier.fillMaxWidth().padding(horizontal = dp(6f), vertical = dp(4f)),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dp(5f)),
+            horizontalArrangement = Arrangement.spacedBy(dp(4f)),
         ) {
             GlyphIcon(Glyph.CALENDAR, dp(13f))
             RetroText(CalendarMath.prettyMonth(month), size = 11f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
             RetroIconButton(label = "<", boxSize = dp(19f)) { month = month.minusMonths(1) }
             RetroIconButton(label = ">", boxSize = dp(19f)) { month = month.plusMonths(1) }
+            RetroIconButton(label = "+", boxSize = dp(19f), active = writing) { writing = !writing }
         }
         Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
 
-        // ── month grid ────────────────────────────────────────────────────────────
+        // ── month grid: no boxes around the days, just the numbers and a dot ──────
         Column(Modifier.padding(horizontal = dp(6f), vertical = dp(5f)), verticalArrangement = Arrangement.spacedBy(dp(2f))) {
             Row(Modifier.fillMaxWidth()) {
                 CalendarMath.weekdayHeaders().forEach { label ->
-                    RetroText(
-                        label.take(2),
-                        size = 10f,
-                        color = p.mid,
-                        modifier = Modifier.weight(1f),
-                        maxLines = 1,
-                    )
+                    RetroText(label.take(2), size = 9.5f, color = p.mid, modifier = Modifier.weight(1f), maxLines = 1)
                 }
             }
             CalendarMath.monthGrid(month).forEach { week ->
@@ -102,7 +97,7 @@ fun CalendarWidget(
                     week.forEach { day ->
                         Box(Modifier.weight(1f)) {
                             if (day == null) {
-                                Spacer(Modifier.height(dp(22f)))
+                                Spacer(Modifier.height(dp(21f)))
                             } else {
                                 DayCell(
                                     day = day,
@@ -111,7 +106,7 @@ fun CalendarWidget(
                                     hasEntries = day in marked,
                                     onSelect = {
                                         selected = day
-                                        editing = false
+                                        writing = false
                                     },
                                 )
                             }
@@ -123,55 +118,58 @@ fun CalendarWidget(
 
         Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
 
-        // ── agenda for the selected day ───────────────────────────────────────────
+        // ── one line about the selected day, then at most three entries ───────────
         Column(
-            Modifier.fillMaxWidth().height(dp(132f)).verticalScroll(rememberScrollState()).padding(dp(7f)),
-            verticalArrangement = Arrangement.spacedBy(dp(5f)),
+            Modifier.fillMaxWidth().padding(dp(7f)),
+            verticalArrangement = Arrangement.spacedBy(dp(4f)),
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
-                RetroText(CalendarMath.prettyDate(selected), size = 11f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                RetroIconButton(label = "+", boxSize = dp(20f), active = editing) { editing = !editing }
-            }
-            if (editing) {
-                EntryEditor(vm, defaultDate = selected, onClose = { editing = false })
-            }
-            if (dayEntries.isEmpty() && !editing) {
-                RetroText("nothing planned — tap + to add", size = 10f, color = p.mid, maxLines = 2)
-            }
-            dayEntries.forEach { entry ->
-                EntryRow(vm, entry, compact = true) { vm.openWindow(WinKind.CALENDAR) }
-            }
-            val tasks = vm.calendar.openTasks(selected)
-            if (tasks.isNotEmpty()) {
-                RetroText("open tasks (${tasks.size})", size = 10f, color = p.mid)
-                tasks.take(4).forEach { task ->
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(5f))) {
-                        RetroIconButton(label = if (task.done) "x" else "-", boxSize = dp(17f)) { vm.calendar.toggleDone(task.id) }
-                        RetroText(task.title, size = 10f, color = p.mid, maxLines = 1, modifier = Modifier.weight(1f))
-                        RetroText(CalendarMath.prettyTime(task.time), size = 9f, color = p.mid)
+            if (writing) {
+                EntryEditor(vm, defaultDate = selected, onClose = { writing = false })
+            } else {
+                Row(
+                    Modifier.fillMaxWidth().clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { vm.openWindow(WinKind.CALENDAR) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(dp(5f)),
+                ) {
+                    RetroText(CalendarMath.prettyDate(selected), size = 10.5f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    if (dayEntries.isNotEmpty()) {
+                        RetroText(
+                            buildString {
+                                append("${dayEntries.size} ${if (dayEntries.size == 1) "entry" else "entries"}")
+                                if (openToday > 0) append(" · $openToday task")
+                            },
+                            size = 9.5f, color = p.mid, maxLines = 1,
+                        )
                     }
                 }
-            }
-        }
-
-        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
-        Row(
-            Modifier.fillMaxWidth().background(p.soft).padding(horizontal = dp(7f), vertical = dp(4f)),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dp(6f)),
-        ) {
-            RetroText(
-                "${vm.calendar.entries.size} entries · ${vm.calendar.openTasks().size} open tasks",
-                size = 9.5f, color = p.mid, maxLines = 1, modifier = Modifier.weight(1f),
-            )
-            Box(
-                Modifier
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                        vm.openWindow(WinKind.CALENDAR)
+                dayEntries.take(3).forEach { entry ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                        ) { vm.openWindow(WinKind.CALENDAR) },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(dp(5f)),
+                    ) {
+                        if (entry.time != null) {
+                            RetroText(CalendarMath.prettyTime(entry.time), size = 9.5f, color = p.mid, maxLines = 1)
+                        }
+                        RetroText(
+                            entry.title,
+                            size = 10.5f,
+                            color = if (entry.done) p.mid else p.ink,
+                            maxLines = 1,
+                            modifier = Modifier.weight(1f),
+                        )
+                        if (entry.kind == EntryKind.BIRTHDAY) RetroText("*", size = 10f, color = p.mid)
                     }
-                    .padding(horizontal = dp(3f)),
-            ) {
-                RetroText("open", size = 9.5f, weight = FontWeight.Bold)
+                }
+                if (dayEntries.size > 3) {
+                    RetroText("+${dayEntries.size - 3} more", size = 9.5f, color = p.mid, maxLines = 1)
+                }
             }
         }
     }
@@ -195,17 +193,14 @@ private fun DayCell(
     Column(
         Modifier
             .fillMaxWidth()
-            .height(dp(22f))
+            .height(dp(21f))
             .background(bg)
-            .border(dp(if (isToday && !isSelected) 1.2f else 0.8f), if (isSelected) p.ink else p.ink.copy(alpha = 0.25f))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onSelect),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        RetroText("${day.dayOfMonth}", size = 10f, color = fg, maxLines = 1)
-        if (hasEntries) {
-            Box(Modifier.size(dp(3f)).background(fg))
-        }
+        RetroText("${day.dayOfMonth}", size = 10f, color = fg, weight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal, maxLines = 1)
+        if (hasEntries) Box(Modifier.size(dp(3f)).background(fg))
     }
 }
 

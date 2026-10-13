@@ -51,9 +51,13 @@ enum class WinKind(val singleton: Boolean) {
  */
 enum class WidgetId(val label: String, val defaultWidth: Int, val defaultHeight: Int) {
     CLOCK("chrono", 250, 0),
-    CALENDAR("calendar", 250, 420),
+    CALENDAR("calendar", 250, 0),
     SYSTEM("sysinfo", 250, 0),
     NOTES("notes", 250, 0),
+    AGENDA("agenda", 250, 0),
+    TASKS("tasks", 250, 0),
+    LAUNCHER("launcher", 250, 0),
+    POWER("power", 250, 0),
     ;
 
     companion object {

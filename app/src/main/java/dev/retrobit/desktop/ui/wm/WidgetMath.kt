@@ -68,7 +68,7 @@ object WidgetMath {
     // ── which widgets live on the home screen ───────────────────────────────────
 
     /** Adds [id] at the end if it is not there yet (used by "add widget"). */
-    fun add(current: List<String>, id: String, capacity: Int = 6): List<String> =
+    fun add(current: List<String>, id: String, capacity: Int = 8): List<String> =
         if (current.contains(id) || current.size >= capacity) current else current + id
 
     /** Removes [id]; removing is always allowed, the home screen can be empty. */

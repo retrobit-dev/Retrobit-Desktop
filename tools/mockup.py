@@ -317,32 +317,32 @@ def widget_edit_chrome(d, box, name, size_text):
     return y1 + 40
 
 
-def add_widget_panel(d, box, marks=(True, False, True, False)):
-    """The `add or remove widgets` panel of the edit mode (DesktopWidgets / AddWidgetBar)."""
+def add_widget_panel(d, box, marks=None):
+    """The widget panel of the edit mode (DesktopWidgets / AddWidgetBar)."""
     x0, y0, x1, y1 = box
+    if marks is None:
+        marks = [True, False, True, False, False, False, False, False]
     d.rectangle([x0, y0, x1, y1], fill=PAPER, outline=INK, width=2)
-    d.text((x0 + 8, y0 + 8), "add or remove widgets", font=mono_bold, fill=INK)
-    names = ("chrono *", "calendar", "sysinfo *", "notes")
+    d.text((x0 + 8, y0 + 8), "widgets", font=mono_bold, fill=INK)
+    names = ("chrono *", "calendar", "sysinfo *", "notes", "agenda", "tasks", "launcher", "power")
     for i, name in enumerate(names):
         bx = x0 + 8 + (i % 2) * ((x1 - x0 - 24) / 2 + 8)
-        by = y0 + 32 + (i // 2) * 30
+        by = y0 + 30 + (i // 2) * 28
         bw = (x1 - x0 - 24) / 2
         edit_button(d, bx, by, name, width=bw, active=marks[i] if i < len(marks) else False)
-    d.text((x0 + 8, y0 + 96), "marked * are on the desktop", font=mono_tiny, fill=INK)
     bx = x0 + 8
     for label, w in (("done", 54), ("reset sizes", 92), ("reset layout", 96)):
-        bx = edit_button(d, bx, y0 + 116, label, width=w) + 6
+        bx = edit_button(d, bx, y0 + 146, label, width=w) + 6
 
 
 def calendar_widget(d, box, mirror=False):
-    """Compact calendar: month grid, dots on days with entries, agenda for the selected day.
+    """Compact calendar: month grid, dots on days with entries, a few agenda lines.
 
-    Mirrors the layout of ui/desktop/CalendarWidget.kt (title bar, weekday row, 6x7 grid, agenda).
+    Mirrors the simplified ui/desktop/CalendarWidget.kt: no frames around the day cells, no agenda
+    editor and no footer bar — month, grid, one line about the selected day, up to three entries.
     """
     x0, y0, x1, y1 = box
     d.rectangle([x0, y0, x1, y1], fill=PAPER, outline=INK, width=2)
-    d.rectangle([x0 + 1, y0 + 1, x1 - 1, y0 + 26], fill=PATTERN)
-    d.line([x0, y0 + 27, x1, y0 + 27], fill=INK, width=2)
     # tiny pixel-art calendar glyph, then the month name (ASCII only: the bundled font has no blocks)
     d.rectangle([x0 + 8, y0 + 5, x0 + 22, y0 + 21], fill=PAPER, outline=INK, width=1)
     d.rectangle([x0 + 8, y0 + 5, x0 + 22, y0 + 10], fill=INK)
@@ -351,10 +351,13 @@ def calendar_widget(d, box, mirror=False):
             d.rectangle([x0 + 12 + gx * 5, y0 + 12 + gy * 5, x0 + 14 + gx * 5, y0 + 14 + gy * 5], fill=INK)
     d.text((x0 + 28, y0 + 5), "october 2026", font=mono_tiny, fill=INK)
     for i, ch in enumerate("< >"):
-        d.rectangle([x1 - 44 + i * 20, y0 + 4, x1 - 28 + i * 20, y0 + 22], fill=PAPER, outline=INK, width=1)
-        d.text((x1 - 40 + i * 20, y0 + 5), ch, font=mono_tiny, fill=INK)
+        d.rectangle([x1 - 66 + i * 20, y0 + 4, x1 - 50 + i * 20, y0 + 22], fill=PAPER, outline=INK, width=1)
+        d.text((x1 - 62 + i * 20, y0 + 5), ch, font=mono_tiny, fill=INK)
+    d.rectangle([x1 - 26, y0 + 4, x1 - 8, y0 + 22], fill=INK)
+    d.text((x1 - 21, y0 + 5), "+", font=mono_tiny, fill=PAPER)
+    d.line([x0, y0 + 26, x1, y0 + 26], fill=INK, width=2)
 
-    grid_top = y0 + 34
+    grid_top = y0 + 33
     cw = (x1 - x0 - 16) / 7
     for i, head in enumerate(("mo", "tu", "we", "th", "fr", "sa", "su")):
         d.text((x0 + 8 + i * cw, grid_top), head, font=mono_tiny, fill=INK)
@@ -364,7 +367,7 @@ def calendar_widget(d, box, mirror=False):
     for i, day in enumerate(days[:42]):
         col, row = i % 7, i // 7
         cx = x0 + 8 + col * cw + cw / 2
-        cy = grid_top + 16 + row * 19
+        cy = grid_top + 15 + row * 19
         if day is None:
             continue
         selected = day == 14
@@ -379,22 +382,40 @@ def calendar_widget(d, box, mirror=False):
         if mark:
             d.rectangle([cx - 2, cy + 9, cx + 2, cy + 12], fill=PAPER if selected else INK)
 
-    agenda_top = y0 + 34 + 16 + 6 * 19 + 6
-    d.line([x0 + 1, agenda_top - 6, x1 - 1, agenda_top - 6], fill=INK, width=2)
-    d.text((x0 + 8, agenda_top - 4), "wed, 14 oct 2026", font=mono_tiny, fill=INK)
-    d.rectangle([x1 - 26, agenda_top - 6, x1 - 8, agenda_top + 12], fill=INK)
-    d.text((x1 - 21, agenda_top - 4), "+", font=mono_tiny, fill=PAPER)
-    rows = [("evt", "edge snapping demo"), ("tsk", "flash v1.4.0 build"), ("bir", "retro desk day")]
-    for i, (tag, title) in enumerate(rows):
-        ty = agenda_top + 18 + i * 20
-        if ty + 16 > y1 - 22:
+    agenda_top = grid_top + 15 + 6 * 19 + 4
+    d.line([x0 + 1, agenda_top - 4, x1 - 1, agenda_top - 4], fill=INK, width=2)
+    day_label = "wed, 14 oct 2026"
+    d.text((x0 + 8, agenda_top + 2), day_label, font=mono_tiny, fill=INK)
+    summary = "3 entries \u00b7 1 task"
+    sx = x0 + 8 + d.textlength(day_label, font=mono_tiny) + 10
+    if sx + d.textlength(summary, font=mono_tiny) < x1 - 8:
+        d.text((sx, agenda_top + 2), summary, font=mono_tiny, fill=INK)
+    rows = [("14:00", "edge snapping demo"), ("16:30", "flash v1.7.0 build"), ("--:--", "retro desk day *")]
+    for i, (time, title) in enumerate(rows):
+        ty = agenda_top + 20 + i * 19
+        if ty + 16 > y1 - 6:
             break
-        d.rectangle([x0 + 8, ty, x0 + 8 + 24, ty + 16], fill=INK)
-        d.text((x0 + 11, ty + 1), tag, font=mono_tiny, fill=PAPER)
-        d.text((x0 + 38, ty + 1), title, font=mono_tiny, fill=INK)
-        d.text((x1 - 40, ty + 1), "del", font=mono_tiny, fill=INK)
-    d.line([x0 + 1, y1 - 20, x1 - 1, y1 - 20], fill=INK, width=2)
-    d.text((x0 + 8, y1 - 17), "6 entries \u00b7 2 open tasks", font=mono_tiny, fill=INK)
+        d.text((x0 + 8, ty + 1), time, font=mono_tiny, fill=INK)
+        d.text((x0 + 48, ty + 1), title, font=mono_tiny, fill=INK)
+    widget_grip(d, x1 - 3, y1 - 3, size=12)
+
+
+def agenda_widget(d, box):
+    """The agenda widget: the next two weeks, one line per entry (ui/desktop/WidgetsExtra.kt)."""
+    x0, y0, x1, y1 = box
+    d.rectangle([x0, y0, x1, y1], fill=PAPER, outline=INK, width=2)
+    d.rectangle([x0 + 1, y0 + 1, x1 - 1, y0 + 26], fill=PATTERN)
+    d.text((x0 + 8, y0 + 5), "agenda", font=mono_tiny, fill=INK)
+    d.line([x0, y0 + 27, x1, y0 + 27], fill=INK, width=2)
+    rows = [("today", "13", "flash build", "14:00"), ("th", "15", "standup", "09:30"),
+            ("fr", "16", "retro desk day", "")]
+    for i, (dow, day, title, time) in enumerate(rows):
+        ty = y0 + 34 + i * 19
+        d.text((x0 + 8, ty), dow, font=mono_tiny, fill=INK)
+        d.text((x0 + 62, ty), day, font=mono_tiny, fill=INK)
+        d.text((x0 + 84, ty), title, font=mono_tiny, fill=INK)
+        if time:
+            d.text((x1 - 46, ty), time, font=mono_tiny, fill=INK)
     widget_grip(d, x1 - 3, y1 - 3, size=12)
 
 
@@ -478,14 +499,15 @@ def panel(caption, style):
         d.rectangle([w - 250, 60, w - 20, 210], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 250, 60, w - 20, 86], fill=PATTERN)
         d.text((w - 240, 64), "chrono", font=mono_tiny, fill=INK)
-        d.text((w - 240, 96), "13:37", font=px_font, fill=INK)
+        d.text((w - 240, 96), "13:37:09", font=px_font, fill=INK)
         d.text((w - 240, 150), "Mon, 13 Oct 2026", font=mono, fill=INK)
         d.text((w - 240, 176), "uptime 2d 4h 12m", font=mono_tiny, fill=INK)
         widget_grip(d, w - 23, 207)
+        agenda_widget(d, (w - 250, 228, w - 20, 316))
         # widget edit mode: the user held the calendar, so it is framed, named and re-sizable
-        calendar_widget(d, (500, 320, w - 20, 690))
-        widget_edit_chrome(d, (500, 320, w - 20, 690), "calendar", "280x420")
-        add_widget_panel(d, (500, 730, w - 20, 890))
+        calendar_widget(d, (500, 340, w - 20, 660))
+        widget_edit_chrome(d, (500, 340, w - 20, 660), "calendar", "280x300")
+        add_widget_panel(d, (500, 700, w - 20, 900))
         window(d, (110, 300, 470, 700), "terminal", body_lines=[
             "operator@retrobit:~$ neofetch",
             "   .-----------.   OS: retrOS GNU/Linux",
@@ -528,7 +550,7 @@ def panel(caption, style):
         d.rectangle([30, 70, 260, 220], fill=PAPER, outline=INK, width=2)
         d.rectangle([30, 70, 260, 96], fill=PATTERN)
         d.text((40, 74), "chrono", font=mono_tiny, fill=INK)
-        d.text((40, 106), "13:37", font=px_font, fill=INK)
+        d.text((40, 106), "13:37:09", font=px_font, fill=INK)
         d.text((40, 160), "Mon, 13 Oct 2026", font=mono, fill=INK)
         widget_grip(d, 257, 217)
         calendar_widget(d, (28, 240, 244, 640))
@@ -622,7 +644,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · add, remove and hold-to-resize widgets · icons follow the palette · hold the pen for right click · floating app windows · reorderable dock · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · eight everyday widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · icons follow the palette · hold the pen for right click · floating app windows · reorderable dock · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

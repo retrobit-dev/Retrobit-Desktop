@@ -65,9 +65,9 @@ class WidgetMathTest {
     }
 
     @Test
-    fun `the home screen holds at most six widgets`() {
-        val full = listOf("1", "2", "3", "4", "5", "6")
-        assertEquals(full, WidgetMath.add(full, "7"))
+    fun `the home screen holds at most eight widgets`() {
+        val full = listOf("1", "2", "3", "4", "5", "6", "7", "8")
+        assertEquals(full, WidgetMath.add(full, "9"))
     }
 
     @Test

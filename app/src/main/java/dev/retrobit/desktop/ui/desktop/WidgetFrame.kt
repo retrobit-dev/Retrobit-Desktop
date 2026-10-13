@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -96,7 +97,10 @@ fun WidgetSlot(
                 .pointerInput(id, maxW, grab, minH, holdPx, storedWidth, storedHeight, density) {
                     coroutineScope {
                         awaitEachGesture {
-                            val down = awaitFirstDown(requireUnconsumed = false)
+                            // Initial pass: the slot sees the press before its content does, so a hold
+                            // (or a resize drag) can claim the gesture and the widget body never treats
+                            // it as a tap of its own
+                            val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                             var moved = false
                             // the size at the start of this gesture, not the one this block captured
                             val widthPx = with(density) { width.dp.toPx() }
@@ -104,6 +108,13 @@ fun WidgetSlot(
                             val handle = WidgetMath.handleAt(
                                 down.position.x, down.position.y, widthPx, heightPx, grab,
                             )
+                            // a hold in the middle of the widget resizes the edge it is closest to,
+                            // instead of both axes at once
+                            val held = handle ?: if (widthPx - down.position.x < heightPx - down.position.y) {
+                                WidgetMath.WidgetHandle.RIGHT
+                            } else {
+                                WidgetMath.WidgetHandle.BOTTOM
+                            }
                             var drag = handle != null
                             // a hold anywhere on the widget arms the resize, so every widget can be
                             // sized with one gesture instead of hunting for the 22 dp edge strip
@@ -118,14 +129,14 @@ fun WidgetSlot(
                             }
                             var last = down.position
                             while (true) {
-                                val event = awaitPointerEvent()
+                                val event = awaitPointerEvent(PointerEventPass.Initial)
                                 val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                // the widget content (calendar day, list, button) has priority
-                                if (change.isConsumed) {
-                                    holdJob.cancel()
-                                    return@awaitEachGesture
+                                if (!change.pressed) {
+                                    // the hold already turned this press into editing: swallow the release
+                                    // so the widget content does not fire a click as well
+                                    if (dragging) change.consume()
+                                    break
                                 }
-                                if (!change.pressed) break
                                 val delta = change.position - last
                                 last = change.position
                                 if (!moved && (change.position - down.position).getDistance() > holdPx) {
@@ -136,7 +147,7 @@ fun WidgetSlot(
                                 }
                                 if (drag) {
                                     change.consume()
-                                    val active = handle ?: WidgetMath.WidgetHandle.CORNER
+                                    val active = if (handle != null) handle else held
                                     if (active != WidgetMath.WidgetHandle.BOTTOM) width = WidgetMath.width(width, delta.x, maxW = maxW)
                                     if (active != WidgetMath.WidgetHandle.RIGHT) height = WidgetMath.height(height, delta.y, minH = minH)
                                 }
@@ -244,28 +255,7 @@ fun DesktopWidgets(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 if (vm.widgetEdit) WidgetToolbar(vm, id)
             }
         }
-        if (vm.widgetEdit) {
-            AddWidgetBar(vm, Modifier.padding(end = dp(2f)))
-        } else if (widgets.isEmpty()) {
-            Box(
-                Modifier
-                    .background(p.paper)
-                    .border(dp(1.4f), p.ink)
-                    .padding(dp(8f)),
-            ) {
-                Column(verticalArrangement = Arrangement.spacedBy(dp(3f))) {
-                    RetroText("no widgets", size = 11f, weight = FontWeight.Bold, maxLines = 1)
-                    RetroText("right click or hold the desktop, then add", size = 10f, color = p.mid, maxLines = 2)
-                }
-            }
-        }
-        if (!vm.widgetEdit && widgets.isNotEmpty()) {
-            RetroText(
-                if (vm.settings.widgetHoldEdit) "hold a widget to edit or resize (or drag its edges)"
-                else "drag a widget edge to resize - hold-to-edit is off in Settings",
-                size = 9f, color = p.mid, maxLines = 1,
-            )
-        }
+        if (vm.widgetEdit) AddWidgetBar(vm, Modifier.padding(end = dp(2f)))
     }
 }
 
@@ -279,6 +269,10 @@ private fun WidgetContent(vm: LauncherViewModel, id: WidgetId, widthDp: Int, hei
         WidgetId.CALENDAR -> CalendarWidget(vm, width = w, height = h)
         WidgetId.SYSTEM -> SystemWidget(vm, width = w, height = h)
         WidgetId.NOTES -> NotesWidget(vm, width = w, height = h)
+        WidgetId.AGENDA -> AgendaWidget(vm, width = w, height = h)
+        WidgetId.TASKS -> TasksWidget(vm, width = w, height = h)
+        WidgetId.LAUNCHER -> LauncherWidget(vm, width = w, height = h)
+        WidgetId.POWER -> PowerWidget(vm, width = w, height = h)
     }
 }
 
@@ -294,7 +288,7 @@ private fun AddWidgetBar(vm: LauncherViewModel, modifier: Modifier = Modifier) {
             .padding(dp(7f)),
         verticalArrangement = Arrangement.spacedBy(dp(5f)),
     ) {
-        RetroText("add or remove widgets", size = 11f, weight = FontWeight.Bold, maxLines = 1)
+        RetroText("widgets", size = 11f, weight = FontWeight.Bold, maxLines = 1)
         WidgetId.entries.chunked(2).forEach { pair ->
             Row(horizontalArrangement = Arrangement.spacedBy(dp(5f))) {
                 pair.forEach { id ->
@@ -309,7 +303,6 @@ private fun AddWidgetBar(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 if (pair.size == 1) Box(Modifier.weight(1f))
             }
         }
-        RetroText("marked * are on the desktop", size = 9.5f, color = p.mid, maxLines = 1)
         Row(horizontalArrangement = Arrangement.spacedBy(dp(5f))) {
             RetroButton(label = "done", modifier = Modifier.weight(1f)) { vm.widgetEdit = false }
             RetroButton(label = "reset sizes", modifier = Modifier.weight(1f)) { vm.settings.resetWidgets() }

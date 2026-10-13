@@ -93,8 +93,8 @@ fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp 
         onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.CALENDAR) },
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(dp(2f))) {
-            RetroText("$h:$m", size = 33f, display = true, weight = FontWeight.Bold)
-            if (s.showSeconds) RetroText(":$sec", size = 16f, display = true, weight = FontWeight.Bold)
+            // the seconds sit on the same baseline, in the same size as the minutes
+            RetroText(if (s.showSeconds) "$h:$m:$sec" else "$h:$m", size = 33f, display = true, weight = FontWeight.Bold)
             if (!s.use24h) RetroText(ampm, size = 11f, color = LocalPalette.current.mid)
         }
         RetroText(date, size = 11f)
@@ -106,7 +106,7 @@ fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp 
 fun SystemWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp = dp(250f), height: Dp? = null) {
     val p = LocalPalette.current
     val s = vm.snapshot
-    WidgetCard("sysinfo", Glyph.SYSMON, modifier, onClick = { vm.openWindow(WinKind.SYSMON) }) {
+    WidgetCard("sysinfo", Glyph.SYSMON, modifier, width = width, height = height, onClick = { vm.openWindow(WinKind.SYSMON) }) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             RetroText("BAT", size = 10f, color = p.mid)
             RetroText(if (s.battery < 0) "--" else "${s.battery}%", size = 12f, weight = FontWeight.Bold)
@@ -126,11 +126,9 @@ fun SystemWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp
 fun NotesWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp = dp(250f), height: Dp? = null) {
     val p = LocalPalette.current
     WidgetCard("notes", Glyph.NOTES, modifier, width = width, height = height, onClick = { vm.openWindow(WinKind.NOTES) }) {
-        RetroText(
-            vm.settings.notes.lines().take(5).joinToString("\n").ifBlank { "empty — tap to write" },
-            size = 11f,
-            color = p.mid,
-            maxLines = 5,
-        )
+        val text = vm.settings.notes.lines().take(5).joinToString("\n")
+        if (text.isNotBlank()) {
+            RetroText(text, size = 11f, color = p.mid, maxLines = 5)
+        }
     }
 }

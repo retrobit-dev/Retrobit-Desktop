@@ -94,11 +94,27 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   **Open full screen**.
 
 ### Widget desktop: bisa ditambah, dihapus, diatur
+- **Delapan widget siap pakai** (`Add widget:` di menu desktop, panel mode edit, Settings, terminal):
+
+  | Widget | Isinya |
+  | --- | --- |
+  | `chrono` | jam besar (detik sejajar dengan menit saat `seconds on`), tanggal, hari + uptime |
+  | `calendar` | bulan berjalan yang ringkas: header dengan `<` `>` `+`, grid hari tanpa kotak, satu baris ringkasan hari terpilih, maksimal 3 entri |
+  | `agenda` | 14 hari ke depan, satu baris per entri (`today 15 flash build 14:00`) |
+  | `tasks` | task yang belum selesai, kotak `-` sekali tekan untuk menandai selesai |
+  | `launcher` | pintasan ke aplikasi yang di-pin di dock, satu tekan langsung jalan |
+  | `power` | persentase baterai besar, bar, status charge, koneksi |
+  | `sysinfo` | baterai, RAM, dan disk dengan bar bertingkat |
+  | `notes` | lima baris pertama dari notes, satu tekan membuka aplikasi Notes |
+
+- **Desktop bersih tanpa teks bantuan**: tidak ada lagi label `no widgets`, `desktop is empty`,
+  `marked * are on the desktop`, atau hint `hold a widget to ...` di homescreen. Widget kosong
+  cukup tampil sebagai kartu kosong, dan mode edit ditandai bingkai putus-putus.
 - **Widget bisa ditambah atau dihapus dari homescreen**:
   - **tekan lama (hold) / klik kanan di desktop kosong** → menu desktop berisi
     `Add widget: <nama>` / `Remove widget: <nama>` untuk tiap widget, plus `Edit widgets`;
-  - di **mode edit** ada panel `add or remove widgets` di bawah kolom widget, lengkap dengan
-    `reset sizes` dan `reset layout`;
+  - di **mode edit** ada panel `widgets` di bawah kolom widget (delapan tombol toggle, yang aktif
+    ditandai `*`), lengkap dengan `done`, `reset sizes`, dan `reset layout`;
   - lewat **Settings - display widgets** (daftar `[x] CLOCK`, tombol `add`/`remove`, `^`/`v` untuk
     mengurutkan) dan lewat terminal: `widget add notes`, `widget remove clock`, `widget layout`.
 - **Semua widget bisa diatur ukurannya dengan hold**: tekan dan tahan widget mana pun — ia langsung
@@ -106,8 +122,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   jari. Tanpa hold pun bisa: tarik tepi kanan (lebar), tepi bawah (tinggi), atau grip sudut
   kanan-bawah (keduanya). Ukuran di-snap ke grid 8 px, minimum 160x56 dp, diingat per widget.
 - **Mode edit widget** (`Edit widgets`, terminal `widget edit on`): widget dikelilingi bingkai
-  putus-putus, ada chip nama + ukuran hidup (mis. `calendar 280x420`), tombol `^` `v` `fit`
+  putus-putus, ada chip nama + ukuran hidup (mis. `calendar 280x300`), tombol `^` `v` `fit`
   `remove` di bawah tiap widget, dan isi widget tidak menerima sentuhan supaya tidak salah tekan.
+- **Hold di tengah widget** meresize ke arah yang paling dekat: bagian kiri/kanan widget mengubah
+  lebar, bagian atas/bawah mengubah tinggi — jadi hold tidak mengubah lebar dan tinggi sekaligus.
 - **Keluar dari mode edit gampang**: tap di desktop kosong, tombol `done`, tekan `Esc`, atau
   pilih `Done editing widgets` di menu desktop.
 - **Hold-to-edit bisa dimatikan** kalau jari yang sekadar beristirahat di widget sering tidak
@@ -116,7 +134,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   dibuka dari menu desktop/Settings dan resize lewat tepi kanan, tepi bawah, atau grip sudut tetap
   berfungsi.
 - Urutan widget mengikuti urutan di daftar, jadi `^`/`v` menaikkan atau menurunkan widget di kolom.
-  Mau homescreen tanpa widget sama sekali? Hapus semuanya — pilihan itu disimpan.
+  Kapasitas kolom 8 widget, dan homescreen boleh kosong sama sekali — pilihan itu disimpan.
 - Ukuran bisa diatur dari mana saja: `Settings - display widgets`, terminal `widgets`,
   `widget width 300`, `widget size calendar 280 420`, `widget reset`. Tinggi 0 = setinggi isinya;
   kalau lebih pendek, isi widget bisa di-scroll. Matematikanya murni di `ui/wm/WidgetMath.kt`
@@ -318,7 +336,8 @@ app/src/main/java/dev/retrobit/desktop/
 ├─ ui/components/             # Chrome retro, glyph pixel-art, context menu, icon tile, gesture
 ├─ ui/wm/                     # WindowManager, WindowFrame, DragState, LayoutMath (purified tiling/snap maths)
 ├─ ui/apps/                   # Terminal (rb-sh), Applications, Settings, System monitor, Notes, About
-├─ ui/desktop/                # ShellLinux, ShellMacos, ShellWindows, widget, Spotlight, wallpaper
+├─ ui/desktop/                # ShellLinux, ShellMacos, ShellWindows, widget (Widgets/WidgetsExtra/
+│                             # CalendarWidget/WidgetFrame), Spotlight, wallpaper
 └─ ui/boot/BootScreen.kt      # animasi boot
 
 app/src/test/java/dev/retrobit/desktop/ui/wm/LayoutMathTest.kt   # 23 unit test (CI: job "Unit tests")
