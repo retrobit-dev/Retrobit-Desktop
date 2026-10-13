@@ -24,6 +24,7 @@ import androidx.core.content.ContextCompat
 import dev.retrobit.desktop.MainActivity
 import dev.retrobit.desktop.R
 import dev.retrobit.desktop.data.SystemInfo
+import android.view.inputmethod.InputMethodManager
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -105,12 +106,14 @@ class ChromeService : Service() {
     private var sizeH = 0
     private var previewLeft = 0
     private var ticks = 0
-    private var battery = ""
+    private var batteryPercent = -1
+    private var charging = false
     private var notchLeft = 0
     private var railsShown = true
     private var railsHiddenAt = 0L
     private var lastTitle = ""
-    private val clock = SimpleDateFormat("HH:mm", Locale.US)
+    /** Live clock: the seconds tick with the rail refresh, like a cyberdeck readout. */
+    private val clock = SimpleDateFormat("HH:mm:ss", Locale.US)
 
     /** App icons for the dock, loaded once per package (64 px, printed in grayscale). */
     private val iconCache = HashMap<String, android.graphics.Bitmap?>()
@@ -126,7 +129,9 @@ class ChromeService : Service() {
                 previewLeft--
                 if (previewLeft == 0) hide()
             }
-            handler.postDelayed(this, 1000L)
+            // aligned to the wall clock, so the seconds on the rail flip with the real second
+            handler.postDelayed(this, 1000L - System.currentTimeMillis() % 1000L)
+
         }
     }
 
@@ -349,7 +354,8 @@ class ChromeService : Service() {
         listOfNotNull(top, dock).forEach {
             it.state = state
             it.clock = clockText
-            it.battery = battery
+            it.batteryPercent = batteryPercent
+            it.charging = charging
             it.net = state.net
             it.invalidate()
         }
@@ -431,12 +437,25 @@ class ChromeService : Service() {
         ticks++
         if (!force && ticks % 15 != 0) return
         val snapshot = runCatching { SystemInfo.snapshot(this) }.getOrNull() ?: return
-        val percent = snapshot.battery
-        battery = when {
-            percent < 0 -> ""
-            snapshot.charging -> "bat $percent%+"
-            else -> "bat $percent%"
+        // drawn as a little battery gauge on the rail, so no room is spent on "bat 87%" text
+        batteryPercent = snapshot.battery
+        charging = snapshot.charging
+    }
+
+    /**
+     * Shows or hides the on-screen keyboard of the app in front. The rails are not focusable (they
+     * must never steal the IME), so the toggle is asked for through the input method service and
+     * lands on whatever window currently has focus.
+     */
+    private fun toggleKeyboard() {
+        keepAwake()
+        runCatching {
+            val ime = getSystemService(InputMethodManager::class.java) ?: return@runCatching
+            @Suppress("DEPRECATION")
+            ime.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0)
         }
+        runCatching { CyberdeckChrome.onFlash?.invoke("keyboard on or off") }
+        handler.postDelayed({ applyState() }, 80L)
     }
 
     /** A rail key was held: the dock pins / unpins apps, a window key opens that app's shell. */
@@ -454,6 +473,7 @@ class ChromeService : Service() {
     private fun onAction(action: String) {
         hideAt = 0L
         when {
+            action == "kbd" -> toggleKeyboard()
             action == "home" -> {
                 val home = CyberdeckChrome.onHome
                 hide()

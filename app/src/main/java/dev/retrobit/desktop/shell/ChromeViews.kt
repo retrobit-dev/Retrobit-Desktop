@@ -54,7 +54,10 @@ class RailView(
 
     /** Clock, battery and network readouts, refreshed by the service. */
     var clock: String = ""
-    var battery: String = ""
+
+    /** Battery level, -1 when the device does not report one: drawn as a small gauge. */
+    var batteryPercent: Int = -1
+    var charging: Boolean = false
     var net: String = ""
 
     /** Status bar band (top rail) / navigation bar band (dock) that has to stay clear. */
@@ -188,16 +191,31 @@ class RailView(
             right = box(canvas, right, top, key, "fit", "fit frame", Glyph.GRID, growRight = false) - dp(5f)
         }
         right = box(canvas, right, top, key, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(5f)
+        right = box(canvas, right, top, key, "kbd", "keyboard", Glyph.KEYBOARD, growRight = false) - dp(5f)
 
-        // readouts: clock, battery, network
-        val status = listOf(clock, battery, net).filter { it.isNotBlank() }.joinToString("  ")
+        // readouts, right to left: the live clock, the battery gauge, the signal bars and transport
         val baseline = y0 + h / 2f + small.textSize * 0.34f
-        if (status.isNotBlank()) {
-            small.color = state.ink.ink
+        val cy = y0 + h / 2f
+        small.color = state.ink.ink
+        if (clock.isNotBlank()) {
             small.textAlign = Paint.Align.RIGHT
-            canvas.drawText(status, right - dp(4f), baseline, small)
+            canvas.drawText(clock, right - dp(4f), baseline, small)
+            right -= small.measureText(clock) + dp(12f)
+        }
+        small.textAlign = Paint.Align.LEFT
+        if (net.isNotBlank()) {
+            small.textAlign = Paint.Align.RIGHT
+            canvas.drawText(net, right, baseline, small)
+            right -= small.measureText(net) + dp(6f)
             small.textAlign = Paint.Align.LEFT
-            right -= small.measureText(status) + dp(10f)
+            val barsW = dp(15f)
+            drawSignal(canvas, right - barsW, cy, net)
+            right -= barsW + dp(14f)
+        }
+        if (batteryPercent >= 0) {
+            val batW = dp(26f)
+            drawBattery(canvas, right - batW, cy, batteryPercent, charging)
+            right -= batW + dp(12f)
         }
 
         // the app in front, starting after the punch-hole camera
@@ -249,7 +267,8 @@ class RailView(
         val dockKeyTop = top + (itemH - dockKey) / 2f
         rx = box(canvas, rx, dockKeyTop, dockKey, "hide", "hide", Glyph.CLOSE, growRight = false) - dp(6f)
         rx = box(canvas, rx, dockKeyTop, dockKey, "eye", "hide rails", Glyph.EYE, growRight = false) - dp(6f)
-        rx = box(canvas, rx, dockKeyTop, dockKey, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(8f)
+        rx = box(canvas, rx, dockKeyTop, dockKey, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(6f)
+        rx = box(canvas, rx, dockKeyTop, dockKey, "kbd", "keyboard", Glyph.KEYBOARD, growRight = false) - dp(8f)
 
         val windows = state.windows.takeLast(3)
         val winRoom = windows.size * dp(120f)
@@ -265,6 +284,52 @@ class RailView(
             val w = minOf(appWidth(entry, labelSize, iconSize), dp(132f))
             if (rx - w < x + dp(6f)) return@forEach
             rx = appRight(canvas, rx, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, entry.active, entry.pinned, w) - dp(6f)
+        }
+    }
+
+    /**
+     * Signal strength for a transport: four bars, filled to match how good the link is
+     * (wifi and ethernet full, cellular three, anything else two, offline none).
+     */
+    private fun drawSignal(canvas: Canvas, x: Float, cy: Float, net: String) {
+        val bars = when (net) {
+            "WIFI", "ETH" -> 4
+            "CELL", "VPN" -> 3
+            "NET" -> 2
+            else -> 0
+        }
+        val w = dp(2.6f)
+        val gap = dp(1.4f)
+        val bottom = cy + dp(6f)
+        for (i in 0 until 4) {
+            val barH = dp(3f) + dp(3f) * i
+            val bx = x + i * (w + gap)
+            bar.color = if (i < bars) state.ink.ink else state.ink.mid
+            canvas.drawRect(bx, bottom - barH, bx + w, bottom, bar)
+        }
+    }
+
+    /** A palm-sized battery gauge: outline, proportional fill and a bolt when it is charging. */
+    private fun drawBattery(canvas: Canvas, x: Float, cy: Float, percent: Int, charging: Boolean) {
+        val w = dp(20f)
+        val hgt = dp(10f)
+        val top = cy - hgt / 2f
+        bar.color = state.ink.ink
+        // outline, 1.5 dp thick, plus the little nub on the right
+        canvas.drawRect(x, top, x + w, top + dp(1.5f), bar)
+        canvas.drawRect(x, top + hgt - dp(1.5f), x + w, top + hgt, bar)
+        canvas.drawRect(x, top, x + dp(1.5f), top + hgt, bar)
+        canvas.drawRect(x + w - dp(1.5f), top, x + w, top + hgt, bar)
+        canvas.drawRect(x + w, cy - dp(2f), x + w + dp(2.5f), cy + dp(2f), bar)
+        canvas.drawRect(x + w + dp(2.5f), cy - dp(1f), x + w + dp(3.5f), cy + dp(1f), bar)
+        val inner = (w - dp(5f)).coerceAtLeast(1f)
+        val fill = (inner * (percent.coerceIn(0, 100) / 100f)).coerceAtLeast(if (percent > 0) dp(1.5f) else 0f)
+        if (fill > 0f) canvas.drawRect(x + dp(2.5f), top + dp(2.5f), x + dp(2.5f) + fill, top + hgt - dp(2.5f), bar)
+        if (charging) {
+            // bolt: two offset strokes, readable at 10 dp
+            val bx = x + w / 2f
+            canvas.drawRect(bx - dp(1.5f), top - dp(5f), bx + dp(2.5f), top - dp(3.5f), bar)
+            canvas.drawRect(bx - dp(3.5f), top - dp(3.5f), bx + dp(0.5f), top - dp(2f), bar)
         }
     }
 

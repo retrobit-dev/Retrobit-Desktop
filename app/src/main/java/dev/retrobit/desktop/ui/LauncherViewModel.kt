@@ -361,6 +361,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Wired once: keeps the chrome state fresh and routes the rail buttons back into the launcher. */
     private fun wireChrome() {
         CyberdeckChrome.onRefresh = { syncChrome() }
+        CyberdeckChrome.onFlash = { flashChrome(it) }
         CyberdeckChrome.onHideNow = { hideChromeNow() }
         CyberdeckChrome.onToggleRails = { toggleChromeRails() }
         CyberdeckChrome.onRailMode = { switchRailMode() }

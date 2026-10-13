@@ -66,6 +66,10 @@ object CyberdeckChrome {
     @Volatile
     var onHome: (() -> Unit)? = null
 
+    /** A short confirmation to print on the rail (used by the keyboard key). */
+    @Volatile
+    var onFlash: ((String) -> Unit)? = null
+
     /** The user pressed hide on a rail and wants the chrome off for good. */
     @Volatile
     var onHideChrome: (() -> Unit)? = null
