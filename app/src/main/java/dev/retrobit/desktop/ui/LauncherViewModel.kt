@@ -186,7 +186,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     /** Called from the activity's lifecycle so the timer can idle in the background. */
-    fun setForeground(value: Boolean) {
+    fun setAppForeground(value: Boolean) {
         if (foreground == value) return
         foreground = value
         if (value) {

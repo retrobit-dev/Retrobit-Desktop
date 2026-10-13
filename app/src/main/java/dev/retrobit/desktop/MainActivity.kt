@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
-        vm.setForeground(true)
+        vm.setAppForeground(true)
         // the user may have installed or removed apps while we were in the background
         vm.refreshApps()
     }
@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         // stop the clock / battery timer while another app is in front
-        vm.setForeground(false)
+        vm.setAppForeground(false)
     }
 
     override fun onNewIntent(intent: Intent) {
