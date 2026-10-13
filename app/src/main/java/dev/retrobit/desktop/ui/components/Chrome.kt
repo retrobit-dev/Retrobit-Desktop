@@ -63,7 +63,6 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.PixelDisplay
 import dev.retrobit.desktop.ui.theme.PixelMono
-import dev.retrobit.desktop.ui.theme.Pixel
 import dev.retrobit.desktop.ui.input.LocalKeyboardRequester
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
