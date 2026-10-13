@@ -114,6 +114,41 @@ def glyph_tile(d, x, y, size, kind="folder", label="", paper=PAPER, ink=INK):
         d.text((x + inner / 2 - tw / 2, y + inner + 4), label, font=mono_tiny, fill=ink)
 
 
+CURSOR_ROWS = [
+    "##          ",
+    "###         ",
+    "####        ",
+    "#o##        ",
+    "#oo##       ",
+    "#ooo##      ",
+    "#oooo##     ",
+    "#ooooo##    ",
+    "#oooooo##   ",
+    "#ooooooo##  ",
+    "#####oooo#  ",
+    "   #ooooo#  ",
+    "   #ooooo#  ",
+    "    #ooo#   ",
+    "    #ooo#   ",
+    "     ##     ",
+]
+
+
+def cursor(d, x, y, cell=3, pressed=False):
+    fg = PAPER if pressed else INK
+    bg = INK if pressed else PAPER
+    for py, row in enumerate(CURSOR_ROWS):
+        for px, ch in enumerate(row):
+            if ch != " ":
+                d.rectangle([x + px * cell - 1, y + py * cell - 1,
+                             x + (px + 1) * cell, y + (py + 1) * cell], fill=bg)
+    for py, row in enumerate(CURSOR_ROWS):
+        for px, ch in enumerate(row):
+            if ch != " ":
+                d.rectangle([x + px * cell, y + py * cell,
+                             x + (px + 1) * cell - 1, y + (py + 1) * cell - 1], fill=fg)
+
+
 def window(d, box, title, glyph_label=None, win95=False, mac=False, body_lines=()):
     x0, y0, x1, y1 = box
     hard_shadow(d, box, offset=5)
@@ -181,8 +216,10 @@ def panel(caption, style):
         d.text((278, 12), "terminal", font=mono, fill=PAPER)
         d.rectangle([386, 8, 470, 36], fill=PAPER, outline=INK, width=2)
         d.text((394, 12), "notes.txt", font=mono, fill=INK)
-        d.rectangle([w - 250, 9, w - 150, 35], fill=PAPER, outline=INK, width=2)
-        d.text((w - 242, 12), "[LINUX]", font=mono_tiny, fill=INK)
+        d.rectangle([w - 310, 9, w - 216, 35], fill=PAPER, outline=INK, width=2)
+        d.text((w - 302, 12), "[LINUX]", font=mono_tiny, fill=INK)
+        d.rectangle([w - 206, 10, w - 184, 32], fill=PAPER, outline=INK, width=2)
+        d.text((w - 200, 12), "KB", font=mono_tiny, fill=INK)
         d.text((w - 138, 12), "WIFI 92%", font=mono_tiny, fill=INK)
         d.text((w - 62, 8), "13:37", font=px_small, fill=INK)
         # left dock
@@ -216,6 +253,7 @@ def panel(caption, style):
             "   '-------------------'   Theme: Paper / halftone",
             "        '-----------'      Memory: 3.1G / 7.8G",
         ])
+        cursor(d, 400, 700, cell=3)
         d.text((115, 720), "operator@retrobit:~$ tiling on", font=mono, fill=INK)
         d.rectangle([110, 760, w - 40, 830], fill=PAPER, outline=INK, width=2)
         d.text((122, 775), "± tiling master–stack aktif", font=mono, fill=INK)
@@ -225,6 +263,8 @@ def panel(caption, style):
         d.text((14, 10), "◆", font=px_small, fill=INK)
         for i, m in enumerate(["File", "View", "Window", "Help"]):
             d.text((46 + i * 62, 11), m, font=mono_med, fill=INK)
+        d.rectangle([w - 288, 10, w - 266, 32], fill=PAPER, outline=INK, width=2)
+        d.text((w - 282, 11), "KB", font=mono_tiny, fill=INK)
         d.rectangle([w - 240, 10, w - 140, 32], fill=PAPER, outline=INK, width=2)
         d.text((w - 232, 11), "[MACOS]", font=mono_tiny, fill=INK)
         d.text((w - 130, 11), "WIFI 92%", font=mono_tiny, fill=INK)
@@ -291,7 +331,10 @@ def panel(caption, style):
         d.rectangle([306, tb + 12, 420, tb + 48], fill=PAPER, outline=INK, width=2)
         d.text((316, tb + 18), "notes.txt", font=mono, fill=INK)
         d.rectangle([w - 250, tb + 10, w - 8, tb + 50], fill=PATTERN)
-        d.text((w - 240, tb + 18), "WIFI 92%  13:37", font=mono_tiny, fill=INK)
+        d.rectangle([w - 240, tb + 16, w - 216, tb + 42], fill=PAPER, outline=INK, width=2)
+        d.text((w - 234, tb + 18), "KB", font=mono_tiny, fill=INK)
+        d.text((w - 208, tb + 18), "WIFI 92%  13:37", font=mono_tiny, fill=INK)
+        cursor(d, 620, 470, cell=3, pressed=True)
 
     # caption
     d.rectangle([0, h - 46, w, h], fill=INK)
@@ -312,7 +355,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "vt323.ttf"), 76)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · ui mockup built from the real palette, fonts and layout code",
+    d.text((42, 92), "e-paper launcher for android tablets · m-pencil acts as a mouse (1 tap = left click, 2 taps = right click) · internal keyboard on demand",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

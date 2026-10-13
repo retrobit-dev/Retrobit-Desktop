@@ -54,28 +54,71 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Gaya title bar mengikuti tema (traffic light macOS, gradient Win95, solid + tombol kanan Linux).
 - Cascade otomatis, fokus, task list di panel/taskbar, dan **tiling** (master–stack) untuk gaya Linux.
 
+### Input: pena, mouse, keyboard
+- M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
+- Kursor pointer e-paper untuk pena/mouse, drag langsung untuk memindahkan ikon dan jendela.
+- Keyboard internal Android tetap berfungsi dan bisa dipanggil kapan saja lewat tombol ⌨ di tray
+  (atau `Ctrl+Alt+K`); layout menyesuaikan tinggi keyboard.
+- Dukungan keyboard eksternal dengan 10+ pintasan gaya desktop.
+
 ### Aplikasi bawaan
 - **Terminal** (`rb-sh`) — 25+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`, `invert`,
   `wmctrl`, `boot`, `help`, `exit`, dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
-- **Settings** — gaya desktop, palet, wallpaper, mode ikon, skala UI, perilaku, tombol
-  "Set as default launcher".
+- **Settings** — gaya desktop, palet, wallpaper, mode ikon, skala UI, **input & devices
+  (pena/mouse/keyboard)**, perilaku, tombol "Set as default launcher".
 - **System monitor** — baterai, RAM, penyimpanan, jaringan, uptime, daftar jendela, grafik tren.
 - **Notes** — catatan teks yang tersimpan otomatis.
 - **About** — info build, perangkat, dan daftar pintasan.
 
 ### Interaksi
+
 | Aksi | Hasil |
 | --- | --- |
 | Tap ikon | jalankan aplikasi |
 | Tap & tahan ikon | menu konteks (open, open in window, pin ke dock/desktop, app info, uninstall) |
 | Tap & tahan lalu geser | drag ikon ke dock / sidebar untuk pin |
 | Tap & tahan desktop | menu sistem (applications, terminal, settings, tiling, close all) |
-| Klik kanan mouse / tombol barrel M-Pencil | menu konteks pada desktop dan ikon |
-| `Ctrl+Alt+T` / `Ctrl+Alt+S` / `Ctrl+Alt+M` / `Ctrl+Alt+W` / `Ctrl+Alt+D` | terminal / settings / minimize all / close window / menu desktop |
-| Tombol Super / Meta | buka Spotlight (cari aplikasi atau jalankan perintah shell) |
-| Tombol Back | tutup popup → minimize semua jendela |
+| Tap judul jendela | jendela naik ke depan (click-to-focus) |
+
+### M-Pencil / stylus sebagai mouse
+
+Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan persis seperti desktop:
+
+| Aksi pen | Hasil |
+| --- | --- |
+| 1× tap | **klik kiri** — buka aplikasi / tekan tombol / pilih menu |
+| 2× tap (dalam ±320 ms) | **klik kanan** — menu konteks pada ikon, desktop, atau area kosong |
+| tombol barrel pada pena | klik kanan (dibaca sebagai tombol sekunder) |
+| sentuh & geser dengan pena | drag langsung: pindahkan ikon, taruh di dock, geser/resize jendela |
+
+- Tap pen tunggu ±320 ms sebelum "klik kiri" dijalankan — itu jeda standar desktop untuk membedakan
+  klik tunggal dari klik ganda; tap jari tetap instan.
+- Ada **kursor pointer e-paper** (panah 1-bit dengan halo) yang mengikuti posisi pena/mouse,
+  membalik warna saat ditekan. Bisa dimatikan di Settings.
+- Pen double-tap bisa dimatikan lewat *Settings → Input & devices → Pen double-tap = right click*.
+
+### Mouse & keyboard
+
+- **Mouse**: klik kiri = buka, klik kanan = menu konteks, scroll wheel = gulir daftar, hover memindahkan kursor.
+- **Keyboard internal (bawaan Android) tetap dipakai**: muncul otomatis saat menyentuh field teks
+  (terminal, notes, kotak pencarian), dan desktop bergeser naik mengikuti tinggi keyboard supaya
+  baris input tidak tertutup. Ada tombol ⌨ di panel/taskbar/menu bar untuk memunculkan atau
+  menyembunyikan keyboard secara manual — praktis kalau memakai mouse.
+- **Keyboard eksternal** (Bluetooth/USB):
+
+| Pintasan | Aksi |
+| --- | --- |
+| `Ctrl+Alt+T` / `Ctrl+Alt+S` | terminal / settings |
+| `Ctrl+Alt+W` / `Ctrl+Alt+M` | tutup jendela aktif / minimize semua |
+| `Ctrl+Alt+D` | menu desktop |
+| `Ctrl+Alt+←` / `Ctrl+Alt+→` / `Tab` | pindah fokus antar jendela |
+| `Ctrl+Alt+↑` | maximize/restore jendela aktif |
+| `Ctrl+Alt+K` | munculkan / sembunyikan keyboard internal |
+| `Super` (Meta) | Spotlight (cari aplikasi atau jalankan perintah shell) |
+| `Esc` | tutup popup / spotlight / start menu |
+| `Enter` | jalankan perintah di terminal & field satu baris |
 
 ### Boot sequence
 Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-paper 1-bit.
@@ -93,6 +136,10 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 > Catatan Huawei: jika "Pure Mode"/mode ketat memblokir sideload, matikan pada
 > *Settings → System & updates → Pure mode*, lalu instal ulang APK.
+>
+> Soal pena: M-Pencil terdeteksi sebagai stylus oleh Android, jadi semua fitur di atas bekerja tanpa
+> setup tambahan. Kalau tablet memakai *glove mode*/*pen-only* mode dari Huawei, matikan dulu opsi
+> tersebut supaya tap jari dan tap pena sama-sama dikenali.
 > Semua data (palet, pin, catatan) disimpan lokal di perangkat; aplikasi tidak punya koneksi internet.
 
 ## Build & CI (GitHub Actions)
