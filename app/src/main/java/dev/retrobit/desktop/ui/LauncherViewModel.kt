@@ -255,8 +255,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** The drawer order: the apps launched most often first, the rest alphabetical (see AppUsage). */
-    fun appsByUsage(): List<AppEntry> =
-        dev.retrobit.desktop.data.AppUsage.order(apps, usageCounts()) { it.pkg } { it.label }
+    fun appsByUsage(): List<AppEntry> = dev.retrobit.desktop.data.AppUsage.order(
+        items = apps,
+        counts = usageCounts(),
+        pkg = { it.pkg },
+        label = { it.label },
+    )
 
     /** How often [pkg] has been opened from this launcher. */
     fun usageOf(pkg: String): Int = usageCounts()[pkg] ?: 0

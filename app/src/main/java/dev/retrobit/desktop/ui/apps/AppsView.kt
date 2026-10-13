@@ -104,6 +104,7 @@ fun AppDrawerList(
     query: String,
     modifier: Modifier = Modifier,
 ) {
+    val p = LocalPalette.current
     val apps = remember(query, vm.apps, vm.settings.appUsage) { matchingApps(vm, query) }
     val counts = remember(vm.settings.appUsage) { vm.usageCounts() }
     val buckets = remember(apps, counts) { bucketsOf(apps, counts) }

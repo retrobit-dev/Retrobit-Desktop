@@ -65,11 +65,15 @@ object AppUsage {
         counts: Map<String, Int>,
         pkg: (T) -> String,
         label: (T) -> String,
-    ): List<T> = items.sortedWith(
-        compareByDescending<T> { counts[it.pkg()] ?: 0 }
-            .thenBy { label(it).lowercase() }
-            .thenBy { pkg(it) },
-    )
+    ): List<T> {
+        val byPackage = pkg
+        val byLabel = label
+        return items.sortedWith(
+            compareByDescending<T> { counts[byPackage(it)] ?: 0 }
+                .thenBy { byLabel(it).lowercase() }
+                .thenBy { byPackage(it) },
+        )
+    }
 
     /** Apps the user launched at least once, most used first (used by the drawer footer). */
     fun used(counts: Map<String, Int>): Int = counts.count { it.value > 0 }
