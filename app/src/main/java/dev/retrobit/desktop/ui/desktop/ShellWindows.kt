@@ -3,6 +3,7 @@ package dev.retrobit.desktop.ui.desktop
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -53,7 +54,45 @@ import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
+import dev.retrobit.desktop.ui.wm.ShellMetrics
+import dev.retrobit.desktop.ui.wm.WindowLayer
+import dev.retrobit.desktop.ui.wm.WinState
+import dev.retrobit.desktop.ui.wm.glyphFor
 import java.util.Date
+
+/**
+ * One taskbar button: the window's own glyph and title. Tapping raises the window (and brings a
+ * minimized one back), double tap maximizes / restores, and the little box closes it.
+ */
+@Composable
+private fun TaskButton(vm: LauncherViewModel, win: WinState) {
+    val p = LocalPalette.current
+    val active = !win.minimized && (win.maximized || vm.wm.focusedId == win.id)
+    Row(
+        Modifier
+            .height(dp(34f))
+            .background(if (active) p.ink else p.paper)
+            .border(dp(1.4f), p.ink)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                vm.showWindow(win)
+            }
+            .padding(horizontal = dp(6f)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(dp(5f)),
+    ) {
+        GlyphIcon(glyphFor(win.kind), dp(14f))
+        RetroText(
+            win.title,
+            size = 11f,
+            maxLines = 1,
+            color = when {
+                active -> p.paper
+                win.minimized -> p.mid
+                else -> p.ink
+            },
+        )
+    }
+}
 
 /**
  * Windows 95 style shell: taskbar with Start button and tray at the bottom,
@@ -73,7 +112,7 @@ fun WindowsShell(vm: LauncherViewModel) {
     val cascade = px(24f)
     val minW = px(360f)
     val minH = px(240f)
-    val area = remember(size) {
+    val area = remember(size, edge, taskH) {
         val m = edge
         Rect(m, m, (size.width - m).coerceAtLeast(m), (size.height - taskH - m).coerceAtLeast(m))
     }
@@ -87,6 +126,14 @@ fun WindowsShell(vm: LauncherViewModel) {
         }
 
         
+        // ── floating windows of our own apps ─────────────────────────────────────
+        // The desktop frame never moves: a window keeps its place when the keyboard opens, and the
+        // panel / dock stay drawn over it, the way a desktop taskbar always does.
+        LaunchedEffect(area, winMargin, cascade, minW, minH) {
+            vm.wm.relayout(area, ShellMetrics(winMargin, cascade, minW, minH))
+        }
+        WindowLayer(vm.wm)
+
         // ── start menu ────────────────────────────────────────────────────────────
         if (vm.startMenu) {
             Box(
@@ -196,9 +243,20 @@ fun WindowsShell(vm: LauncherViewModel) {
                 }
                 DockInsertMarker(dockSlots, horizontal = true)
             }
-            // the task buttons are gone with the windows: an app fills the screen, and the
-            // cyberdeck rail is what shows which app that is
-            Spacer(Modifier.weight(1f))
+            // ── task buttons ───────────────────────────────────────────────────────
+            // one button per floating window of our own apps: tap raises it (and un-minimizes it),
+            // minimized windows are printed faint, exactly like the taskbar this is imitating
+            Row(
+                Modifier
+                    .weight(1f)
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(dp(4f)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                vm.openWindows.sortedByDescending { it.z }.forEach { win ->
+                    TaskButton(vm, win)
+                }
+            }
             WorkspacePager(vm, boxSize = dp(30f))
             StyleChip(vm, compact = true)
             Row(Modifier.background(hatch).padding(horizontal = dp(8f), vertical = dp(3f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {

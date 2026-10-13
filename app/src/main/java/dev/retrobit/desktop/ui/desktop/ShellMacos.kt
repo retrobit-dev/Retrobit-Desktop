@@ -48,6 +48,8 @@ import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
+import dev.retrobit.desktop.ui.wm.ShellMetrics
+import dev.retrobit.desktop.ui.wm.WindowLayer
 import java.util.Date
 
 /**
@@ -69,7 +71,7 @@ fun MacosShell(vm: LauncherViewModel) {
     val cascade = px(26f)
     val minW = px(400f)
     val minH = px(280f)
-    val area = remember(size) {
+    val area = remember(size, edge, barH, dockH) {
         val m = edge
         Rect(m, barH + m, (size.width - m).coerceAtLeast(m), (size.height - dockH).coerceAtLeast(barH))
     }
@@ -84,6 +86,14 @@ fun MacosShell(vm: LauncherViewModel) {
         }
 
         
+        // ── floating windows of our own apps ─────────────────────────────────────
+        // The desktop frame never moves: a window keeps its place when the keyboard opens, and the
+        // panel / dock stay drawn over it, the way a desktop taskbar always does.
+        LaunchedEffect(area, winMargin, cascade, minW, minH) {
+            vm.wm.relayout(area, ShellMetrics(winMargin, cascade, minW, minH))
+        }
+        WindowLayer(vm.wm)
+
         // ── menu bar ──────────────────────────────────────────────────────────────
         Row(
             Modifier
@@ -120,14 +130,14 @@ fun MacosShell(vm: LauncherViewModel) {
                 )
             }
             MenuTitle("Window") {
-                // no windows to list: one app, one screen, the chrome draws its frame
+                // our own apps live in floating windows now, so this menu is a real task list
                 vm.openMenu(
                     dev.retrobit.desktop.ui.MenuRequest(
-                        "Window", null, Offset(140f, 40f),
+                        "Window", "floating windows of our own apps", Offset(140f, 40f),
                         listOf(
                             MenuItem("Open the app drawer", Glyph.GRID) { vm.openWindow(WinKind.APPS) },
                             MenuItem("Desktops / workspaces…", Glyph.COMPUTER) { vm.workspaceMenu(Offset(60f, 46f)) },
-                        ),
+                        ) + vm.windowMenuItems(),
                     ),
                 )
             }

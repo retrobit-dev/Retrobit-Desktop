@@ -64,14 +64,16 @@ fun StylusCursorOverlay(router: PointerRouter = LocalPointerRouter.current, size
 }
 
 /**
- * Room for the on-screen keyboard on a surface the launcher owns, following the "keyboard lifts the
- * layout" preference: by default the surface itself makes room for the keyboard (the desktop and the
- * window frame never move); with the old slide-up mode the whole desktop already moved, so padding
- * here would push the content up twice.
+ * Room for the on-screen keyboard on a surface the launcher owns, following
+ * [dev.retrobit.desktop.data.Settings.keyboardMode]:
+ *
+ *  · `overlay` - the keyboard floats over everything, so a surface adds **no** padding at all;
+ *  · `content` - only the inside of our own apps makes room, the frame around it stays put;
+ *  · `lift`    - the whole desktop already slid up, so padding here would move the content twice.
  */
 @Composable
 fun Modifier.keyboardRoom(settings: dev.retrobit.desktop.data.Settings): Modifier =
-    if (settings.keyboardLiftsLayout) this else this.imePadding()
+    if (settings.keyboardMode == dev.retrobit.desktop.data.Settings.KEYBOARD_CONTENT) this.imePadding() else this
 
 /** Tray / panel button that summons or hides the on-screen (internal) keyboard. */
 @Composable

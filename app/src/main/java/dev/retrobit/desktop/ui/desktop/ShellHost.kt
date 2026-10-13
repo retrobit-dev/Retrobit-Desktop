@@ -44,12 +44,15 @@ import dev.retrobit.desktop.ui.theme.LocalPalette
 import java.util.Date
 
 /**
- * One of **our own apps, full screen** - the terminal, settings, the drawer, notes...
+ * A **maximized** window of one of our own apps: it now owns the whole screen.
  *
- * This is what a desktop window used to be, and it is deliberately shaped like the cyberdeck chrome
- * that is drawn over somebody else's app: a black frame around the whole screen, a title rail along
- * the top (name on the left, live clock and keys on the right) and the dock strip along the bottom.
- * Whichever app owns the screen - ours or a third-party one - the user sees the same window.
+ * It is deliberately shaped like the cyberdeck chrome drawn over somebody else's app: a black frame
+ * around the whole screen, a title rail along the top (name on the left, live clock and keys on the
+ * right) and the dock strip along the bottom. That way the biggest a window can get, and an app
+ * somebody else wrote filling the screen, look like the same desktop.
+ *
+ * The window itself is still there - pressing `restore` (or `Esc`) puts the box back exactly where
+ * it was, because [dev.retrobit.desktop.ui.wm.WindowManager] kept the floating rectangle.
  */
 @Composable
 fun ShellHost(vm: LauncherViewModel, modifier: Modifier = Modifier) {
@@ -128,7 +131,7 @@ private fun ShellRail(vm: LauncherViewModel, kind: WinKind) {
         RetroIconButton(glyph = Glyph.SETTINGS, label = "panel", boxSize = dp(28f)) {
             vm.openPanel()
         }
-        RetroIconButton(glyph = Glyph.HOME, label = "desktop", boxSize = dp(28f)) {
+        RetroIconButton(glyph = Glyph.HOME, label = "restore", boxSize = dp(28f)) {
             vm.closeShell()
         }
     }

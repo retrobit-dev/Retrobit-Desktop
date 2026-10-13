@@ -61,7 +61,12 @@ fun AboutView(vm: LauncherViewModel) {
         kv("palette", vm.settings.palette.label)
         kv("wallpaper", vm.settings.wallpaper.label)
         kv("icon mode", vm.settings.iconMode.label)
-        kv("screen", vm.shellOpen?.name?.lowercase() ?: "desktop")
+        kv("screen", vm.shellOpen?.let { "maximized: " + it.name.lowercase() } ?: "desktop")
+        kv("windows", run {
+            val open = vm.openWindows
+            if (open.isEmpty()) "none open"
+            else open.size.toString() + " open · " + open.count { it.minimized } + " minimized"
+        })
         kv("calendar", "${vm.calendar.entries.size} entries")
         kv("applications", vm.apps.size.toString())
         Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink.copy(alpha = 0.4f)))

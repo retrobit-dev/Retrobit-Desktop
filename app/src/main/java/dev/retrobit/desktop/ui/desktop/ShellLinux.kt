@@ -47,6 +47,8 @@ import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
+import dev.retrobit.desktop.ui.wm.ShellMetrics
+import dev.retrobit.desktop.ui.wm.WindowLayer
 import java.util.Date
 
 /**
@@ -67,7 +69,8 @@ fun LinuxShell(vm: LauncherViewModel) {
     val cascade = px(34f)
     val minW = px(360f)
     val minH = px(260f)
-    val area = remember(size) {
+    // keyed on the shell's own metrics too: a change of UI scale moves the panel / dock
+    val area = remember(size, dockW, panelH) {
         Rect(dockW, panelH, size.width.toFloat(), size.height.toFloat())
     }
 
@@ -83,6 +86,14 @@ fun LinuxShell(vm: LauncherViewModel) {
             }
         }
 
+
+        // ── floating windows of our own apps ─────────────────────────────────────
+        // The desktop frame never moves: a window keeps its place when the keyboard opens, and the
+        // panel / dock stay drawn over it, the way a desktop taskbar always does.
+        LaunchedEffect(area, winMargin, cascade, minW, minH) {
+            vm.wm.relayout(area, ShellMetrics(winMargin, cascade, minW, minH))
+        }
+        WindowLayer(vm.wm)
 
         // ── top panel ─────────────────────────────────────────────────────────────
         Row(
@@ -108,6 +119,8 @@ fun LinuxShell(vm: LauncherViewModel) {
             PanelMenu("system") { vm.openWindow(WinKind.SETTINGS) }
             PanelMenu("apps") { vm.openWindow(WinKind.APPS) }
             PanelMenu("term") { vm.openWindow(WinKind.TERMINAL) }
+            // the task list a panel always has: the floating windows of our own apps
+            PanelMenu("windows") { vm.windowsMenu(Offset(10f, 60f)) }
             // no task list any more: an app owns the whole screen, and the panel is only the
             // desktop's own bar (the cyberdeck rail covers apps that are running)
             Spacer(Modifier.weight(1f))

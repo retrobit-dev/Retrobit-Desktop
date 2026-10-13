@@ -190,6 +190,8 @@ private fun Root(vm: LauncherViewModel) {
             vm.launchpad -> vm.launchpad = false
             vm.startMenu -> vm.startMenu = false
             vm.shellOpen != null -> vm.closeShell()
+            // back also sends the focused floating window down, like leaving a window on a desktop
+            vm.wm.focused != null -> vm.minimizeFocused()
             else -> Unit
         }
     }
@@ -205,7 +207,11 @@ private fun Root(vm: LauncherViewModel) {
                 )
                 // deferred read: the layout does not even recompose when the keyboard opens
                 .offset {
-                    if (settings.keyboardLiftsLayout) IntOffset(0, -ime.getBottom(density)) else IntOffset.Zero
+                    if (settings.keyboardMode == dev.retrobit.desktop.data.Settings.KEYBOARD_LIFT) {
+                        IntOffset(0, -ime.getBottom(density))
+                    } else {
+                        IntOffset.Zero
+                    }
                 },
         )
     }

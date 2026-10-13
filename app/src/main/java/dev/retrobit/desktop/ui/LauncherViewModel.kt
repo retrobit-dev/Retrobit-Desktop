@@ -56,13 +56,21 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     var desktopInsets by mutableStateOf(dev.retrobit.desktop.ui.theme.DesktopInsets.Zero)
 
     /**
-     * The internal app that fills the screen - terminal, settings, notes, the app drawer... `null`
-     * means the desktop itself is showing. There are **no desktop windows any more**: an app (ours
-     * or somebody else's) either fills the screen with the cyberdeck frame around it, or it is not
-     * on screen at all.
+     * Floating windows of **our own** apps: terminal, settings, notes, the app drawer...
+     *
+     * Opening one of them puts a framed box on the desktop - movable, resizable from eight handles,
+     * minimizable, maximizable and closable - instead of taking the whole screen straight away.
+     * Third-party apps are not part of this: they keep opening full screen with the cyberdeck chrome
+     * drawn over them.
      */
-    var shellOpen: WinKind? by mutableStateOf(null)
-        private set
+    val wm = dev.retrobit.desktop.ui.wm.WindowManager(settings)
+
+    /**
+     * The app of ours that is maximized right now (`null` while every window floats). A maximized
+     * window owns the screen and is drawn by [dev.retrobit.desktop.ui.desktop.ShellHost], the same
+     * full-screen frame the chrome draws over somebody else's app.
+     */
+    val shellOpen: WinKind? get() = wm.maximizedWindow?.kind
 
     /** Which page of desktop icons and widgets is showing (see [switchDesktop]). */
     var desktop by mutableStateOf(0)
@@ -702,13 +710,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── launching ────────────────────────────────────────────────────────────────
     /**
-     * Opens an app the way this desktop works now: it fills the screen and the cyberdeck chrome
-     * draws its frame (border, title rail, dock) on top of it. No floating windows, no desktop
-     * boxes - one app, one full screen, one frame.
+     * Launches an installed app. Third-party apps open the way they always did - full screen, with
+     * the cyberdeck chrome drawing the frame around them (our own apps live in floating windows
+     * instead, see [openWindow]).
      */
     fun launch(app: AppEntry) {
         selectedApp = null
-        shellOpen = null
         // the launch counts drive the drawer order: most used first, then A-Z
         settings.noteLaunch(app.pkg)
         frontApp = app
@@ -737,19 +744,86 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         return true
     }
 
-    /** Opens one of our own apps (terminal, settings, the drawer, ...) full screen. */
+    /**
+     * Opens one of our own apps (terminal, settings, the drawer, ...) in its **floating window**: a
+     * framed, movable, resizable box on the desktop - not a full screen takeover. Opening it again
+     * brings the window that is already there back to the front.
+     */
     fun openWindow(kind: WinKind) {
-        shellOpen = kind
+        wm.open(kind)
         selectedApp = null
         menu = null
         startMenu = false
         launchpad = false
         spotlight = false
+        syncChrome()
     }
 
-    /** Back to the desktop (the shell host's "desktop" key). */
+    /**
+     * The "desktop" key: leaves the full-screen frame and goes back to the desktop. A maximized
+     * window shrinks back to its floating box (nothing is lost); if nothing is maximized, the
+     * focused window is minimized.
+     */
     fun closeShell() {
-        shellOpen = null
+        val max = wm.maximizedWindow
+        if (max != null) wm.restore(max.id) else wm.minimizeFocused()
+        syncChrome()
+    }
+
+    // ── window actions (buttons, keyboard shortcuts, terminal) ─────────────────
+    fun minimizeFocused() = wm.minimizeFocused()
+    fun restoreFocused() = wm.focused?.let { wm.restore(it.id) }
+    fun maximizeFocused() = wm.focused?.let { wm.toggleMaximize(it.id) }
+    fun closeFocusedWindow() = wm.closeFocused()
+    fun minimizeAllWindows() = wm.minimizeAll()
+
+    /** Brings a window back to the front (the task chips in the panels / dock). */
+    fun showWindow(win: dev.retrobit.desktop.ui.wm.WinState) {
+        if (win.maximized) wm.restore(win.id) else wm.focus(win.id)
+        syncChrome()
+    }
+
+    /** The windows a task list shows: everything open on this page of the desktop. */
+    val openWindows: List<dev.retrobit.desktop.ui.wm.WinState> get() = wm.onScreen
+
+    /** Drops every window back to its default size and forgets the remembered geometry. */
+    fun resetWindowSizes() {
+        wm.resetGeometry()
+        shell.print("window sizes reset - windows open at the default size again")
+    }
+
+    /**
+     * The task list, as menu items: the windows open on this page of the desktop, most recent
+     * first, then the two housekeeping entries. Tapping a window raises it and, if it was
+     * minimized, brings it back.
+     */
+    fun windowMenuItems(): List<MenuItem> {
+        val items = mutableListOf<MenuItem>()
+        val open = wm.onScreen.sortedByDescending { it.z }
+        if (open.isEmpty()) {
+            items += MenuItem(label = "no windows open", glyph = null, enabled = false) {}
+        }
+        for (w in open) {
+            items += MenuItem(
+                label = w.title + when {
+                    w.minimized -> "  (minimized)"
+                    w.maximized -> "  (maximized)"
+                    else -> ""
+                },
+                glyph = dev.retrobit.desktop.ui.wm.glyphFor(w.kind),
+            ) { showWindow(w) }
+        }
+        if (open.isNotEmpty()) {
+            items += MenuItem(label = "minimize all windows", glyph = null) { wm.minimizeAll() }
+            items += MenuItem(label = "close all windows", glyph = null) { wm.closeAll() }
+        }
+        items += MenuItem(label = "reset window sizes", glyph = null) { resetWindowSizes() }
+        return items
+    }
+
+    /** The panel / menu bar "windows" entry: the same task list as a popup under [anchor]. */
+    fun windowsMenu(anchor: Offset) {
+        openMenu(MenuRequest("Windows", "floating windows of our own apps", anchor, windowMenuItems()))
     }
 
     /** Opens the app drawer (used by the app context menu). */
@@ -788,6 +862,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         settings.pinnedDesktop = settings.pinnedDesktop.filterNot { it == app.pkg }
     }
 
+    init {
+        // every window the user moves or resizes is remembered per app, so it opens the same way
+        wm.onGeometryChanged = { w -> if (w.width > 0f && w.height > 0f) settings.setWindowRect(w.kind, w.placement) }
+    }
+
     // ── appearance ───────────────────────────────────────────────────────────────
     fun setStyle(style: DesktopStyle) { settings.style = style; shell.print("desktop style -> ${style.label}") }
     fun setPalette(p: PaletteId) { settings.palette = p }
@@ -803,10 +882,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Invert the current palette (paper <-> ink), e-paper style dark mode. */
     fun invertTheme() { invertRequested++ }
 
-    /** Switches page: the desktop here is a page of icons and widgets, with no windows to move. */
+    /** Switches page: each page has its own icons, widgets and floating windows. */
     fun switchDesktop(index: Int) {
         desktop = index.coerceIn(0, desktopCount - 1)
-        closeShell()
+        wm.switchDesktop(desktop)
         shell.print("desktop ${desktop + 1} of $desktopCount")
     }
 

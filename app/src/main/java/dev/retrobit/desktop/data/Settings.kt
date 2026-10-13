@@ -118,12 +118,22 @@ class Settings(context: Context) {
     var brightness: Float by floatPref("brightness", -1f)
 
     /**
-     * What the keyboard does to the layout. `false` (the default) keeps everything where it is: the
-     * keyboard floats on top of the desktop, nothing slides up, and only the inside of our own
-     * full-screen apps makes room for it. `true` is the old behaviour - the whole desktop is pushed
-     * up by the height of the keyboard.
+     * What the keyboard does to the layout:
+     *
+     *  · `overlay` (default): the keyboard floats **over** the desktop and nothing moves at all -
+     *    no rail, no icon, no widget, no window frame, no slide.
+     *  · `content`: the desktop stays put too, but the inside of our own apps makes room for the
+     *    keyboard so the line you are typing stays visible.
+     *  · `lift`: the old behaviour - the whole desktop is pushed up by the height of the keyboard.
      */
-    var keyboardLiftsLayout: Boolean by boolPref("keyboardLiftsLayout", false)
+    var keyboardMode: String by stringPref("keyboardMode", KEYBOARD_OVERLAY)
+
+    /**
+     * Remembered window geometry, one entry per app: `KIND=x,y,w,h` in desktop pixels. Windows open
+     * the size and place the user left them in, which is what makes a floating window feel like a
+     * real desktop window instead of a fresh guess every time.
+     */
+    var windowRects: String by stringPref("windowRects", "")
 
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
@@ -303,6 +313,12 @@ class Settings(context: Context) {
         iconCells = map.entries.joinToString(";") { "${it.key}=${it.value.first},${it.value.second}" }
     }
 
+    companion object {
+        const val KEYBOARD_OVERLAY = "overlay"
+        const val KEYBOARD_CONTENT = "content"
+        const val KEYBOARD_LIFT = "lift"
+    }
+
     private fun parseCells(): Map<String, Pair<Int, Int>> {
         val raw = iconCells
         if (raw.isBlank()) return emptyMap()
@@ -318,7 +334,46 @@ class Settings(context: Context) {
         }.toMap()
     }
 
+    /** The geometry a window of [kind] should open with, or null the first time it is used. */
+    fun windowRect(kind: dev.retrobit.desktop.model.WinKind): dev.retrobit.desktop.ui.wm.Placement? {
+        val entry = parseWindowRects()[kind.name] ?: return null
+        val p = entry.split(',')
+        if (p.size != 4) return null
+        val x = p[0].toIntOrNull() ?: return null
+        val y = p[1].toIntOrNull() ?: return null
+        val w = p[2].toIntOrNull() ?: return null
+        val h = p[3].toIntOrNull() ?: return null
+        if (w <= 0 || h <= 0) return null
+        return dev.retrobit.desktop.ui.wm.Placement(x, y, x + w, y + h)
+    }
+
+    fun setWindowRect(kind: dev.retrobit.desktop.model.WinKind, r: dev.retrobit.desktop.ui.wm.Placement) {
+        val map = parseWindowRects().toMutableMap()
+        map[kind.name] = "${r.left},${r.top},${r.width},${r.height}"
+        windowRects = map.entries.joinToString(";") { "${it.key}=${it.value}" }
+    }
+
+    fun clearWindowRects() {
+        windowRects = ""
+    }
+
+    private fun parseWindowRects(): Map<String, String> {
+        val raw = windowRects
+        if (raw.isBlank()) return emptyMap()
+        return raw.split(';').mapNotNull { part ->
+            val eq = part.indexOf('=')
+            if (eq <= 0) return@mapNotNull null
+            part.substring(0, eq) to part.substring(eq + 1)
+        }.toMap()
+    }
+
     init {
+        // v1.15.0 had a single "the keyboard slides the desktop up" switch; whoever had turned it on
+        // keeps that behaviour as the `lift` mode, everybody else gets the floating keyboard
+        if (!sp.getBoolean("migrated_keyboard_mode", false)) {
+            if (sp.getBoolean("keyboardLiftsLayout", false)) keyboardMode = KEYBOARD_LIFT
+            sp.edit().putBoolean("migrated_keyboard_mode", true).apply()
+        }
         // the calendar widget got simpler (month grid + a few agenda lines), so a stored height of
         // exactly the old 420dp default is dropped once; any other manual size is left alone
         if (!sp.getBoolean("migrated_180", false)) {

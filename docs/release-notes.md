@@ -10,6 +10,53 @@
 ## Yang baru di {{TAG}}
 
 
+### Jendela mengambang: aplikasi bawaan launcher tidak lagi langsung full screen
+Aplikasi **bawaan launcher** sekarang terbuka sebagai **jendela kotak di desktop**, bukan memenuhi
+layar begitu dibuka. Yang ikut pindah ke dalam jendela: **terminal, settings, notes, applications
+(app drawer), system monitor, calendar, about**.
+
+- **Geser** jendela dari **title bar**-nya; **resize dari 8 arah** — empat sisi + empat sudut, dengan
+  pegangan yang bisa digenggam dari luar bingkai (ada penanda garis miring di sudut kanan bawah).
+  Saat sedang di-resize, ukurannya tercetak hidup di title bar (`1024x768`).
+- **Minimize**, **maximize**, dan **close** ada di title bar. Bentuk tombolnya mengikuti gaya desktop
+  yang kamu pakai: tiga kotak kecil gaya GTK (Linux), lampu lalu lintas gaya macOS, atau gradient
+  dither gaya Windows 95.
+- **Maximize mengisi area desktop** — panel/taskbar dan dock tetap terlihat — dan menekan maximize
+  lagi (atau double tap / double click di title bar) **mengembalikan jendela persis ke ukuran dan
+  posisi sebelumnya**, bukan ke ukuran tebakan baru.
+- **Ukuran & posisi terakhir diingat per aplikasi** (dan per halaman desktop), jadi terminal yang
+  kamu atur lebar akan terbuka selebar itu lagi besok. Mau mulai dari bersih: tombol **reset window
+  sizes** di *Settings - apps & windows* (terminal: `win reset`).
+- **Snap ke tepi**: seret jendela ke tepi kiri/kanan untuk memenuhi setengah desktop, seret ke atas
+  tengah untuk maximize. Saat masih diseret, tempat tujuannya digambar sebagai kotak bergaris putus.
+- **Task list**: panel Linux punya menu **windows**, macOS menu **Window**, taskbar Windows 95 punya
+  tombol per jendela (jendela yang di-minimize tercetak lebih pudar). Isinya: daftar jendela,
+  `minimize all`, `close all`, `reset window sizes`. Di terminal: `win list`.
+- **Minimize tidak menghilangkan jendela**: buka aplikasinya lagi dari ikon, dock, panel, atau taskbar
+  dan jendela yang tadi turun muncul kembali pada ukuran yang sama. Tombol `back` juga menurunkannya.
+- **Tiap halaman desktop punya jendelanya sendiri** (`win send 2` memindahkan jendela aktif ke
+  halaman 2; `ctrl+alt+left/right` pindah halaman).
+- **Pintasan keyboard**: `ctrl+alt+t` terminal, `ctrl+alt+w` tutup jendela aktif, `ctrl+alt+m`
+  minimize semua, `ctrl+alt+up` maximize/restore, `ctrl+alt+tab` pindah jendela.
+
+**Aplikasi pihak ketiga tidak berubah**: aplikasi terpasang tetap dibuka **penuh** dengan bingkai
+cyberdeck digambar di sekelilingnya. Jendela di sini adalah jendela milik launcher untuk aplikasi
+milik launcher sendiri — tidak ada permintaan *freeform window* ke Android, jadi tidak ada izin
+sistem tambahan dan tidak ada aplikasi orang lain yang dikurung di dalam kotak.
+
+### Keyboard: jendela tidak bergeser sedikit pun
+Perilaku keyboard dirapikan jadi tiga mode, dan yang **default benar-benar diam**:
+
+- **float over (default)** — keyboard mengapung di atas desktop; title rail, ikon, widget, panel,
+  dock, **dan jendela mengambang** (bingkai, posisi, ukuran) tidak bergerak sedikit pun. Ini yang
+  diminta: buka keyboard, tampilan tetap.
+- **room inside apps** — desktop tetap diam juga, tapi bagian dalam aplikasi kita (terminal, notes,
+  settings) menyediakan ruang supaya baris yang sedang diketik tidak tertutup keyboard.
+- **slide up** — perilaku lama: seluruh desktop naik setinggi keyboard, untuk yang menyukainya.
+
+Pilih di *Settings - apps & windows*, atau lewat terminal: `keyboard overlay|content|lift`
+(`keyboard still` juga masih jalan dan berarti `overlay`).
+
 ### Pena kembali jadi pena di dalam kolom teks
 Stylus tetap jadi kursor panah di desktop — tap = klik kiri, **hold = klik kanan**, drag = pindah
 ikon — tapi begitu kamu masuk ke **mode input teks** (menyentuh kolom teks sampai kolom itu memegang
@@ -30,7 +77,11 @@ Pengaturan pena lainnya sekarang punya UI dan perintah sendiri: **hold = klik ka
 (`pen rightclick on|off`), **lama hold** 250 / 380 / 500 / 700 ms (`pen time 380`), dan
 **panah e-paper** (`pen cursor on|off`); `pen` tanpa argumen mencetak statusnya.
 
-### Tidak ada lagi floating window: satu aplikasi, satu layar
+### Tidak ada lagi floating window: satu aplikasi, satu layar (v1.13.0)
+> Catatan: ini aturan untuk **aplikasi pihak ketiga**, dan tetap berlaku sampai sekarang. Sejak
+> versi terbaru aplikasi **bawaan launcher** kembali punya jendela mengambang sendiri - lihat bagian
+> paling atas.
+
 Desktop-nya sekarang bersih - **ikon dan widget saja**. Membuka apa pun (aplikasi terpasang,
 terminal, settings, notes) membuka **penuh**, dan bingkai cyberdeck (border hitam, title rail, dock)
 digambar di sekelilingnya:

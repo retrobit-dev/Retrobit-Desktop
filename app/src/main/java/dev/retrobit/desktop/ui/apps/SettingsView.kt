@@ -192,12 +192,36 @@ fun SettingsView(vm: LauncherViewModel) {
 
         Section("apps & windows")
         RetroText(
-            "Apps fill the screen. There are no floating windows and no desktop boxes: opening " +
-                "anything - an installed app, the terminal, these settings - opens it full screen, " +
-                "and the cyberdeck chrome draws the frame (border, title rail, dock) around it.\n" +
-                "Our own apps get the same frame drawn by the launcher itself (see the rail at the " +
-                "top of this screen), so the desktop looks the same whichever app is in front.",
-            size = 10.5f, color = p.mid, maxLines = 8,
+            "**Our own apps open in a floating window** - terminal, settings, notes, applications, " +
+                "system monitor, calendar and about. The window is a box on the desktop: drag it by " +
+                "the title bar, resize it from any of the eight edges and corners, minimize it, " +
+                "maximize it to fill the desktop and press maximize again to put it back, close it " +
+                "with the x. Double tap (or double click) the title bar does the same as maximize.\n" +
+                "Every app remembers the size and place you left it in, per desktop page, and opens " +
+                "that way next time.\n" +
+                "**Installed apps stay full screen**: the cyberdeck chrome draws the frame (border, " +
+                "title rail, dock) around them, so a third-party app still gets the whole screen.",
+            size = 10.5f, color = p.mid, maxLines = 12,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroButton(
+                label = "Reset window sizes",
+                modifier = Modifier.weight(1f),
+                onClick = { vm.resetWindowSizes() },
+            )
+            RetroButton(
+                label = "Close all windows",
+                modifier = Modifier.weight(1f),
+                onClick = { vm.wm.closeAll() },
+            )
+        }
+        RetroText(
+            "Reset drops every window back to its default size and forgets the remembered geometry, " +
+                "handy after a change of desktop style or rotation. Windows that were minimized come " +
+                "back when you open the app again (from an icon, the dock, the panel's `windows` menu, " +
+                "or the taskbar buttons). Ctrl+Alt+T terminal, Ctrl+Alt+W close, Ctrl+Alt+M minimize " +
+                "all, Ctrl+Alt+Up maximize, Ctrl+Alt+Tab next window.",
+            size = 10f, color = p.mid, maxLines = 6,
         )
         ToggleRow("Apps open with a double click / double tap (tap selects)", s.doubleClickOpen, onGlyph = Glyph.GRID) {
             s.doubleClickOpen = it
@@ -277,29 +301,30 @@ fun SettingsView(vm: LauncherViewModel) {
                 )
             }
         }
-        // what the keyboard does to the layout: float over it (default) or push the whole desktop up
+        // what the keyboard does to the layout: float over it (default), room inside our own apps,
+        // or the old slide-up
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f)), verticalAlignment = Alignment.CenterVertically) {
-            RetroText("keyboard", size = 10.5f, color = p.mid, modifier = Modifier.weight(0.9f))
-            RetroButton(
-                label = "layout stays",
-                modifier = Modifier.weight(1.5f),
-                active = !s.keyboardLiftsLayout,
-                onClick = { s.keyboardLiftsLayout = false },
-            )
-            RetroButton(
-                label = "layout slides up",
-                modifier = Modifier.weight(1.5f),
-                active = s.keyboardLiftsLayout,
-                onClick = { s.keyboardLiftsLayout = true },
-            )
+            RetroText("keyboard", size = 10.5f, color = p.mid, modifier = Modifier.weight(0.8f))
+            listOf(
+                dev.retrobit.desktop.data.Settings.KEYBOARD_OVERLAY to "float over",
+                dev.retrobit.desktop.data.Settings.KEYBOARD_CONTENT to "room inside apps",
+                dev.retrobit.desktop.data.Settings.KEYBOARD_LIFT to "slide up",
+            ).forEach { (mode, label) ->
+                RetroButton(
+                    label = label,
+                    modifier = Modifier.weight(1.3f),
+                    active = s.keyboardMode == mode,
+                    onClick = { s.keyboardMode = mode },
+                )
+            }
         }
         RetroText(
-            "Layout stays (default): the keyboard floats *over* the desktop and nothing moves - title rail, " +
-                "icons, widgets, panels and dock keep their place, while our own full-screen apps make room " +
-                "inside their frame so the line you are typing stays visible.\n" +
-                "Layout slides up: the old behaviour, the whole desktop is pushed up by the height of the " +
-                "keyboard.",
-            size = 10.5f, color = p.mid, maxLines = 7,
+            "Float over (default): the keyboard overlays the desktop and **nothing moves** - rail, icons, " +
+                "widgets, panels and window frames all keep their place.\n" +
+                "Room inside apps: the desktop still stays put, but the inside of our own apps (terminal, " +
+                "notes, settings) makes room so the line you type is not hidden.\n" +
+                "Slide up: the old behaviour, the whole desktop is pushed up by the height of the keyboard.",
+            size = 10.5f, color = p.mid, maxLines = 8,
         )
         RetroText(
             "Android's own keyboard is kept: it appears when you tap a text field. Use the keyboard button " +

@@ -134,7 +134,12 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.A -> { vm.openWindow(WinKind.APPS); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.D -> { vm.desktopMenu(Offset(120f, 160f)); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.K -> { vm.toggleKeyboard?.invoke(); true }
-                        // Ctrl+Alt+Left / Right walks the workspace pages (icons & widgets, no windows)
+                        // window shortcuts, like a desktop window manager
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.W -> { vm.closeFocusedWindow(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.M -> { vm.minimizeAllWindows(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionUp -> { vm.maximizeFocused(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Tab -> { vm.wm.focusNext(); true }
+                        // Ctrl+Alt+Left / Right walks the workspace pages (icons, widgets & windows)
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionRight -> {
                             vm.switchDesktop((vm.desktop + 1) % vm.desktopCount); true
                         }
@@ -149,7 +154,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                             vm.openSelected(); true
                         }
                         ev.key == Key.Escape -> {
-                            // Esc leaves our own full-screen app first, then the menus
+                            // Esc shrinks a maximized window back to its box first, then the menus
                             if (vm.shellOpen != null) {
                                 vm.closeShell()
                             } else {
@@ -182,16 +187,17 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                         bottom = with(density) { insets.bottom.toDp() },
                     ),
             ) {
+                // the desktop: wallpaper, icons, widgets and the floating windows of our own apps
+                when (settings.style) {
+                    DesktopStyle.LINUX -> LinuxShell(vm)
+                    DesktopStyle.MACOS -> MacosShell(vm)
+                    DesktopStyle.WINDOWS -> WindowsShell(vm)
+                }
+
                 if (vm.shellOpen != null) {
-                    // one of our own apps owns the screen: same full-screen window with the same
-                    // frame the cyberdeck chrome draws over somebody else's app
+                    // a maximized window owns the screen: the same full-screen frame the cyberdeck
+                    // chrome draws over somebody else's app, covered with its own rail and dock
                     ShellHost(vm, Modifier.fillMaxSize())
-                } else {
-                    when (settings.style) {
-                        DesktopStyle.LINUX -> LinuxShell(vm)
-                        DesktopStyle.MACOS -> MacosShell(vm)
-                        DesktopStyle.WINDOWS -> WindowsShell(vm)
-                    }
                 }
 
                 vm.menu?.let { m ->

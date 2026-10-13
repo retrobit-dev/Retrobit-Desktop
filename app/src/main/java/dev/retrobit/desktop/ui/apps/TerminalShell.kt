@@ -96,6 +96,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "night" -> night(args.firstOrNull())
             "pen", "stylus", "pencil" -> penCmd(args)
             "keyboard", "kbd" -> keyboardCmd(args)
+            "win", "windows", "window" -> winCmd(args)
             "widgets", "widget" -> widgets(args)
             "invert" -> vm.invertTheme()
             "app" -> appCmd(args)
@@ -158,7 +159,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             pins                   the dock list, in the order it is shown
             night on|off           dark Ink palette / back to the day palette
             pen [text|rightclick|cursor on|off]   how the M-Pencil behaves (text = pen inside fields)
-            keyboard still|lift    keeps the layout put when the keyboard opens / slides it up
+            keyboard overlay|content|lift   keyboard floats over / app content makes room / desktop slides up
+            win [list|open <app>|min|max|close|closeall|reset|next|send <n>]   desktop windows of our own apps
             cyberdeck preview|grant  show it for a few seconds / ask for the overlay permission
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
@@ -171,6 +173,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             """.trimIndent(),
             Kind.DIM,
         )
+        print("tip: our own apps open in a floating window - drag the title bar, resize from any edge.", Kind.DIM)
         print("tip: tap & hold any icon for its context menu.", Kind.DIM)
         print("pen: 1 tap = click, 2 taps = right click. keyboard: the keyboard button in the panel, or ctrl+alt+k.", Kind.DIM)
     }
@@ -207,12 +210,17 @@ class TerminalShell(private val vm: LauncherViewModel) {
     }
 
     private fun ps() {
-        // there are no windows any more: one app owns the screen, and the chrome draws its frame
+        // installed apps own the screen (the chrome draws their frame); our own apps float in windows
         val front = vm.frontApp
+        val open = vm.openWindows
         print("  SCREEN  APP", Kind.HEAD)
-        print("  desktop  workspace ${vm.desktop + 1} of ${vm.desktopCount} (icons & widgets)")
+        print("  desktop  workspace ${vm.desktop + 1} of ${vm.desktopCount} (icons, widgets & windows)")
         print("  front    ${front?.label ?: "nothing - the desktop is on screen"}")
-        print("  shell    ${vm.shellOpen?.name?.lowercase() ?: "-"}")
+        print("  maxed    ${vm.shellOpen?.name?.lowercase() ?: "-"}")
+        print("  windows  ${open.size} open, ${open.count { it.minimized }} minimized")
+        open.sortedByDescending { it.z }.forEach { w ->
+            print("           ${w.kind.name.lowercase().padEnd(9)} ${w.width.toInt()}x${w.height.toInt()} at ${w.x.toInt()},${w.y.toInt()}")
+        }
     }
 
     private fun neofetch() {
@@ -643,25 +651,89 @@ class TerminalShell(private val vm: LauncherViewModel) {
     }
 
     /**
-     * `keyboard` — what the on-screen keyboard does to the layout. `still` (the default) floats the
-     * keyboard over the desktop so nothing moves; `lift` restores the old slide-up-by-keyboard-height.
+     * `keyboard` — what the on-screen keyboard does to the layout.
+     *
+     *  `overlay` (default) floats the keyboard over everything: nothing on the desk moves;
+     *  `content` keeps the desktop put too, but lets the inside of our own apps make room;
+     *  `lift`    restores the old behaviour, sliding the whole desktop up by the keyboard height.
      */
     private fun keyboardCmd(args: List<String>) {
         val s = vm.settings
         when (args.firstOrNull()?.lowercase()) {
             null, "status" -> print(
-                "keyboard layout -> " + if (s.keyboardLiftsLayout) "slides the desktop up"
-                else "stays put (the keyboard floats on top)"
+                "keyboard -> " + when (s.keyboardMode) {
+                    dev.retrobit.desktop.data.Settings.KEYBOARD_CONTENT -> "room inside our own apps (desktop stays put)"
+                    dev.retrobit.desktop.data.Settings.KEYBOARD_LIFT -> "slides the whole desktop up"
+                    else -> "floats over the desktop, nothing moves"
+                }
             )
-            "still", "stay", "off", "fixed" -> {
-                s.keyboardLiftsLayout = false
-                print("keyboard layout -> stays put; our own apps make room inside their frame")
+            "still", "stay", "off", "fixed", "overlay", "float" -> {
+                s.keyboardMode = dev.retrobit.desktop.data.Settings.KEYBOARD_OVERLAY
+                print("keyboard -> floats over the desktop; nothing moves, not even a window frame")
+            }
+            "content", "inside", "apps", "pad" -> {
+                s.keyboardMode = dev.retrobit.desktop.data.Settings.KEYBOARD_CONTENT
+                print("keyboard -> the desktop stays put; the inside of our own apps makes room")
             }
             "lift", "up", "on", "slide", "resize" -> {
-                s.keyboardLiftsLayout = true
-                print("keyboard layout -> the whole desktop slides up by the keyboard height")
+                s.keyboardMode = dev.retrobit.desktop.data.Settings.KEYBOARD_LIFT
+                print("keyboard -> the whole desktop slides up by the keyboard height")
             }
-            else -> print("usage: keyboard still|lift", Kind.ERR)
+            else -> print("usage: keyboard overlay|content|lift", Kind.ERR)
+        }
+    }
+
+    /**
+     * `win` — the floating windows of our own apps: what is open, where, and the same actions the
+     * buttons on a title bar do. Bare `win` prints the task list.
+     */
+    private fun winCmd(args: List<String>) {
+        val wm = vm.wm
+        val head = args.getOrNull(0)?.lowercase()
+        val what = args.getOrNull(1)?.lowercase()
+        val open = wm.onScreen.sortedByDescending { it.z }
+        when (head) {
+            null, "list", "ls" -> {
+                print("windows of our own apps - ${open.size} open on desktop ${vm.desktop + 1}", Kind.HEAD)
+                if (open.isEmpty()) {
+                    print("  none open. `notes`, `settings`, `files` or ctrl+alt+t open one.", Kind.DIM)
+                }
+                open.forEach { w ->
+                    val state = when {
+                        w.minimized -> "minimized"
+                        w.maximized -> "maximized"
+                        else -> "floating"
+                    }
+                    print(
+                        "  ${w.kind.name.lowercase().padEnd(9)} $state  " +
+                            "${w.width.toInt()}x${w.height.toInt()} at ${w.x.toInt()},${w.y.toInt()}"
+                    )
+                }
+            }
+            "open", "new" -> {
+                val kind = WinKind.entries.firstOrNull { it.name.equals(what, true) }
+                if (kind == null) print("usage: win open apps|terminal|settings|sysmon|notes|about|calendar", Kind.ERR)
+                else {
+                    vm.openWindow(kind)
+                    print("window ${kind.name.lowercase()} open - drag its title bar, resize from any edge")
+                }
+            }
+            "min" -> { vm.minimizeFocused(); print("focused window minimized (reopen the app to bring it back)") }
+            "max", "zoom" -> { vm.maximizeFocused(); print("focused window maximized / restored") }
+            "close" -> { vm.closeFocusedWindow(); print("focused window closed") }
+            "closeall" -> { wm.closeAll(); print("all windows on this page closed") }
+            "reset" -> vm.resetWindowSizes()
+            "next" -> { wm.focusNext(); print("focused the next window") }
+            "send" -> {
+                val page = what?.toIntOrNull()
+                val win = wm.focused
+                if (page == null || win == null) print("usage: win send <1..4>  (moves the focused window to a page)", Kind.ERR)
+                else {
+                    wm.moveWindowToDesktop(win.id, page - 1)
+                    print("${win.title} moved to desktop $page")
+                }
+            }
+            else -> print("usage: win [list|open <app>|min|max|close|closeall|reset|next|send <n>]", Kind.ERR)
         }
     }
 

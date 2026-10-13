@@ -76,8 +76,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Semua ikon UI digambar sebagai **pixel-art 16×16** (glyph didefinisikan di dalam kode).
 
 ### Cyberdeck chrome: bingkai yang menggambar "jendela" di atas aplikasi
-- Setiap aplikasi terbuka **penuh** (launcher tidak pernah meminta floating window), jadi launcher
-  sendiri yang **menggambar bingkainya di atas aplikasi**: border hitam 3,5 dp, **title rail**
+- Setiap aplikasi **pihak ketiga** terbuka **penuh** (launcher tidak pernah meminta floating window),
+  jadi launcher sendiri yang **menggambar bingkainya di atas aplikasi**: border hitam 3,5 dp, **title rail**
   (nama aplikasi, jam `HH:mm:ss`, baterai, sinyal, dan tombol `hide` / `eye` / `desktop` / `panel` /
   `keyboard`) serta **dock** di bawah (kunci desktop, aplikasi yang dipin, tombol panel). Itulah
   yang membuat aplikasi full screen terbaca sebagai jendela dari desktop ini.
@@ -85,8 +85,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   (butuh izin **display over other apps**, ada tombol `grant permission`), tombol `preview 8s` untuk
   mencoba tanpa keluar dari desktop, atau terminal: `cyberdeck on|off|preview|grant`.
 - Chrome hanya muncul saat launcher tidak terlihat (kalau desktop yang di depan, launcher menggambar
-  bingkainya sendiri — lihat *Satu aplikasi, satu layar*). Tengah layar tidak ditutup overlay apa
-  pun, dan dock diberi jarak dari gesture bar supaya swipe-naik (home) tetap jalan.
+  bingkainya sendiri — lihat *Jendela mengambang untuk aplikasi bawaan*). Tengah layar tidak ditutup
+  overlay apa pun, dan dock diberi jarak dari gesture bar supaya swipe-naik (home) tetap jalan.
 - **Bingkai selalu hitam**, judul rail dimulai setelah lubang kamera, dan **rail auto-hide**:
   setelah beberapa detik title rail + dock menyusut jadi handle tipis di tepi layar (sentuh untuk
   memunculkan; rail juga muncul sebentar tiap ganti aplikasi). Atur di *Settings - cyberdeck chrome*
@@ -94,15 +94,35 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Tulisan rail/dock di-snap ke grid font 16 px dan ikon dock memakai **ikon asli aplikasi**
   (grayscale), jadi mudah dibaca.
 
-### Satu aplikasi, satu layar (tanpa floating window)
-- Desktop = **ikon + widget**. Membuka apa pun membuka **penuh**, dan bingkai cyberdeck digambar di
-  sekelilingnya: aplikasi pihak ketiga oleh `ChromeService` (overlay), aplikasi kita sendiri oleh
-  launcher (`ShellHost`, dengan title rail + dock yang sama bentuknya).
-- Launcher **tidak pernah** meminta Android membuat floating window lagi, dan tidak ada kotak
-  jendela di desktop: tanpa pindah/resize/minimize/maximize, tanpa tiling atau edge snapping.
-  Terminal kehilangan `wmctrl`, `tiling`, `floating`, `appframe`, `wsmove` untuk itu.
-- Esc (atau tombol `desktop` di rail) keluar dari aplikasi kita; `ctrl+alt+left/right` dan
-  `ctrl+alt+1..4` berpindah halaman desktop (ikon & widget).
+### Aplikasi pihak ketiga: satu aplikasi, satu layar
+- Aplikasi terpasang yang dibuka dari desktop/dock/drawer tetap membuka **penuh**, dan bingkai
+  cyberdeck digambar di sekelilingnya oleh `ChromeService` (overlay). Launcher **tidak pernah**
+  meminta Android membuat floating window (freeform) — tidak perlu izin sistem tambahan, dan tidak
+  ada aplikasi pihak ketiga yang ditaruh di dalam kotak oleh launcher.
+- Untuk aplikasi pihak ketiga, bingkai itu memang seluruh "jendela"-nya: rail atas (nama aplikasi,
+  jam, baterai, sinyal, `hide` / `eye` / `desktop` / `panel` / `keyboard`) dan dock bawah.
+
+### Jendela mengambang untuk aplikasi bawaan launcher
+- **Tujuh aplikasi bawaan** — terminal, settings, notes, applications (drawer), system monitor,
+  calendar, about — dibuka sebagai **jendela kotak di desktop**, bukan langsung full screen:
+  - **geser** dari title bar, **resize dari 8 arah** (4 sisi + 4 sudut, pegangan di luar bingkai),
+  - **minimize**, **maximize** (mengisi area desktop; rail & dock tetap terlihat) dan
+    **maximize lagi = restore ke ukuran semula**, **close** (tombol `x`),
+  - **ukuran & posisi terakhir diingat per aplikasi** dan per halaman desktop, jadi jendela terbuka
+    persis seperti kamu tinggalkan.
+- **Double tap / double click di title bar** = maximize / restore. Menyeret jendela ke **tepi kiri
+  atau kanan** memenuhi setengah desktop, menyeret ke **atas tengah** = maximize — dengan pratinjau
+  garis putus-putus saat masih diseret.
+- **Daftar jendela** (task list) bisa dibuka dari panel Linux (`windows`), menu **Window** macOS,
+  tombol taskbar Windows 95, atau terminal `win list`. Di situ ada `minimize all`, `close all`, dan
+  **`reset window sizes`** — kalau ukurannya sudah kacau, semua jendela balik ke ukuran bawaan.
+- **Keyboard tidak menggeser jendela**: buka keyboard dan bingkai, judul, posisi, serta ukuran
+  jendela tetap di tempatnya (mode keyboard `overlay`; lihat bagian keyboard di bawah).
+- Shortcut: `ctrl+alt+t` terminal, `ctrl+alt+w` tutup jendela aktif, `ctrl+alt+m` minimize semua,
+  `ctrl+alt+up` maximize, `ctrl+alt+tab` pindah jendela, `ctrl+alt+left/right` & `ctrl+alt+1..4`
+  berpindah halaman desktop (tiap halaman punya jendelanya sendiri; `win send 2` memindahkan).
+- Terminal: `win`, `win open terminal`, `win min`, `win max`, `win close`, `win closeall`,
+  `win reset`, `win next`, `win send <1..4>`.
 
 ### Quick panel & dock pintar
 - **Quick panel** (tombol gear di rail, terminal `panel`): brightness (drag + `B-`/`B+`/`auto`),
@@ -235,9 +255,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
 - Kursor pointer e-paper untuk pena/mouse, drag langsung untuk memindahkan ikon dan widget.
 - Keyboard internal Android tetap berfungsi dan bisa dipanggil kapan saja lewat tombol ⌨ di tray
-  (atau `Ctrl+Alt+K`). **Keyboard tidak menggeser layout**: keyboard mengapung di atas desktop, dan
-  hanya bagian dalam aplikasi kita sendiri (terminal, notes, settings) yang menyediakan ruang di
-  dalam bingkainya supaya baris yang kamu ketik tetap terlihat (`keyboard still|lift`).
+  (atau `Ctrl+Alt+K`). **Keyboard tidak menggeser layout**: dengan mode `overlay` (default) keyboard
+  mengapung di atas desktop dan **tidak ada yang bergerak sama sekali** — title rail, ikon, widget,
+  panel, dock, dan jendela mengambang tetap di tempatnya. Mode `content` menyediakan ruang di dalam
+  aplikasi kita sendiri, mode `lift` mengembalikan perilaku lama (`keyboard overlay|content|lift`).
 - Dukungan keyboard eksternal dengan 10+ pintasan gaya desktop.
 
 ### Terminal: tombol cepat ikon + rapi di latar
@@ -255,7 +276,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `workspace 1..4` (`ws`), `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
   `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `pen [text|rightclick|cursor on|off]`,
-  `keyboard still|lift`,
+  `keyboard overlay|content|lift`, `win [list|open <app>|min|max|close|…]`,
   `widgets` / `widget width <dp>` /
   `widget size <name> <w> <h>` / `widget reset`,
   `invert`, `boot`, `help`, `exit`,
@@ -263,7 +284,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
   **cara membuka app** (dobel klik vs satu klik), **perilaku M-Pencil** (hold = klik kanan, lama
-  hold, panah kursor, mode pena di kolom teks), **perilaku keyboard** (layout tetap vs naik),
+  hold, panah kursor, mode pena di kolom teks), **perilaku keyboard** (mengapung / ruang di dalam app
+  / slide up), **jendela mengambang** (reset ukuran + tutup semua),
   **display widgets** (add/remove/urutkan/reset widget), **app icon look** dengan pratinjau ikon
   hidup, keterbacaan + bentuk + mode ikon, skala UI, **input & devices** (hold time pena, kursor,
   keyboard), perilaku, tombol "Set as default launcher".
@@ -316,8 +338,8 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
   lagi jeda 320 ms pada tap — tap langsung jalan.
 - **Hold adalah jalan masuk ke pengeditan**: hold pada widget → mode edit + resize; hold pada ikon →
   menu ikon; hold pada desktop kosong → menu desktop (`Add widget`, `Remove widget`, `Edit widgets`).
-- **Keyboard tidak menggeser tampilan**: saat keyboard muncul, desktop tetap di tempatnya (lihat
-  *Mouse & keyboard*).
+- **Keyboard tidak menggeser tampilan**: saat keyboard muncul, desktop tetap di tempatnya — ikon,
+  widget, panel, dock, dan **jendela mengambang** semuanya diam (lihat *Mouse & keyboard*).
 - **Di dalam kolom teks, pena kembali jadi pena.** Begitu sebuah text field memegang fokus (kursor
   ketik muncul / keyboard naik), mode mouse dimatikan untuk stylus: panah e-paper hilang dan diganti
   **I-beam** milik kolomnya, **hold tidak lagi jadi klik kanan**, dan **drag tidak lagi memindahkan
@@ -340,21 +362,25 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
 
 - **Mouse**: klik kiri = buka, klik kanan = menu konteks, scroll wheel = gulir daftar, hover memindahkan kursor.
 - **Keyboard internal (bawaan Android) tetap dipakai**: muncul otomatis saat menyentuh field teks
-  (terminal, notes, kotak pencarian). **Layout tidak ikut naik**: keyboard mengapung di atas desktop
-  — title rail, ikon, widget, panel dan dock tetap di tempatnya — dan hanya isi aplikasi kita sendiri
-  yang membuat ruang di dalam bingkainya supaya baris ketik tidak tertutup. Ada tombol ⌨ di
-  panel/taskbar/menu bar untuk memunculkan atau menyembunyikan keyboard secara manual — praktis kalau memakai mouse.
+  (terminal, notes, kotak pencarian). **Layout tidak ikut naik**: keyboard mengapung di atas desktop —
+  title rail, ikon, widget, panel, dock, dan jendela mengambang tetap di tempatnya, bahkan ukuran
+  jendelanya pun tidak berubah (mode `overlay`). Kalau mau baris ketik tidak pernah tertutup, pilih
+  mode `content`: hanya bagian dalam aplikasi kita yang menyediakan ruang (jendela tetap tidak
+  bergeser). Ada tombol ⌨ di panel/taskbar/menu bar untuk memunculkan atau menyembunyikan keyboard
+  secara manual — praktis kalau memakai mouse.
 - **Keyboard eksternal** (Bluetooth/USB):
 
 | Pintasan | Aksi |
 | --- | --- |
-| `Ctrl+Alt+T` / `Ctrl+Alt+S` | terminal / settings (keduanya penuh, dengan bingkai) |
-| `Ctrl+Alt+A` | app drawer (Applications) |
+| `Ctrl+Alt+T` / `Ctrl+Alt+S` | buka jendela terminal / settings |
+| `Ctrl+Alt+A` | app drawer (Applications) sebagai jendela |
 | `Ctrl+Alt+D` | menu desktop |
-| `Ctrl+Alt+←` / `Ctrl+Alt+→` / `Ctrl+Alt+1..4` | pindah halaman desktop (ikon & widget) |
+| `Ctrl+Alt+W` / `Ctrl+Alt+M` | tutup jendela aktif / minimize semua jendela |
+| `Ctrl+Alt+↑` / `Ctrl+Alt+Tab` | maximize (atau restore) jendela aktif / jendela berikutnya |
+| `Ctrl+Alt+←` / `Ctrl+Alt+→` / `Ctrl+Alt+1..4` | pindah halaman desktop (ikon, widget & jendela) |
 | `Ctrl+Alt+K` | munculkan / sembunyikan keyboard internal |
 | `Super` (Meta) | Spotlight (cari aplikasi atau jalankan perintah shell) |
-| `Esc` | keluar dari aplikasi penuh kita dulu, lalu tutup popup / spotlight / start menu |
+| `Esc` | restore jendela yang maximized dulu, lalu tutup popup / spotlight / start menu |
 | `Enter` | jalankan perintah di terminal & field satu baris |
 
 ### Boot sequence
