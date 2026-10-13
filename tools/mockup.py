@@ -268,6 +268,13 @@ def pager(d, x, y, size=26, cells=3, active=0, windows=(1, 0, 1)):
     return x
 
 
+def widget_grip(d, x1, y1, size=11):
+    """The manual-resize grip printed inside the bottom-right corner of a widget."""
+    for i in range(3):
+        o = i * 4
+        d.line([x1 - size + o, y1 - 3, x1 - 3, y1 - size + o], fill=INK, width=1)
+
+
 def calendar_widget(d, box, mirror=False):
     """Compact calendar: month grid, dots on days with entries, agenda for the selected day.
 
@@ -329,6 +336,7 @@ def calendar_widget(d, box, mirror=False):
         d.text((x1 - 40, ty + 1), "del", font=mono_tiny, fill=INK)
     d.line([x0 + 1, y1 - 20, x1 - 1, y1 - 20], fill=INK, width=2)
     d.text((x0 + 8, y1 - 17), "6 entries \u00b7 2 open tasks", font=mono_tiny, fill=INK)
+    widget_grip(d, x1 - 3, y1 - 3, size=12)
 
 
 def panel(caption, style):
@@ -414,6 +422,7 @@ def panel(caption, style):
         d.text((w - 240, 96), "13:37", font=px_font, fill=INK)
         d.text((w - 240, 150), "Mon, 13 Oct 2026", font=mono, fill=INK)
         d.text((w - 240, 176), "uptime 2d 4h 12m", font=mono_tiny, fill=INK)
+        widget_grip(d, w - 23, 207)
         calendar_widget(d, (500, 300, w - 20, 690))
         window(d, (110, 300, 470, 700), "terminal", body_lines=[
             "operator@retrobit:~$ neofetch",
@@ -459,6 +468,7 @@ def panel(caption, style):
         d.text((40, 74), "chrono", font=mono_tiny, fill=INK)
         d.text((40, 106), "13:37", font=px_font, fill=INK)
         d.text((40, 160), "Mon, 13 Oct 2026", font=mono, fill=INK)
+        widget_grip(d, 257, 217)
         calendar_widget(d, (28, 240, 244, 640))
         window_grip(d, (262, 260, w - 60, 640))
         window(d, (262, 260, w - 60, 640), "notes.txt", mac=True, body_lines=[
@@ -495,6 +505,7 @@ def panel(caption, style):
         d.rectangle([w - 240, 120, w - 30, 134], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 238, 122, w - 60, 132], fill=INK)
         d.text((w - 240, 146), "RAM 3.1G / 7.8G", font=mono_tiny, fill=INK)
+        widget_grip(d, w - 23, 247)
         d.rectangle([w - 240, 166, w - 30, 180], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 238, 168, w - 100, 178], fill=INK)
         calendar_widget(d, (w - 250, 290, w - 20, 680))
@@ -549,7 +560,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil as a mouse · resize every window edge by hand · floating windows · reorderable dock · palette-aware icons with name chips · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · floating app windows you move and resize · manually sized widgets · m-pencil as a mouse · reorderable dock · palette-aware icons · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

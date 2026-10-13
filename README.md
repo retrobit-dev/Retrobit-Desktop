@@ -65,7 +65,33 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   dither, marquee tanpa animasi, dan pola scanline halus.
 - Semua ikon UI digambar sebagai **pixel-art 16×16** (glyph didefinisikan di dalam kode).
 
+### Aplikasi terbuka di dalam jendela (floating apps)
+- **Setiap aplikasi yang dibuka dari launcher mendapat jendela desktop**: punya title bar dengan
+  nama + ikon aplikasi, tombol minimize / maximize / close, bisa digeser, di-resize dari 8 arah,
+  di-snap ke tepi, dipindah antar-workspace, dan muncul di taskbar / task list / `ps`.
+- **Floating window sungguhan di tablet yang mendukung**: `data/WindowedLaunch.kt` memeriksa fitur
+  `android.software.freeform_window_management`, lalu mengirim aplikasi ke persis segi empat jendela
+  kita (`ActivityOptions.setLaunchBounds` via `LauncherApps.startMainActivity`). Aplikasi berjalan
+  mengapung di atas desktop, dan tombol **place here** memindahkannya saat jendela digeser/di-resize.
+- **Kalau perangkat tidak mendukung**: aplikasi terbuka penuh (seperti launcher biasa), sementara
+  jendela tetap menjadi "wakil"-nya di taskbar, daftar jendela dan workspace — plus tombol
+  **open app / bring it back**. Status perangkat ditampilkan di *Settings - apps & windows*.
+  Cara mengaktifkan floating window: *developer options* → *force activities to be resizable*, atau
+  `adb shell settings put global enable_freeform_support 1`.
+- Android sendiri **tidak mengizinkan** satu aplikasi menggambar UI aplikasi lain di dalam view-nya
+  (`android.app.ActivityView` sudah dihapus dari SDK setelah API 29 dan bukan API publik), jadi
+  inilah jalur yang benar: chrome milik kita + jendela sistem milik aplikasi.
+- Matikan lewat *Settings - apps & windows* atau terminal: `floating off` (semua aplikasi jadi
+  full screen lagi). Menu konteks ikon aplikasi juga punya **Open (floating window)** dan
+  **Open full screen**.
+
 ### Kalender & widget desktop
+- **Semua widget lebarnya sama dengan widget kalender** (250 dp) supaya kolomnya rapi, dan
+  **ukurannya bisa diatur manual**: tarik tepi kanan (lebar), tepi bawah (tinggi), atau sudut
+  kanan-bawah (keduanya). Ukuran di-snap ke grid 8 px, minimum 160x56 dp, dan diingat per widget
+  (`Settings - display widgets`, terminal `widgets`, `widget width 300`, `widget size calendar 280 420`,
+  `widget reset`). Tinggi 0 = setinggi isinya; kalau lebih pendek, isi widget bisa di-scroll.
+  Matematikanya murni di `ui/wm/WidgetMath.kt` (9 unit test).
 - **Widget kalender** di desktop: grid bulan, penanda titik pada hari yang ada acaranya, panel
   agenda hari terpilih, dan tombol `+` untuk menambah entri **langsung dari desktop**.
 - Empat jenis entri: **event**, **task**, **agenda**, dan **birthday** (birthday otomatis berulang
@@ -111,8 +137,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
 - Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
   `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
-  `ui/wm/DockMath.kt` (urutan dock) — **47 test**: 23 `LayoutMathTest` + 15 `GridMathTest` +
-  9 `DockMathTest`.
+  `ui/wm/DockMath.kt` (urutan dock) dan `ui/wm/WidgetMath.kt` (ukuran widget) — **56 test**:
+  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 9 `WidgetMathTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -126,9 +152,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
   `workspace 1..4` (`ws`), `wsmove 1..4`, `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
+  `floating on|off`, `widgets` / `widget width <dp>` / `widget size <name> <w> <h>` / `widget reset`,
   `invert`, `wmctrl`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
+- **Jendela aplikasi (app window)** — pembungkus desktop untuk aplikasi pihak ketiga: nama + ikon,
+  geometry jendela, tombol *place here* / *open full screen* / *bring it back*, plus penjelasan
+  status floating window di perangkat itu.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
   **keterbacaan ikon**, mode + bentuk ikon, skala UI, **input & devices
   (pena/mouse/keyboard)**, perilaku, tombol "Set as default launcher".
