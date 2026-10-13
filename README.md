@@ -22,6 +22,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 └────┴──────────────────────────────────────────────────────────────────┘
 ```
 
+## Tampilan
+
+![Pratinjau UI Retrobit Desktop](docs/ui-preview.png)
+
+*Mockup dari palet, font, dan tata letak yang dipakai kode aslinya — dibuat ulang dengan
+`tools/mockup.py`. Hasil di perangkat mengikuti kode Compose yang sama.*
+
 ## Fitur
 
 ### Tiga gaya desktop (bisa diganti kapan saja, dari pengaturan / terminal / chip di panel)
