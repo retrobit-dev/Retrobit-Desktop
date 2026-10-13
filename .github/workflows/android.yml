@@ -24,10 +24,10 @@ jobs:
     name: Assemble debug + release APK
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
@@ -72,6 +72,35 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk dist/retrobit-desktop-${{ github.run_number }}-release.apk
           cp app/build/outputs/apk/debug/app-debug.apk dist/retrobit-desktop-${{ github.run_number }}-debug.apk
           ls -la dist
+
+      - name: Verify APKs
+        if: steps.compile.outcome == 'success'
+        run: |
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT=$(ls "$SDK"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+          {
+            echo "### APK verification"
+            echo '```'
+            for f in dist/*.apk; do
+              echo "== $(basename "$f") ($(du -h "$f" | cut -f1))"
+              if [ -n "$AAPT" ]; then
+                "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package|launchable-activity|application-label|sdkVersion|targetSdkVersion|uses-permission|native-code)" | head -20 || true
+              fi
+              unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font|META-INF/" | head -12 || true
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          for f in dist/*.apk; do
+            echo "::notice title=$(basename "$f")::$(du -h "$f" | cut -f1)"
+            if [ -n "$AAPT" ]; then
+              "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package|launchable-activity|application-label|sdkVersion|targetSdkVersion)" | head -6 | while IFS= read -r line; do
+                echo "::notice title=$(basename "$f")::$(printf '%s' "$line" | head -c 500 | sed 's/%/%25/g')"
+              done || true
+            fi
+            unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font" | head -8 | while IFS= read -r line; do
+              echo "::notice title=$(basename "$f") zip::$(printf '%s' "$line" | head -c 300 | sed 's/%/%25/g')"
+            done || true
+          done
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
