@@ -177,14 +177,17 @@ class LayoutMathTest {
     fun `the top left corner resizes up and to the left`() {
         val r = LayoutMath.resize(win, ResizeEdge.TOP_LEFT, -20f, -30f, 200f, 120f, area)
         assertEquals(380f, r.left, 0.01f)
-        assertEquals(area.top, r.top, 0.01f)
+        assertEquals(270f, r.top, 0.01f)
+        // the top edge never leaves the desktop
+        val clamped = LayoutMath.resize(win, ResizeEdge.TOP_LEFT, 0f, -900f, 200f, 120f, area)
+        assertEquals(area.top, clamped.top, 0.01f)
     }
 
     @Test
     fun `a window never shrinks below the minimum size`() {
         val tiny = Rect(100f, 100f, 340f, 260f)
         val r = LayoutMath.resize(tiny, ResizeEdge.RIGHT, -500f, 0f, 200f, 120f, area)
-        assertEquals(220f, r.width, 0.01f)
+        assertEquals(200f, r.width, 0.01f)
         val r2 = LayoutMath.resize(tiny, ResizeEdge.BOTTOM, 0f, -500f, 200f, 120f, area)
         assertEquals(120f, r2.height, 0.01f)
     }
