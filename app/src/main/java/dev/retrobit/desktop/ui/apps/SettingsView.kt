@@ -16,14 +16,22 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import dev.retrobit.desktop.data.WallpaperSource
+import dev.retrobit.desktop.data.WallpaperTone
 import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.ui.LauncherViewModel
@@ -89,6 +97,62 @@ fun SettingsView(vm: LauncherViewModel) {
             }
         }
 
+        Section("wallpaper source")
+        val pickImage = rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.OpenDocument(),
+        ) { uri -> if (uri != null) vm.setWallpaperUri(uri) }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            WallpaperSource.values().forEach { source ->
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(dp(3f))) {
+                    RetroButton(
+                        label = source.label,
+                        active = s.wallpaperSourceEnum == source,
+                        onClick = { vm.setWallpaperSource(source) },
+                    )
+                    when (source) {
+                        WallpaperSource.PATTERN -> RetroText("generated dither", size = 9.5f, color = p.mid, maxLines = 2)
+                        WallpaperSource.DEVICE -> RetroButton(
+                            label = "use device wallpaper",
+                            modifier = Modifier,
+                            onClick = { vm.setWallpaperSource(WallpaperSource.DEVICE) },
+                        )
+                        WallpaperSource.IMAGE -> RetroButton(
+                            label = "pick image…",
+                            onClick = { runCatching { pickImage.launch(arrayOf("image/*")) } },
+                        )
+                    }
+                }
+            }
+        }
+        if (s.wallpaperSourceEnum != WallpaperSource.PATTERN) {
+            Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+                WallpaperTone.values().forEach { tone ->
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(dp(3f))) {
+                        RetroButton(
+                            label = tone.label,
+                            active = s.wallpaperToneEnum == tone,
+                            onClick = { vm.setWallpaperTone(tone) },
+                        )
+                        RetroText(tone.hint, size = 9.5f, color = p.mid, maxLines = 2)
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+                RetroButton(
+                    label = if (vm.wallpaperBusy) "working…" else "re-render wallpaper",
+                    glyph = Glyph.SETTINGS,
+                    modifier = Modifier.weight(1f),
+                    onClick = { vm.refreshWallpaper() },
+                )
+                RetroText(
+                    vm.wallpaperNote.ifEmpty {
+                        if (s.wallpaperSourceEnum == WallpaperSource.IMAGE) "image selected" else "device wallpaper loaded"
+                    },
+                    size = 10f, color = p.mid, maxLines = 3, modifier = Modifier.weight(1.4f),
+                )
+            }
+        }
+
         Section("wallpaper pattern")
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             WallPattern.values().forEach { w ->
@@ -127,6 +191,26 @@ fun SettingsView(vm: LauncherViewModel) {
             }
         }
 
+        Section("app icon shape")
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+            IconTheme.values().forEach { theme ->
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(dp(3f))) {
+                    RetroButton(
+                        label = theme.label,
+                        active = s.iconThemeEnum == theme,
+                        onClick = {
+                            s.iconTheme = theme.name
+                            dev.retrobit.desktop.data.IconCache.clear()
+                        },
+                    )
+                    RetroText(
+                        if (theme == IconTheme.AUTO) "follows ${s.style.label}" else theme.hint,
+                        size = 9.5f, color = p.mid, maxLines = 2,
+                    )
+                }
+            }
+        }
+
         Section("interface scale")
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             listOf(0.8f, 0.9f, 1.0f, 1.15f, 1.3f).forEach { v ->
@@ -141,6 +225,22 @@ fun SettingsView(vm: LauncherViewModel) {
 
         Section("behaviour")
         ToggleRow("24-hour clock", s.use24h, onGlyph = Glyph.ABOUT) { s.use24h = it }
+        ToggleRow("Show seconds in the clock", s.showSeconds, onGlyph = Glyph.SYSMON) { s.showSeconds = it }
+        ToggleRow("Show the placement grid while dragging icons", s.showGrid, onGlyph = Glyph.GRID) { s.showGrid = it }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            RetroButton(
+                label = "Auto arrange desktop icons",
+                glyph = Glyph.GRID,
+                modifier = Modifier.weight(1f),
+                onClick = { s.clearIconCells(); vm.shell.print("desktop icons auto arranged") },
+            )
+            RetroButton(
+                label = "Calendar",
+                glyph = Glyph.CALENDAR,
+                modifier = Modifier.weight(1f),
+                onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.CALENDAR) },
+            )
+        }
         ToggleRow("desktop widgets", s.showWidgets, onGlyph = Glyph.GRID) { s.showWidgets = it }
         ToggleRow("boot sequence animation", s.bootSequence, onGlyph = Glyph.POWER) { s.bootSequence = it }
         ToggleRow("hide android system bars", s.hideSystemBars, onGlyph = Glyph.SYSMON) { s.hideSystemBars = it }

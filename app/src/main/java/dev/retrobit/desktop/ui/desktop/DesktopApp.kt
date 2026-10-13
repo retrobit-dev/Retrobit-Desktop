@@ -28,7 +28,9 @@ import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.dp
 import dev.retrobit.desktop.model.DesktopStyle
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.WallPattern
+import dev.retrobit.desktop.data.WallpaperSource
 import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.LocalViewModel
@@ -41,6 +43,7 @@ import dev.retrobit.desktop.ui.components.Scanlines
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.theme.LocalDesktopStyle
 import dev.retrobit.desktop.ui.theme.LocalIconMode
+import dev.retrobit.desktop.ui.theme.LocalIconTheme
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.Palettes
 import dev.retrobit.desktop.ui.theme.rememberWallpaperBrush
@@ -69,10 +72,18 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         pointer.penRightClick = settings.penRightClick
         pointer.showCursor = settings.showCursor
     }
+    // load / re-render the background whenever the source, the picture, the tone or palette changes
+    LaunchedEffect(settings.wallpaperSource, settings.wallpaperUri, settings.wallpaperTone, settings.palette, settings.style) {
+        vm.refreshWallpaper()
+    }
+    LaunchedEffect(settings.iconTheme, settings.style) {
+        dev.retrobit.desktop.data.IconCache.clear()
+    }
 
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalIconMode provides settings.iconMode,
+        LocalIconTheme provides IconTheme.resolve(settings.iconThemeEnum, settings.style),
         LocalDesktopStyle provides settings.style,
         LocalUiScale provides settings.uiScale,
         LocalViewModel provides vm,
@@ -114,7 +125,14 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                     }
                 },
         ) {
-            Wallpaper(settings.wallpaper, Modifier.fillMaxSize())
+            Wallpaper(
+                pattern = settings.wallpaper,
+                source = settings.wallpaperSourceEnum,
+                image = vm.wallpaperImage,
+                busy = vm.wallpaperBusy,
+                note = vm.wallpaperNote,
+                modifier = Modifier.fillMaxSize(),
+            )
 
             when (settings.style) {
                 DesktopStyle.LINUX -> LinuxShell(vm)
@@ -138,13 +156,49 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     }
 }
 
-/** E-paper wallpaper: paper base, ordered-dither pattern, registration marks and a panel label. */
+/**
+ * E-paper wallpaper. Either a generated dither pattern, the tablet's own wallpaper, or a picture the
+ * user picked — the latter two are converted to ink/paper by [dev.retrobit.desktop.data.WallpaperRepository].
+ */
 @Composable
-fun Wallpaper(pattern: WallPattern, modifier: Modifier = Modifier) {
+fun Wallpaper(
+    pattern: WallPattern,
+    modifier: Modifier = Modifier,
+    source: WallpaperSource = WallpaperSource.PATTERN,
+    image: androidx.compose.ui.graphics.ImageBitmap? = null,
+    busy: Boolean = false,
+    note: String = "",
+) {
     val p = LocalPalette.current
     val brush = rememberWallpaperBrush(pattern, p.pattern, dp(3f))
     Box(modifier.background(p.paper)) {
-        if (brush != null) {
+        if (source != WallpaperSource.PATTERN) {
+            if (image != null) {
+                androidx.compose.foundation.Image(
+                    bitmap = image,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    filterQuality = androidx.compose.ui.graphics.FilterQuality.None,
+                )
+            } else {
+                Column(
+                    Modifier.align(androidx.compose.ui.Alignment.Center).padding(dp(24f)),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(dp(8f)),
+                ) {
+                    RetroText(
+                        if (busy) "developing image…" else "wallpaper: ${source.label.lowercase()}",
+                        size = 16f, display = true,
+                    )
+                    RetroText(
+                        note.ifEmpty { "choose a picture in Settings → wallpaper" },
+                        size = 11f, color = p.mid, maxLines = 3,
+                    )
+                }
+                if (brush != null) Box(Modifier.fillMaxSize().background(brush))
+            }
+        } else if (brush != null) {
             Box(Modifier.fillMaxSize().background(brush))
         }
         Canvas(Modifier.fillMaxSize()) {
@@ -162,7 +216,8 @@ fun Wallpaper(pattern: WallPattern, modifier: Modifier = Modifier) {
             }
         }
         RetroText(
-            "RETROBIT E-PAPER · ${p.id.label.uppercase()} · ${pattern.label.uppercase()}",
+            "RETROBIT E-PAPER · ${p.id.label.uppercase()} · " +
+                if (source == WallpaperSource.PATTERN) pattern.label.uppercase() else source.label.uppercase(),
             size = 10f,
             color = p.ink.copy(alpha = 0.45f),
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(dp(14f)),

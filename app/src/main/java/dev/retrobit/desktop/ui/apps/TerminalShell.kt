@@ -2,8 +2,10 @@ package dev.retrobit.desktop.ui.apps
 
 import android.os.Build
 import androidx.compose.runtime.mutableStateListOf
+import dev.retrobit.desktop.data.CalendarMath
 import dev.retrobit.desktop.data.SystemInfo
 import dev.retrobit.desktop.model.DesktopStyle
+import dev.retrobit.desktop.model.EntryKind
 import dev.retrobit.desktop.model.IconMode
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
@@ -82,9 +84,14 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "scale" -> scale(args.firstOrNull())
             "tiling" -> tiling(args.firstOrNull())
             "workspace", "ws", "desktop" -> workspace(args.firstOrNull())
+            "cal", "calendar" -> calendar(args)
+            "wallpaper", "wall" -> wallpaper(args.firstOrNull())
+            "seconds" -> seconds(args.firstOrNull())
+            "arrange" -> arrange()
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
             "notes" -> vm.openWindow(WinKind.NOTES)
+            "calendar", "cal-ui" -> vm.openWindow(WinKind.CALENDAR)
             "settings", "config" -> vm.openWindow(WinKind.SETTINGS)
             "sysmon", "top" -> vm.openWindow(WinKind.SYSMON)
             "about" -> vm.openWindow(WinKind.ABOUT)
@@ -119,6 +126,11 @@ class TerminalShell(private val vm: LauncherViewModel) {
             icons color|mono|dither
             scale 0.8|0.9|1.0|1.15|1.3
             tiling on|off          linux-style tiling window layout
+            cal                    calendar entries (cal add "title" 2026-11-02 14:30 event|task|birthday)
+            cal list | cal tasks   agenda view / open tasks
+            wallpaper pattern|device|image   desktop background source
+            seconds on|off         seconds in the clock
+            arrange                auto arrange desktop icons
             workspace 1..4         switch virtual desktop (also: ws)
             wsmove 1..4            send the focused window to a desktop
             wmctrl list|close|tile | invert | boot
@@ -248,7 +260,72 @@ class TerminalShell(private val vm: LauncherViewModel) {
         print("palette -> ${s.label}")
     }
 
+    private fun calendar(args: List<String>) {
+        when (args.firstOrNull()?.lowercase()) {
+            "add", "+" -> {
+                if (args.size < 3) { print("usage: cal add \"title\" 2026-11-02 [hh:mm] [event|task|agenda|birthday]", Kind.ERR); return }
+                val title = args[1]
+                val date = CalendarMath.parseDate(args[2])
+                if (date == null) { print("rb-sh: cannot read the date \"${args[2]}\" (use yyyy-mm-dd)", Kind.ERR); return }
+                val time = CalendarMath.parseTime(args.getOrNull(3))
+                val kind = args.getOrNull(4)?.let { raw ->
+                    EntryKind.values().firstOrNull { it.name.equals(raw, true) }
+                } ?: EntryKind.EVENT
+                val entry = vm.calendar.add(title, date, kind, time)
+                if (entry == null) print("rb-sh: empty title", Kind.ERR)
+                else print("added ${kind.label} \"${entry.title}\" on ${CalendarMath.prettyDate(entry.date)} ${CalendarMath.prettyTime(entry.time)}")
+            }
+            "tasks", "todo" -> {
+                val open = vm.calendar.openTasks()
+                if (open.isEmpty()) { print("no open tasks", Kind.DIM); return }
+                print("${open.size} open tasks", Kind.HEAD)
+                open.forEach { print("  [ ] ${it.title}  ${CalendarMath.prettyDate(it.date)} ${CalendarMath.prettyTime(it.time)}") }
+            }
+            "clear" -> { vm.calendar.clearAll(); print("calendar cleared") }
+            else -> {
+                val upcoming = vm.calendar.upcoming(java.time.LocalDate.now(), 14)
+                if (upcoming.isEmpty()) { print("nothing planned in the next 14 days", Kind.DIM); return }
+                print("next 14 days", Kind.HEAD)
+                upcoming.forEach { (day, entry) ->
+                    val tag = entry.kind.label.take(3)
+                    print("  ${CalendarMath.prettyDate(day)}  [$tag] ${entry.title}  ${CalendarMath.prettyTime(entry.time)}")
+                }
+            }
+        }
+    }
+
+    private fun seconds(arg: String?) {
+        when (arg?.lowercase()) {
+            "on", "1", "true" -> { vm.settings.showSeconds = true; print("seconds -> on") }
+            "off", "0", "false" -> { vm.settings.showSeconds = false; print("seconds -> off") }
+            else -> { vm.settings.showSeconds = !vm.settings.showSeconds; print("seconds -> ${if (vm.settings.showSeconds) "on" else "off"}") }
+        }
+    }
+
+    private fun arrange() {
+        vm.settings.clearIconCells()
+        print("desktop icons auto arranged")
+    }
+
     private fun wallpaper(arg: String?) {
+        val source = when (arg?.lowercase()) {
+            "device", "system", "system-wallpaper" -> dev.retrobit.desktop.data.WallpaperSource.DEVICE
+            "image", "photo", "file" -> dev.retrobit.desktop.data.WallpaperSource.IMAGE
+            "pattern", "generated" -> dev.retrobit.desktop.data.WallpaperSource.PATTERN
+            else -> null
+        }
+        if (source != null) {
+            vm.setWallpaperSource(source)
+            print(
+                when (source) {
+                    dev.retrobit.desktop.data.WallpaperSource.PATTERN -> "wallpaper -> generated pattern"
+                    dev.retrobit.desktop.data.WallpaperSource.DEVICE -> "wallpaper -> device wallpaper (rendering…)"
+                    dev.retrobit.desktop.data.WallpaperSource.IMAGE ->
+                        "wallpaper -> your image; pick one in Settings if none is set"
+                }
+            )
+            return
+        }
         val s = arg?.let { a -> WallPattern.values().firstOrNull { it.name.equals(a, true) } }
         if (s == null) { print("patterns: " + WallPattern.values().joinToString(" | ") { it.name.lowercase() }, Kind.ERR); return }
         vm.setWallpaper(s)

@@ -61,6 +61,7 @@ fun Spotlight(vm: LauncherViewModel) {
         Triple("Settings", WinKind.SETTINGS, Glyph.SETTINGS),
         Triple("System monitor", WinKind.SYSMON, Glyph.SYSMON),
         Triple("Notes", WinKind.NOTES, Glyph.NOTES),
+        Triple("Calendar", WinKind.CALENDAR, Glyph.CALENDAR),
         Triple("About", WinKind.ABOUT, Glyph.ABOUT),
     )
     val q = query.trim().lowercase()

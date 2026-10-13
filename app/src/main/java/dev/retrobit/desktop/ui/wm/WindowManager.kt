@@ -149,6 +149,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         val w = when (kind) {
             WinKind.APPS -> max(metrics.minW, area.width - metrics.margin * 2)
             WinKind.TERMINAL -> max(metrics.minW, area.width * 0.62f)
+            WinKind.CALENDAR -> max(metrics.minW, area.width * 0.66f)
             else -> max(metrics.minW, area.width * 0.55f)
         }
         val h = when (kind) {
@@ -178,6 +179,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         WinKind.SYSMON -> "system monitor"
         WinKind.NOTES -> "notes.txt"
         WinKind.ABOUT -> "about"
+        WinKind.CALENDAR -> "calendar"
     }
 
     fun close(id: Int) {

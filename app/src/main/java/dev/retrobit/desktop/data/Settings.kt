@@ -28,10 +28,24 @@ class Settings(context: Context) {
     var iconMode: IconMode by enumPref("iconMode", IconMode.MONO)
     var uiScale: Float by floatPref("uiScale", 1.0f)
     var use24h: Boolean by boolPref("use24h", true)
+
+    /** Show seconds in the clock widget and in the panel / taskbar clock. */
+    var showSeconds: Boolean by boolPref("showSeconds", false)
     var showWidgets: Boolean by boolPref("showWidgets", true)
     var bootSequence: Boolean by boolPref("bootSequence", true)
     var hideSystemBars: Boolean by boolPref("hideSystemBars", true)
     var tiling: Boolean by boolPref("tiling", false)
+    /** Where the desktop background comes from: generated pattern, the device wallpaper, or a picture. */
+    var wallpaperSource: String by stringPref("wallpaperSource", dev.retrobit.desktop.data.WallpaperSource.PATTERN.name)
+    /** Content URI of the picture chosen by the user. */
+    var wallpaperUri: String by stringPref("wallpaperUri", "")
+    var wallpaperTone: String by stringPref("wallpaperTone", dev.retrobit.desktop.data.WallpaperTone.HALFTONE.name)
+    /** Icon shape: AUTO follows the desktop style. */
+    var iconTheme: String by stringPref("iconTheme", dev.retrobit.desktop.model.IconTheme.AUTO.name)
+    /** Show the placement grid while dragging desktop icons. */
+    var showGrid: Boolean by boolPref("showGrid", true)
+    /** Free icon placement on the desktop grid: encoded "pkg=col,row" pairs. */
+    var iconCells: String by stringPref("iconCells", "")
     /** M-Pencil / stylus: double tap behaves as a right click (context menu). */
     var penRightClick: Boolean by boolPref("penRightClick", true)
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
@@ -64,6 +78,47 @@ class Settings(context: Context) {
 
     private fun stringPref(key: String, def: String) =
         PrefState(sp.getString(key, def) ?: def) { sp.edit().putString(key, it).apply() }
+
+    // ── typed enum accessors -------------------------------------------------------
+    val iconThemeEnum: dev.retrobit.desktop.model.IconTheme
+        get() = runCatching { dev.retrobit.desktop.model.IconTheme.valueOf(iconTheme) }
+            .getOrDefault(dev.retrobit.desktop.model.IconTheme.AUTO)
+
+    val wallpaperSourceEnum: dev.retrobit.desktop.data.WallpaperSource
+        get() = runCatching { dev.retrobit.desktop.data.WallpaperSource.valueOf(wallpaperSource) }
+            .getOrDefault(dev.retrobit.desktop.data.WallpaperSource.PATTERN)
+
+    val wallpaperToneEnum: dev.retrobit.desktop.data.WallpaperTone
+        get() = runCatching { dev.retrobit.desktop.data.WallpaperTone.valueOf(wallpaperTone) }
+            .getOrDefault(dev.retrobit.desktop.data.WallpaperTone.HALFTONE)
+
+    // ── desktop icon grid ----------------------------------------------------------
+    fun iconCell(pkg: String): Pair<Int, Int>? = parseCells()[pkg]
+
+    fun setIconCell(pkg: String, col: Int, row: Int) {
+        val map = parseCells().toMutableMap()
+        map[pkg] = col to row
+        iconCells = map.entries.joinToString(";") { "${it.key}=${it.value.first},${it.value.second}" }
+    }
+
+    fun clearIconCells() {
+        iconCells = ""
+    }
+
+    private fun parseCells(): Map<String, Pair<Int, Int>> {
+        val raw = iconCells
+        if (raw.isBlank()) return emptyMap()
+        return raw.split(';').mapNotNull { part ->
+            val eq = part.indexOf('=')
+            if (eq <= 0) return@mapNotNull null
+            val pkg = part.substring(0, eq)
+            val rc = part.substring(eq + 1).split(',')
+            if (rc.size != 2) return@mapNotNull null
+            val col = rc[0].toIntOrNull() ?: return@mapNotNull null
+            val row = rc[1].toIntOrNull() ?: return@mapNotNull null
+            pkg to (col to row)
+        }.toMap()
+    }
 
     private fun listPref(key: String): PrefState<List<String>> {
         val raw = sp.getString(key, "") ?: ""

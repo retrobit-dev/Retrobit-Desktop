@@ -10,6 +10,7 @@ import androidx.compose.ui.text.font.FontWeight
 import dev.retrobit.desktop.R
 import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.PaletteId
 
 @Immutable
@@ -44,6 +45,7 @@ object Palettes {
 val LocalPalette = staticCompositionLocalOf { Palettes.of(PaletteId.PAPER) }
 val LocalIconMode = staticCompositionLocalOf { IconMode.MONO }
 val LocalDesktopStyle = staticCompositionLocalOf { DesktopStyle.LINUX }
+val LocalIconTheme = staticCompositionLocalOf { IconTheme.FLAT }
 
 /**
  * PixelDisplay Operator (CC0 1.0, Jayvee Enaguas / HarvettFox96) — the proportional cut, used for

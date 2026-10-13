@@ -2,6 +2,8 @@ package dev.retrobit.desktop.data
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.drawable.Drawable
 import android.util.LruCache
 import androidx.compose.ui.graphics.Color
@@ -10,6 +12,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.model.IconTheme
 
 /**
  * Renders app icons into the e-paper aesthetic:
@@ -22,16 +25,19 @@ object IconCache {
 
     private val bayer = intArrayOf(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
 
+    /** Ordered-dither threshold of a 4×4 Bayer matrix, used by the wallpaper renderer as well. */
+    fun bayerThreshold(x: Int, y: Int): Float = (bayer[(y and 3) * 4 + (x and 3)] + 0.5f) / 16f
+
     fun clear() = cache.evictAll()
 
-    private fun key(app: AppEntry, mode: IconMode, ink: Color, paper: Color) =
-        "${app.key}|$mode|${ink.toArgb()}|${paper.toArgb()}"
+    private fun key(app: AppEntry, mode: IconMode, theme: IconTheme, ink: Color, paper: Color) =
+        "${app.key}|$mode|$theme|${ink.toArgb()}|${paper.toArgb()}"
 
-    fun peek(app: AppEntry, mode: IconMode, ink: Color, paper: Color): ImageBitmap? =
-        cache.get(key(app, mode, ink, paper))
+    fun peek(app: AppEntry, mode: IconMode, theme: IconTheme, ink: Color, paper: Color): ImageBitmap? =
+        cache.get(key(app, mode, theme, ink, paper))
 
-    fun get(app: AppEntry, mode: IconMode, ink: Color, paper: Color): ImageBitmap? {
-        val k = key(app, mode, ink, paper)
+    fun get(app: AppEntry, mode: IconMode, theme: IconTheme, ink: Color, paper: Color): ImageBitmap? {
+        val k = key(app, mode, theme, ink, paper)
         cache.get(k)?.let { return it }
         val drawable = runCatching { app.info.getBadgedIcon(0) }.getOrNull()
             ?: runCatching { app.info.getIcon(0) }.getOrNull()
@@ -41,9 +47,57 @@ object IconCache {
             IconMode.MONO -> mono(render(drawable, 128), ink.toArgb(), paper.toArgb())
             IconMode.DITHER -> dither(render(drawable, 40), ink.toArgb(), paper.toArgb())
         }
-        val img = bmp.asImageBitmap()
+        val framed = frame(bmp, theme, ink.toArgb(), paper.toArgb())
+        val img = framed.asImageBitmap()
         cache.put(k, img)
         return img
+    }
+
+    /**
+     * Desktop-theme icon shapes: the app icon is masked/framed so a mixed set of third-party icons
+     * still looks like it belongs to the active desktop.
+     */
+    private fun frame(src: Bitmap, theme: IconTheme, ink: Int, paper: Int): Bitmap {
+        if (theme == IconTheme.PLAIN) return src
+        val size = src.width
+        val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(out)
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        val radius = when (theme) {
+            IconTheme.CLASSIC -> 0f
+            IconTheme.ROUNDED -> size * 0.20f
+            IconTheme.FLAT -> size * 0.06f
+            else -> 0f
+        }
+        val inset = when (theme) {
+            IconTheme.CLASSIC -> size * 0.05f
+            IconTheme.ROUNDED -> size * 0.04f
+            else -> 0f
+        }
+        val body = Rect(inset.toInt(), inset.toInt(), size - inset.toInt(), size - inset.toInt())
+        val path = android.graphics.Path().apply { addRoundRect(android.graphics.RectF(body), radius, radius, android.graphics.Path.Direction.CW) }
+        canvas.save()
+        canvas.clipPath(path)
+        canvas.drawBitmap(src, null, body, paint)
+        canvas.restore()
+        // 1-bit style outline so the icon sits on the paper like a print
+        val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = size * 0.035f
+            color = ink
+        }
+        when (theme) {
+            IconTheme.CLASSIC -> {
+                canvas.drawRect(body, stroke)
+                // bevel highlight along the top/left, shadow along the bottom/right
+                val hi = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = paper; strokeWidth = size * 0.02f }
+                canvas.drawLine(body.left + 1f, body.top + 1f, body.right - 1f, body.top + 1f, hi)
+                canvas.drawLine(body.left + 1f, body.top + 1f, body.left + 1f, body.bottom - 1f, hi)
+            }
+            IconTheme.ROUNDED, IconTheme.FLAT -> canvas.drawPath(path, stroke)
+            else -> Unit
+        }
+        return out
     }
 
     private fun render(d: Drawable, size: Int): Bitmap {

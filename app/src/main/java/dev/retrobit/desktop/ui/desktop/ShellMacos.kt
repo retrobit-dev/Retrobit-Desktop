@@ -94,13 +94,14 @@ fun MacosShell(vm: LauncherViewModel) {
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
         // desktop + icons (right aligned, like the real thing)
         Box(Modifier.fillMaxSize().padding(top = dp(26f), bottom = dp(86f))) {
-            DesktopIcons(vm, IconLayout.COLUMN_RIGHT, Modifier.fillMaxSize())
+            DesktopIcons(vm, Modifier.fillMaxSize(), mirrorRight = true)
             if (vm.settings.showWidgets) {
                 Column(
                     Modifier.align(Alignment.TopStart).padding(dp(12f)).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(dp(10f)),
                 ) {
                     ClockWidget(vm)
+                    CalendarWidget(vm)
                     NotesWidget(vm)
                 }
             }

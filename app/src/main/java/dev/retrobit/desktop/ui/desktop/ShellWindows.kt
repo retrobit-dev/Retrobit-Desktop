@@ -95,13 +95,14 @@ fun WindowsShell(vm: LauncherViewModel) {
 
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
         Box(Modifier.fillMaxSize().padding(bottom = dp(44f))) {
-            DesktopIcons(vm, IconLayout.COLUMN_LEFT, Modifier.fillMaxSize())
+            DesktopIcons(vm, Modifier.fillMaxSize())
             if (vm.settings.showWidgets) {
                 Column(
                     Modifier.align(Alignment.TopEnd).padding(dp(12f)).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(dp(10f)),
                 ) {
                     ClockWidget(vm)
+                    CalendarWidget(vm)
                     SystemWidget(vm)
                 }
             }
@@ -150,6 +151,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                             StartItem(Glyph.TERMINAL, "Terminal") { vm.openWindow(WinKind.TERMINAL) }
                             StartItem(Glyph.SYSMON, "System monitor") { vm.openWindow(WinKind.SYSMON) }
                             StartItem(Glyph.NOTES, "Notes") { vm.openWindow(WinKind.NOTES) }
+                            StartItem(Glyph.CALENDAR, "Calendar") { vm.openWindow(WinKind.CALENDAR) }
                             StartItem(Glyph.SETTINGS, "Settings") { vm.openWindow(WinKind.SETTINGS) }
                             StartItem(Glyph.SEARCH, "Find (spotlight)") { vm.spotlight = true }
                             StartItem(Glyph.ABOUT, "About") { vm.openWindow(WinKind.ABOUT) }

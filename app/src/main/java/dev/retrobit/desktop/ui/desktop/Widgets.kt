@@ -72,13 +72,28 @@ fun WidgetCard(
 @Composable
 fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     val s = vm.settings
-    val fmt = if (s.use24h) "HH:mm" else "hh:mm a"
-    val time = SimpleDateFormat(fmt, Locale.getDefault()).format(Date(vm.now))
-    val date = SimpleDateFormat("EEE, dd MMM yyyy", Locale.getDefault()).format(Date(vm.now))
-    WidgetCard("chrono", Glyph.SYSMON, modifier) {
-        RetroText(time, size = 34f, display = true, weight = FontWeight.Bold)
+    val loc = Locale.getDefault()
+    val moment = Date(vm.now)
+    val h = SimpleDateFormat(if (s.use24h) "HH" else "hh", loc).format(moment)
+    val m = SimpleDateFormat("mm", loc).format(moment)
+    val sec = SimpleDateFormat("ss", loc).format(moment)
+    val ampm = SimpleDateFormat("a", loc).format(moment)
+    val date = SimpleDateFormat("EEE, dd MMM yyyy", loc).format(moment)
+    val weekday = SimpleDateFormat("EEEE", loc).format(moment)
+
+    WidgetCard(
+        "chrono",
+        Glyph.SYSMON,
+        modifier,
+        onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.CALENDAR) },
+    ) {
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(dp(2f))) {
+            RetroText("$h:$m", size = 33f, display = true, weight = FontWeight.Bold)
+            if (s.showSeconds) RetroText(":$sec", size = 16f, display = true, weight = FontWeight.Bold)
+            if (!s.use24h) RetroText(ampm, size = 11f, color = LocalPalette.current.mid)
+        }
         RetroText(date, size = 11f)
-        RetroText("uptime ${SystemInfo.fmtUptime(vm.snapshot.uptimeMs)}", size = 10f, color = LocalPalette.current.mid)
+        RetroText("$weekday · uptime ${SystemInfo.fmtUptime(vm.snapshot.uptimeMs)}", size = 10f, color = LocalPalette.current.mid, maxLines = 1)
     }
 }
 

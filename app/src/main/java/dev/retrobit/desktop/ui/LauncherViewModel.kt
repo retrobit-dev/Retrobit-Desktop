@@ -30,6 +30,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     val settings = Settings(app)
     val repo = AppRepository(app)
+    val calendar = dev.retrobit.desktop.data.CalendarStore(app)
     val wm = WindowManager(repo, settings)
     val shell = TerminalShell(this)
 
@@ -49,6 +50,71 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Wired by the activity so the settings app can ask to become the default launcher. */
     var requestDefaultLauncher: (() -> Unit)? = null
     var requestRoleState: (() -> Boolean)? = null
+
+    /** Processed desktop background when the user chooses the device wallpaper or their own image. */
+    var wallpaperImage by mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null)
+        private set
+    var wallpaperBusy by mutableStateOf(false)
+        private set
+    var wallpaperNote by mutableStateOf("")
+        private set
+
+    private val wallpaperRepo = dev.retrobit.desktop.data.WallpaperRepository(app)
+
+    fun setWallpaperSource(source: dev.retrobit.desktop.data.WallpaperSource) {
+        settings.wallpaperSource = source.name
+        refreshWallpaper()
+    }
+
+    fun setWallpaperTone(tone: dev.retrobit.desktop.data.WallpaperTone) {
+        settings.wallpaperTone = tone.name
+        refreshWallpaper()
+    }
+
+    fun setWallpaperUri(uri: android.net.Uri) {
+        wallpaperRepo.takePersistable(uri)
+        settings.wallpaperUri = uri.toString()
+        settings.wallpaperSource = dev.retrobit.desktop.data.WallpaperSource.IMAGE.name
+        refreshWallpaper()
+    }
+
+    /** Loads + e-paper-ifies the background. Safe to call often; it is cheap when unchanged. */
+    fun refreshWallpaper(aspect: Float = 1.6f) {
+        val source = settings.wallpaperSourceEnum
+        if (source == dev.retrobit.desktop.data.WallpaperSource.PATTERN) {
+            wallpaperImage = null
+            wallpaperNote = ""
+            return
+        }
+        viewModelScope.launch {
+            wallpaperBusy = true
+            val tone = settings.wallpaperToneEnum
+            val palette = dev.retrobit.desktop.ui.theme.Palettes.of(settings.palette)
+            val result = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                val raw = when (source) {
+                    dev.retrobit.desktop.data.WallpaperSource.DEVICE -> wallpaperRepo.deviceWallpaper()
+                    dev.retrobit.desktop.data.WallpaperSource.IMAGE ->
+                        settings.wallpaperUri.takeIf { it.isNotBlank() }?.let {
+                            runCatching { android.net.Uri.parse(it) }.getOrNull()?.let { uri -> wallpaperRepo.loadImage(uri) }
+                        }
+                    else -> null
+                }
+                if (raw == null) null
+                else {
+                    val cropped = wallpaperRepo.cropToAspect(raw, aspect)
+                    wallpaperRepo.render(cropped, palette.paper, palette.ink, tone, cells = 260)
+                }
+            }
+            wallpaperImage = result
+            wallpaperNote = when {
+                result != null -> ""
+                source == dev.retrobit.desktop.data.WallpaperSource.DEVICE ->
+                    "the system would not share the wallpaper — pick an image instead"
+                else -> "no image selected yet"
+            }
+            wallpaperBusy = false
+        }
+    }
 
     /** Wired by the activity: summon or hide the internal (on-screen) keyboard. */
     var toggleKeyboard: (() -> Unit)? = null
@@ -204,6 +270,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     MenuItem("Terminal", dev.retrobit.desktop.ui.components.Glyph.TERMINAL, onSelect = { openWindow(WinKind.TERMINAL) }),
                     MenuItem("System monitor", dev.retrobit.desktop.ui.components.Glyph.SYSMON, onSelect = { openWindow(WinKind.SYSMON) }),
                     MenuItem("Notes", dev.retrobit.desktop.ui.components.Glyph.NOTES, onSelect = { openWindow(WinKind.NOTES) }),
+                    MenuItem("Calendar", dev.retrobit.desktop.ui.components.Glyph.CALENDAR, onSelect = { openWindow(WinKind.CALENDAR) }),
                     MenuItem("Settings", dev.retrobit.desktop.ui.components.Glyph.SETTINGS, onSelect = { openWindow(WinKind.SETTINGS) }),
                     MenuItem(
                         if (settings.tiling) "Disable tiling (Linux style)" else "Enable tiling (Linux style)",
@@ -217,6 +284,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     ),
                     MenuItem("Desktops / workspaces…", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
                         workspaceMenu(Offset(150f, 220f))
+                    }),
+                    MenuItem("Auto arrange icons", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
+                        settings.clearIconCells()
+                        shell.print("desktop icons auto arranged")
+                    }),
+                    MenuItem(
+                        if (settings.showGrid) "Hide placement grid" else "Show placement grid",
+                        null,
+                        onSelect = { settings.showGrid = !settings.showGrid },
+                    ),
+                    MenuItem("Wallpaper & icons…", dev.retrobit.desktop.ui.components.Glyph.SETTINGS, onSelect = {
+                        openWindow(WinKind.SETTINGS)
                     }),
                     MenuItem("Close all windows on this desktop", null, onSelect = { wm.closeAll() }),
                 ),

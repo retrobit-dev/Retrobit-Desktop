@@ -89,13 +89,14 @@ fun LinuxShell(vm: LauncherViewModel) {
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
         // ── desktop surface ───────────────────────────────────────────────────────
         Box(Modifier.fillMaxSize().padding(start = dp(78f), top = dp(30f))) {
-            DesktopIcons(vm, IconLayout.GRID, Modifier.fillMaxSize())
+            DesktopIcons(vm, Modifier.fillMaxSize())
             if (vm.settings.showWidgets) {
                 Column(
                     Modifier.align(Alignment.TopEnd).padding(dp(10f)).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(dp(10f)),
                 ) {
                     ClockWidget(vm)
+                    CalendarWidget(vm)
                     SystemWidget(vm)
                 }
             }

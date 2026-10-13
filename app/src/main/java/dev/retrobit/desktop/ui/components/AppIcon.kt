@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.Dp
 import dev.retrobit.desktop.data.IconCache
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.ui.theme.LocalIconMode
+import dev.retrobit.desktop.ui.theme.LocalIconTheme
 import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.input.penOrMouseDrag
 import dev.retrobit.desktop.ui.theme.LocalPalette
@@ -47,12 +48,13 @@ import kotlin.math.sqrt
 fun rememberAppIcon(app: AppEntry, inverted: Boolean = false): ImageBitmap? {
     val p = LocalPalette.current
     val mode = LocalIconMode.current
+    val theme = LocalIconTheme.current
     val ink = if (inverted) p.paper else p.ink
     val paper = if (inverted) p.ink else p.paper
-    val cached = IconCache.peek(app, mode, ink, paper)
-    val state by produceState(cached, app.key, mode, ink, paper) {
+    val cached = IconCache.peek(app, mode, theme, ink, paper)
+    val state by produceState(cached, app.key, mode, theme, ink, paper) {
         if (value == null) {
-            value = withContext(Dispatchers.Default) { IconCache.get(app, mode, ink, paper) }
+            value = withContext(Dispatchers.Default) { IconCache.get(app, mode, theme, ink, paper) }
         }
     }
     return state
