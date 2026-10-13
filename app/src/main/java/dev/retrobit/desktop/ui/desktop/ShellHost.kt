@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -62,7 +63,16 @@ fun ShellHost(vm: LauncherViewModel, modifier: Modifier = Modifier) {
             .border(dp(3.5f), Color.Black),
     ) {
         ShellRail(vm, kind)
-        Box(Modifier.weight(1f).fillMaxWidth()) {
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                // The window frame (border, title rail, dock) never moves: when the keyboard opens, only
+                // the app's own content makes room for it, so the terminal's input line and the notes /
+                // settings fields stay visible instead of hiding behind the keyboard. In "lift" mode the
+                // whole desktop already slides up, so the content must not be padded a second time.
+                .then(if (vm.settings.keyboardLiftsLayout) Modifier else Modifier.imePadding()),
+        ) {
             ShellContent(kind)
         }
         ShellDock(vm)

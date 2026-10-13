@@ -277,9 +277,33 @@ fun SettingsView(vm: LauncherViewModel) {
                 )
             }
         }
+        // what the keyboard does to the layout: float over it (default) or push the whole desktop up
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroText("keyboard", size = 10.5f, color = p.mid, modifier = Modifier.weight(0.9f))
+            RetroButton(
+                label = "layout stays",
+                modifier = Modifier.weight(1.5f),
+                active = !s.keyboardLiftsLayout,
+                onClick = { s.keyboardLiftsLayout = false },
+            )
+            RetroButton(
+                label = "layout slides up",
+                modifier = Modifier.weight(1.5f),
+                active = s.keyboardLiftsLayout,
+                onClick = { s.keyboardLiftsLayout = true },
+            )
+        }
         RetroText(
-            "Android's own keyboard is kept: it appears when you tap a text field and the desktop slides " +
-                "up so nothing is covered. Use the keyboard button in the panel/taskbar (or Ctrl+Alt+K) to " +
+            "Layout stays (default): the keyboard floats *over* the desktop and nothing moves - title rail, " +
+                "icons, widgets, panels and dock keep their place, while our own full-screen apps make room " +
+                "inside their frame so the line you are typing stays visible.\n" +
+                "Layout slides up: the old behaviour, the whole desktop is pushed up by the height of the " +
+                "keyboard.",
+            size = 10.5f, color = p.mid, maxLines = 7,
+        )
+        RetroText(
+            "Android's own keyboard is kept: it appears when you tap a text field. Use the keyboard button " +
+                "in the panel/taskbar (or Ctrl+Alt+K) to " +
                 "summon or hide it manually, which is handy with an external mouse.\n" +
                 "External keyboards: Ctrl+Alt+T terminal · Ctrl+Alt+S settings · Ctrl+Alt+A app drawer · " +
                 "Ctrl+Alt+D desktop menu · Ctrl+Alt+left/right switches workspace · Ctrl+Alt+1..4 jumps to " +

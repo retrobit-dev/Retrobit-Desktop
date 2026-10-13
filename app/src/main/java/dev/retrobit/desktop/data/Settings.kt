@@ -117,6 +117,14 @@ class Settings(context: Context) {
     /** Screen brightness set from the quick panel, or -1 while the tablet decides. */
     var brightness: Float by floatPref("brightness", -1f)
 
+    /**
+     * What the keyboard does to the layout. `false` (the default) keeps everything where it is: the
+     * keyboard floats on top of the desktop, nothing slides up, and only the inside of our own
+     * full-screen apps makes room for it. `true` is the old behaviour - the whole desktop is pushed
+     * up by the height of the keyboard.
+     */
+    var keyboardLiftsLayout: Boolean by boolPref("keyboardLiftsLayout", false)
+
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
     /** Virtual desktops (workspaces), 1..4. */

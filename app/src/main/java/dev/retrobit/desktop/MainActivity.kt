@@ -139,9 +139,11 @@ private fun Root(vm: LauncherViewModel) {
     val settings = vm.settings
     val keyboard = LocalKeyboardRequester.current
     val density = LocalDensity.current
-    // The internal keyboard is allowed to appear whenever it is needed; the desktop simply slides
-    // up by the keyboard height so the focused field and the tray button stay reachable.
-    val imeHeight = WindowInsets.ime.getBottom(density)
+    // The internal keyboard is allowed to appear whenever it is needed. By default it simply floats
+    // over the desktop: nothing moves, and only our own apps make room for it (see ShellHost).
+    // "keyboard lifts the layout" in Settings restores the old slide-up-by-keyboard-height.
+    val ime = WindowInsets.ime
+    val imeHeight = ime.getBottom(density)
 
     LaunchedEffect(imeHeight > 0) { keyboard.visible = imeHeight > 0 }
 
@@ -201,7 +203,10 @@ private fun Root(vm: LauncherViewModel) {
                     if (settings.hideSystemBars) Modifier
                     else Modifier.windowInsetsPadding(WindowInsets.systemBars)
                 )
-                .offset { IntOffset(0, -imeHeight) },
+                // deferred read: the layout does not even recompose when the keyboard opens
+                .offset {
+                    if (settings.keyboardLiftsLayout) IntOffset(0, -ime.getBottom(density)) else IntOffset.Zero
+                },
         )
     }
 }

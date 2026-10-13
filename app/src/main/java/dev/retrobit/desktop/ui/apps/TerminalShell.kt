@@ -95,6 +95,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "pins" -> pins()
             "night" -> night(args.firstOrNull())
             "pen", "stylus", "pencil" -> penCmd(args)
+            "keyboard", "kbd" -> keyboardCmd(args)
             "widgets", "widget" -> widgets(args)
             "invert" -> vm.invertTheme()
             "app" -> appCmd(args)
@@ -157,6 +158,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             pins                   the dock list, in the order it is shown
             night on|off           dark Ink palette / back to the day palette
             pen [text|rightclick|cursor on|off]   how the M-Pencil behaves (text = pen inside fields)
+            keyboard still|lift    keeps the layout put when the keyboard opens / slides it up
             cyberdeck preview|grant  show it for a few seconds / ask for the overlay permission
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
@@ -638,6 +640,29 @@ class TerminalShell(private val vm: LauncherViewModel) {
         if (s == null) { print("modes: color | mono | dither", Kind.ERR); return }
         vm.setIconMode(s)
         print("icon mode -> ${s.label}")
+    }
+
+    /**
+     * `keyboard` — what the on-screen keyboard does to the layout. `still` (the default) floats the
+     * keyboard over the desktop so nothing moves; `lift` restores the old slide-up-by-keyboard-height.
+     */
+    private fun keyboardCmd(args: List<String>) {
+        val s = vm.settings
+        when (args.firstOrNull()?.lowercase()) {
+            null, "status" -> print(
+                "keyboard layout -> " + if (s.keyboardLiftsLayout) "slides the desktop up"
+                else "stays put (the keyboard floats on top)"
+            )
+            "still", "stay", "off", "fixed" -> {
+                s.keyboardLiftsLayout = false
+                print("keyboard layout -> stays put; our own apps make room inside their frame")
+            }
+            "lift", "up", "on", "slide", "resize" -> {
+                s.keyboardLiftsLayout = true
+                print("keyboard layout -> the whole desktop slides up by the keyboard height")
+            }
+            else -> print("usage: keyboard still|lift", Kind.ERR)
+        }
     }
 
     /**

@@ -235,7 +235,9 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
 - Kursor pointer e-paper untuk pena/mouse, drag langsung untuk memindahkan ikon dan widget.
 - Keyboard internal Android tetap berfungsi dan bisa dipanggil kapan saja lewat tombol ⌨ di tray
-  (atau `Ctrl+Alt+K`); layout menyesuaikan tinggi keyboard.
+  (atau `Ctrl+Alt+K`). **Keyboard tidak menggeser layout**: keyboard mengapung di atas desktop, dan
+  hanya bagian dalam aplikasi kita sendiri (terminal, notes, settings) yang menyediakan ruang di
+  dalam bingkainya supaya baris yang kamu ketik tetap terlihat (`keyboard still|lift`).
 - Dukungan keyboard eksternal dengan 10+ pintasan gaya desktop.
 
 ### Terminal: tombol cepat ikon + rapi di latar
@@ -253,6 +255,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `workspace 1..4` (`ws`), `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
   `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `pen [text|rightclick|cursor on|off]`,
+  `keyboard still|lift`,
   `widgets` / `widget width <dp>` /
   `widget size <name> <w> <h>` / `widget reset`,
   `invert`, `boot`, `help`, `exit`,
@@ -260,7 +263,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
   **cara membuka app** (dobel klik vs satu klik), **perilaku M-Pencil** (hold = klik kanan, lama
-  hold, panah kursor, mode pena di kolom teks),
+  hold, panah kursor, mode pena di kolom teks), **perilaku keyboard** (layout tetap vs naik),
   **display widgets** (add/remove/urutkan/reset widget), **app icon look** dengan pratinjau ikon
   hidup, keterbacaan + bentuk + mode ikon, skala UI, **input & devices** (hold time pena, kursor,
   keyboard), perilaku, tombol "Set as default launcher".
@@ -313,6 +316,8 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
   lagi jeda 320 ms pada tap — tap langsung jalan.
 - **Hold adalah jalan masuk ke pengeditan**: hold pada widget → mode edit + resize; hold pada ikon →
   menu ikon; hold pada desktop kosong → menu desktop (`Add widget`, `Remove widget`, `Edit widgets`).
+- **Keyboard tidak menggeser tampilan**: saat keyboard muncul, desktop tetap di tempatnya (lihat
+  *Mouse & keyboard*).
 - **Di dalam kolom teks, pena kembali jadi pena.** Begitu sebuah text field memegang fokus (kursor
   ketik muncul / keyboard naik), mode mouse dimatikan untuk stylus: panah e-paper hilang dan diganti
   **I-beam** milik kolomnya, **hold tidak lagi jadi klik kanan**, dan **drag tidak lagi memindahkan
@@ -335,9 +340,10 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
 
 - **Mouse**: klik kiri = buka, klik kanan = menu konteks, scroll wheel = gulir daftar, hover memindahkan kursor.
 - **Keyboard internal (bawaan Android) tetap dipakai**: muncul otomatis saat menyentuh field teks
-  (terminal, notes, kotak pencarian), dan desktop bergeser naik mengikuti tinggi keyboard supaya
-  baris input tidak tertutup. Ada tombol ⌨ di panel/taskbar/menu bar untuk memunculkan atau
-  menyembunyikan keyboard secara manual — praktis kalau memakai mouse.
+  (terminal, notes, kotak pencarian). **Layout tidak ikut naik**: keyboard mengapung di atas desktop
+  — title rail, ikon, widget, panel dan dock tetap di tempatnya — dan hanya isi aplikasi kita sendiri
+  yang membuat ruang di dalam bingkainya supaya baris ketik tidak tertutup. Ada tombol ⌨ di
+  panel/taskbar/menu bar untuk memunculkan atau menyembunyikan keyboard secara manual — praktis kalau memakai mouse.
 - **Keyboard eksternal** (Bluetooth/USB):
 
 | Pintasan | Aksi |
