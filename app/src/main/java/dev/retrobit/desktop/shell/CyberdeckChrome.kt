@@ -68,6 +68,7 @@ object CyberdeckChrome {
     fun sizeFactor(name: String): Float = when (name) {
         "compact" -> 0.85f
         "large" -> 1.2f
+        "huge" -> 1.4f
         else -> 1f
     }
 

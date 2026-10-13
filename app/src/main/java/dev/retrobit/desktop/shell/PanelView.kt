@@ -157,8 +157,8 @@ class PanelView(context: Context) : View(context) {
         y += snap8(dp(30f)) + dp(6f)
 
         // rail & dock size: the chrome's own scale, separate from the desktop ui scale
-        val sz = (right - x - dp(12f)) / 3f
-        listOf("compact", "normal", "large").forEachIndexed { i, name ->
+        val sz = (right - x - dp(18f)) / 4f
+        listOf("compact", "normal", "large", "huge").forEachIndexed { i, name ->
             key(
                 canvas, x + i * (sz + dp(6f)), y, sz, "size:" + name,
                 label = name, active = state.sizeName == name,

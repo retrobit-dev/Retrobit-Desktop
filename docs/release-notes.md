@@ -10,10 +10,21 @@
 ## Yang baru di {{TAG}}
 
 
-### Ukuran rail & dock bisa diatur: compact / normal / large
-- Baris baru **rail & dock size** di *Settings → cyberdeck chrome*, tombol `compact` / `normal` /
-  `large` di quick panel (bagian RAILS), dan terminal `cyberdeck size compact|normal|large`.
-- Ukurannya adalah **skala chrome sendiri** (0.85x / 1x / 1.2x), terpisah dari `scale` desktop:
+### Hemat baterai: chrome berhenti saat layar mati
+- Service chrome memantau layar: saat **layar mati** tick per detik dihentikan dan rail diturunkan ke
+  handle (bingkainya tetap, karena bingkai tidak digambar ulang); saat layar hidup lagi tick jalan
+  kembali, rail muncul, dan hitungan auto-hide mulai dari nol. Tidak ada lagi jam yang berdetak di
+  balik layar gelap.
+- Rail yang sedang auto-hidden (tinggal grip) **tidak lagi digambar ulang tiap detik** - sebelumnya
+  dua strip selebar layar digambar 60 kali per menit walaupun isinya tidak berubah sedikit pun.
+- Receiver-nya didaftarkan lewat `ContextCompat` dengan `RECEIVER_NOT_EXPORTED` (targetSdk 34), jadi
+  tidak bisa dijangkau aplikasi lain.
+
+### Ukuran rail & dock bisa diatur: compact / normal / large / huge
+- Baris baru **rail & dock size** di *Settings → cyberdeck chrome*, empat tombol `compact` /
+  `normal` / `large` / `huge` di quick panel (bagian RAILS), dan terminal
+  `cyberdeck size compact|normal|large|huge`.
+- Ukurannya adalah **skala chrome sendiri** (0.85x / 1x / 1.2x / 1.4x), terpisah dari `scale` desktop:
   tinggi title rail (40 dp), tinggi dock (54 dp), ukuran huruf, glyph, ikon aplikasi dan area
   sentuh tombol semuanya ikut membesar atau mengecil - enak dibaca dari jauh kalau `large`, dan
   menyisakan lebih banyak layar kalau `compact`.

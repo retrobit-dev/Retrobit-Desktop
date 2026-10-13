@@ -523,14 +523,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Rail & dock size from anywhere (panel, settings, terminal). */
     fun setChromeSize(name: String) {
-        val wanted = name.lowercase().takeIf { it == "compact" || it == "normal" || it == "large" } ?: "normal"
+        val wanted = name.lowercase()
+            .takeIf { it == "compact" || it == "normal" || it == "large" || it == "huge" }
+            ?: "normal"
         if (settings.chromeSize == wanted) return
         settings.chromeSize = wanted
-        flashChrome("rail & dock: " + when (wanted) {
-            "compact" -> "compact"
-            "large" -> "large"
-            else -> "normal"
-        })
+        flashChrome("rail & dock: $wanted")
         syncChrome()
         runCatching { dev.retrobit.desktop.shell.PanelService.sync(appContext) }
     }

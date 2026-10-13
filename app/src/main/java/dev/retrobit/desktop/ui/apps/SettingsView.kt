@@ -258,7 +258,7 @@ fun SettingsView(vm: LauncherViewModel) {
         }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f)), verticalAlignment = Alignment.CenterVertically) {
             RetroText("rail & dock size", size = 12f, modifier = Modifier.weight(1f))
-            listOf("compact", "normal", "large").forEach { name ->
+            listOf("compact", "normal", "large", "huge").forEach { name ->
                 RetroButton(
                     label = name,
                     active = s.chromeSize == name,

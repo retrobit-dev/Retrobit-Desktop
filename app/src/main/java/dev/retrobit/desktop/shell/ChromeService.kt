@@ -5,8 +5,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.ServiceInfo
 import android.content.res.Configuration
 import android.graphics.PixelFormat
@@ -118,8 +120,37 @@ class ChromeService : Service() {
     /** App icons for the dock, loaded once per package (64 px, printed in grayscale). */
     private val iconCache = HashMap<String, android.graphics.Bitmap?>()
 
+    /** True while the display is off: the chrome is invisible, so nothing is drawn or refreshed. */
+    private var paused = false
+
+    /**
+     * With the screen off there is nothing to look at, and a launcher that keeps a clock ticking in
+     * the background is a launcher that eats the battery of the tablet it lives on. The rails are
+     * taken down and the per-second tick is stopped until the display comes back; the frame border
+     * stays where it is, because it costs nothing while nobody draws.
+     */
+    private val screenWatcher = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            when (intent?.action) {
+                Intent.ACTION_SCREEN_OFF -> {
+                    paused = true
+                    handler.removeCallbacks(tick)
+                    if (railsShown) setRailsShown(false)
+                }
+                Intent.ACTION_SCREEN_ON -> {
+                    paused = false
+                    handler.removeCallbacks(tick)
+                    handler.postDelayed(tick, 400L)
+                    keepAwake()
+                    applyState()
+                }
+            }
+        }
+    }
+
     private val tick = object : Runnable {
         override fun run() {
+            if (paused) return
             // the launcher view model refreshes the shared state (title, dock, palette, desktops)
             runCatching { CyberdeckChrome.onRefresh?.invoke() }
             updateBattery()
@@ -140,10 +171,24 @@ class ChromeService : Service() {
         wm = getSystemService(WindowManager::class.java)
         running = true
         measure()
+        runCatching {
+            // ContextCompat: targetSdk 34 wants the exported flag spelled out even for system
+            // broadcasts, and this receiver must never be reachable from other apps
+            ContextCompat.registerReceiver(
+                this,
+                screenWatcher,
+                IntentFilter().apply {
+                    addAction(Intent.ACTION_SCREEN_OFF)
+                    addAction(Intent.ACTION_SCREEN_ON)
+                },
+                ContextCompat.RECEIVER_NOT_EXPORTED,
+            )
+        }
         handler.postDelayed(tick, 500L)
     }
 
     override fun onDestroy() {
+        runCatching { unregisterReceiver(screenWatcher) }
         handler.removeCallbacks(tick)
         remove()
         running = false
@@ -365,7 +410,9 @@ class ChromeService : Service() {
                 lp.height = wanted
                 runCatching { wm.updateViewLayout(it, lp) }
             }
-            it.invalidate()
+            // an auto-hidden rail draws only its grip, which does not change with the state: skip
+            // the repaint instead of re-drawing two full-width strips every second
+            if (!it.handlesOnly) it.invalidate()
         }
     }
 
