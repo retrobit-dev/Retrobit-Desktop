@@ -144,6 +144,9 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   Dua app pertama yang dipin tetap, sisanya diisi aplikasi yang paling sering dibuka; berlaku di dock
   desktop, sidebar, taskbar, widget launcher dan dock cyberdeck. Tahan app di dock cyberdeck untuk
   pin/unpin (chip yang dipin diberi tanda), dengan konfirmasi singkat di rail (`pins`).
+- **Ukuran rail & dock**: `compact` / `normal` / `large` (Settings, quick panel, atau
+  `cyberdeck size ...`). Ini skala chrome sendiri, jadi tinggi rail, ukuran huruf, ikon dan area
+  sentuh tombol ikut berubah tanpa mengubah skala desktop.
 - **Per-app rules**: aplikasi tertentu bisa dikecualikan dari bingkai; kalau app itu di depan, rail
   muncul 4 detik dengan alasannya + cara mengembalikannya.
 - Status hidup: jam `HH:mm:ss` (detik tepat di batas detik, juga di widget chrono dan header

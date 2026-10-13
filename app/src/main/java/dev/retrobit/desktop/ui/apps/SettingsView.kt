@@ -256,6 +256,16 @@ fun SettingsView(vm: LauncherViewModel) {
                 )
             }
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroText("rail & dock size", size = 12f, modifier = Modifier.weight(1f))
+            listOf("compact", "normal", "large").forEach { name ->
+                RetroButton(
+                    label = name,
+                    active = s.chromeSize == name,
+                    onClick = { vm.setChromeSize(name) },
+                )
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
             RetroText("dock shows", size = 12f, modifier = Modifier.weight(1f))
             RetroButton(

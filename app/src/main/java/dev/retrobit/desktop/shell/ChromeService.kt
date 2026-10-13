@@ -357,6 +357,14 @@ class ChromeService : Service() {
             it.batteryPercent = batteryPercent
             it.charging = charging
             it.net = state.net
+            // the rail / dock size is adjustable from the quick panel: follow it right away instead
+            // of waiting for the next auto-hide transition to re-measure the window
+            val wanted = barsHeight(it)
+            val lp = it.layoutParams as? WindowManager.LayoutParams
+            if (lp != null && lp.height != wanted) {
+                lp.height = wanted
+                runCatching { wm.updateViewLayout(it, lp) }
+            }
             it.invalidate()
         }
     }

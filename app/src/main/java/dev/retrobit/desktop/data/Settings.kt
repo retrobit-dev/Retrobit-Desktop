@@ -100,6 +100,9 @@ class Settings(context: Context) {
     /** What the dock shows: "pinned" (the apps pinned to the dock) or "used" (most used first). */
     var railMode: String by stringPref("railMode", "pinned")
 
+    /** Rail & dock size: "compact", "normal" (default) or "large" - the chrome's own scale. */
+    var chromeSize: String by stringPref("chromeSize", "normal")
+
     /** Apps the cyberdeck chrome must stay away from (camera, games, video players...). */
     var chromeNoApps: List<String> by listPref("chromeNoApps")
 

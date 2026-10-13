@@ -35,6 +35,8 @@ object PanelChrome {
         val apps: List<AppRef> = emptyList(),
         /** Apps the chrome must stay away from. */
         val noChrome: List<String> = emptyList(),
+        /** "compact" / "normal" / "large": how big the rails read. */
+        val sizeName: String = "normal",
         /** Live clock, printed in the header so the panel reads like the rest of the shell. */
         val clock: String = "",
     )

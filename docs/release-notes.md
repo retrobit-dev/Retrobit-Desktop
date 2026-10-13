@@ -10,6 +10,18 @@
 ## Yang baru di {{TAG}}
 
 
+### Ukuran rail & dock bisa diatur: compact / normal / large
+- Baris baru **rail & dock size** di *Settings → cyberdeck chrome*, tombol `compact` / `normal` /
+  `large` di quick panel (bagian RAILS), dan terminal `cyberdeck size compact|normal|large`.
+- Ukurannya adalah **skala chrome sendiri** (0.85x / 1x / 1.2x), terpisah dari `scale` desktop:
+  tinggi title rail (40 dp), tinggi dock (54 dp), ukuran huruf, glyph, ikon aplikasi dan area
+  sentuh tombol semuanya ikut membesar atau mengecil - enak dibaca dari jauh kalau `large`, dan
+  menyisakan lebih banyak layar kalau `compact`.
+- Berlaku langsung tanpa menunggu: begitu ukurannya berubah, service mengukur ulang tinggi jendela
+  rail saat itu juga (dulu baru pada transisi auto-hide berikutnya).
+- Panelnya sendiri tetap aman di skala UI besar: isinya tumpukan baris tetap, jadi panel berhenti
+  di 1.3x dan kartunya naik ke 700 dp - tidak ada bagian yang tertimpa footer.
+
 ### Quick panel: semua pengaturan cyberdeck tanpa keluar dari aplikasi
 Tombol **settings di rail** (terminal `panel`, atau *quick panel now* di Settings) membuka panel di
 atas aplikasi yang sedang jalan - tidak perlu pulang ke desktop:

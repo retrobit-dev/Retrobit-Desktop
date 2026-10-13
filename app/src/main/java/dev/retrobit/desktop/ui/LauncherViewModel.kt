@@ -354,6 +354,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             autoHideSecs = settings.chromeAutoHideSecs.coerceIn(3, 60),
             net = snapshot.net,
             railMode = settings.railMode,
+            size = CyberdeckChrome.sizeFactor(settings.chromeSize),
             flash = chromeFlash.takeIf { System.currentTimeMillis() - chromeFlashAt < 2_500L }.orEmpty(),
         )
     }
@@ -509,6 +510,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             chromeOn = settings.cyberdeckChrome,
             chromeAllowed = chromeAllowed(),
             railMode = settings.railMode,
+            sizeName = settings.chromeSize,
             topRail = settings.chromeTopRail,
             dockOn = settings.chromeDock,
             autoHide = settings.chromeAutoHide,
@@ -519,9 +521,24 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
+    /** Rail & dock size from anywhere (panel, settings, terminal). */
+    fun setChromeSize(name: String) {
+        val wanted = name.lowercase().takeIf { it == "compact" || it == "normal" || it == "large" } ?: "normal"
+        if (settings.chromeSize == wanted) return
+        settings.chromeSize = wanted
+        flashChrome("rail & dock: " + when (wanted) {
+            "compact" -> "compact"
+            "large" -> "large"
+            else -> "normal"
+        })
+        syncChrome()
+        runCatching { dev.retrobit.desktop.shell.PanelService.sync(appContext) }
+    }
+
     /** Everything the quick panel can ask for, in one place. */
     fun onPanelAction(action: String) {
         when {
+            action.startsWith("size:") -> setChromeSize(action.removePrefix("size:"))
             action.startsWith("bright:") -> {
                 val tail = action.removePrefix("bright:")
                 when {

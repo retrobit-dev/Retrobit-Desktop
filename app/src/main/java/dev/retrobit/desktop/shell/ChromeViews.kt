@@ -87,7 +87,8 @@ class RailView(
     }
     private val hits = ArrayList<Pair<RectF, String>>()
 
-    private fun scale(): Float = state.scale.coerceIn(0.6f, 2f)
+    /** Launcher scale × the chrome's own size: rail height, keys, text and icons all follow. */
+    private fun scale(): Float = (state.scale * state.size).coerceIn(0.6f, 2.4f)
 
     private fun dp(v: Float): Float = v * density * scale()
 

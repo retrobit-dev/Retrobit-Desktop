@@ -54,9 +54,22 @@ object CyberdeckChrome {
         val net: String = "",
         /** "pinned" (the dock shows the pinned apps) or "used" (the most used apps first). */
         val railMode: String = "pinned",
+        /** How big the rails read: 1f is the plain size, and the rail/dock heights follow it. */
+        val size: Float = 1f,
         /** A short confirmation ("pinned to the dock: Files") drawn on the rail for a moment. */
         val flash: String = "",
     )
+
+    /**
+     * Rail & dock size as a multiplier. It is deliberately separate from the launcher's own UI
+     * scale: the chrome sits on top of *other* apps, and those icons have nothing to do with how
+     * big the desktop grid should be.
+     */
+    fun sizeFactor(name: String): Float = when (name) {
+        "compact" -> 0.85f
+        "large" -> 1.2f
+        else -> 1f
+    }
 
     @Volatile
     var state: State = State()

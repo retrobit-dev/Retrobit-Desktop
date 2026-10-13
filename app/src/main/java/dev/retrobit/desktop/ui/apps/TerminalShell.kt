@@ -157,6 +157,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             floating on|off        ask the system to float an app inside its window frame
             cyberdeck on|off       draw the desktop frame over apps that open full screen
             cyberdeck autohide on|off|<3..60>   slide the rails away after a few seconds
+            cyberdeck size compact|normal|large   how big the rail & dock read on this screen
             panel                  open the quick panel (brightness, rotation, rules)
             rail mode pinned|used  what the docks show (pinned apps or most used first)
             pins                   the dock list, in the order it is shown
@@ -418,6 +419,17 @@ class TerminalShell(private val vm: LauncherViewModel) {
                     }
                 }
             }
+            "size" -> {
+                val sub = arg2?.lowercase()
+                when (sub) {
+                    "compact", "normal", "large" -> {
+                        vm.setChromeSize(sub)
+                        print("rail & dock size -> ${vm.settings.chromeSize}")
+                    }
+                    null -> print("rail & dock size: ${vm.settings.chromeSize} (compact|normal|large)", Kind.DIM)
+                    else -> print("usage: cyberdeck size compact|normal|large", Kind.ERR)
+                }
+            }
             "grant", "permission" -> {
                 vm.requestChromePermission()
                 print("opening the \"display over other apps\" screen", Kind.DIM)
@@ -425,7 +437,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             else -> {
                 print("cyberdeck chrome: ${if (vm.settings.cyberdeckChrome) "on" else "off"}", Kind.HEAD)
                 print("  ${vm.chromeStatusLine()}", Kind.DIM)
-                print("usage: cyberdeck on|off|preview|grant|autohide [on|off|<3..60>]", Kind.DIM)
+                print("usage: cyberdeck on|off|preview|grant|autohide [on|off|<3..60>]|size compact|normal|large", Kind.DIM)
             }
         }
     }

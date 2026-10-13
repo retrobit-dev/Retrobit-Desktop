@@ -43,7 +43,12 @@ class PanelView(context: Context) : View(context) {
     private var track = RectF()
     private var dragging = false
 
-    private fun scale(): Float = state.scale.coerceIn(0.6f, 2f)
+    /**
+     * The panel draws itself with the launcher's scale, but only up to 1.3: the sections are a
+     * fixed stack of rows, and at the 2.0 end of the ui scale they would grow past the card and
+     * collide with the footer. Everything else on screen still follows the real scale.
+     */
+    private fun scale(): Float = state.scale.coerceIn(0.6f, 1.3f)
 
     private fun dp(v: Float): Float = v * density * scale()
 
@@ -59,7 +64,8 @@ class PanelView(context: Context) : View(context) {
 
         val pad = dp(20f)
         val cardW = (width - pad * 2f).coerceAtMost(dp(1040f))
-        val cardH = (height - pad * 2f).coerceAtMost(dp(640f))
+        // tall enough for the whole stack of sections (brightness, display, rails, apps, rules)
+        val cardH = (height - pad * 2f).coerceAtMost(dp(700f))
         val left = (width - cardW) / 2f
         val top = (height - cardH) / 2f
         val card = RectF(left, top, left + cardW, top + cardH)
@@ -147,6 +153,16 @@ class PanelView(context: Context) : View(context) {
         val seg = (half - dp(12f)) / 4f
         listOf(4, 6, 10, 20).forEachIndexed { i, secs ->
             key(canvas, rx + i * (seg + dp(4f)), y, seg, "autohide:$secs", label = "${secs}s", active = state.autoHide && state.autoHideSecs == secs)
+        }
+        y += snap8(dp(30f)) + dp(6f)
+
+        // rail & dock size: the chrome's own scale, separate from the desktop ui scale
+        val sz = (right - x - dp(12f)) / 3f
+        listOf("compact", "normal", "large").forEachIndexed { i, name ->
+            key(
+                canvas, x + i * (sz + dp(6f)), y, sz, "size:" + name,
+                label = name, active = state.sizeName == name,
+            )
         }
         y += snap8(dp(30f)) + dp(10f)
 
