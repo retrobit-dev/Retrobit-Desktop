@@ -104,10 +104,20 @@ def dither_title_bar(d, box, cells=14, height_cells=3):
                 )
 
 
-def glyph_tile(d, x, y, size, kind="folder", label="", paper=PAPER, ink=INK):
-    """16x16-ish pixel-art app icon placeholder + label, mimicking IconMode.MONO output."""
+def glyph_tile(d, x, y, size, kind="folder", label="", paper=PAPER, ink=INK, shape="flat"):
+    """16x16-ish pixel-art app icon placeholder + label, mimicking IconMode.MONO output.
+
+    `shape` documents IconTheme.AUTO: flat (Linux square), rounded (macOS), classic (Windows bevel).
+    """
     inner = size - 10
-    d.rectangle([x, y, x + inner, y + inner], fill=paper, outline=ink, width=2)
+    if shape == "rounded":
+        d.rounded_rectangle([x, y, x + inner, y + inner], radius=12, fill=paper, outline=ink, width=2)
+    elif shape == "classic":
+        d.rectangle([x, y, x + inner, y + inner], fill=paper)
+        bevel(d, [x, y, x + inner, y + inner], width=2)
+        d.rectangle([x + 3, y + 3, x + inner - 3, y + inner - 3], outline=ink, width=1)
+    else:
+        d.rectangle([x, y, x + inner, y + inner], fill=paper, outline=ink, width=2)
     if kind == "folder":
         d.rectangle([x + 5, y + 5, x + inner - 5, y + inner - 10], fill=ink)
         d.rectangle([x + 8, y + 3, x + inner - 12, y + 6], fill=ink)
@@ -147,6 +157,29 @@ CURSOR_ROWS = [
     "    #ooo#   ",
     "     ##     ",
 ]
+
+
+DIAMOND = [
+    "  ##  ",
+    " #### ",
+    "######",
+    " #### ",
+    "  ##  ",
+]
+
+
+def pix_diamond(d, x, y, cell=4, fill=INK):
+    """The launcher's pixel-art diamond mark (the bundled font has no block glyphs)."""
+    for ry, row in enumerate(DIAMOND):
+        for rx, ch in enumerate(row):
+            if ch == "#":
+                d.rectangle([x + rx * cell, y + ry * cell, x + (rx + 1) * cell - 1, y + (ry + 1) * cell - 1], fill=fill)
+
+
+def pix_app_dot(d, x, y, size=12, fill=INK):
+    """Small pixel-art app square used inside list rows (stands in for an app icon glyph)."""
+    d.rectangle([x, y, x + size - 1, y + size - 1], outline=fill, width=2)
+    d.rectangle([x + 4, y + 4, x + size - 4, y + size - 4], fill=fill)
 
 
 def cursor(d, x, y, cell=3, pressed=False):
@@ -217,6 +250,69 @@ def pager(d, x, y, size=26, cells=3, active=0, windows=(1, 0, 1)):
     return x
 
 
+def calendar_widget(d, box, mirror=False):
+    """Compact calendar: month grid, dots on days with entries, agenda for the selected day.
+
+    Mirrors the layout of ui/desktop/CalendarWidget.kt (title bar, weekday row, 6x7 grid, agenda).
+    """
+    x0, y0, x1, y1 = box
+    d.rectangle([x0, y0, x1, y1], fill=PAPER, outline=INK, width=2)
+    d.rectangle([x0 + 1, y0 + 1, x1 - 1, y0 + 26], fill=PATTERN)
+    d.line([x0, y0 + 27, x1, y0 + 27], fill=INK, width=2)
+    # tiny pixel-art calendar glyph, then the month name (ASCII only: the bundled font has no blocks)
+    d.rectangle([x0 + 8, y0 + 5, x0 + 22, y0 + 21], fill=PAPER, outline=INK, width=1)
+    d.rectangle([x0 + 8, y0 + 5, x0 + 22, y0 + 10], fill=INK)
+    for gx in range(2):
+        for gy in range(2):
+            d.rectangle([x0 + 12 + gx * 5, y0 + 12 + gy * 5, x0 + 14 + gx * 5, y0 + 14 + gy * 5], fill=INK)
+    d.text((x0 + 28, y0 + 5), "october 2026", font=mono_tiny, fill=INK)
+    for i, ch in enumerate("< >"):
+        d.rectangle([x1 - 44 + i * 20, y0 + 4, x1 - 28 + i * 20, y0 + 22], fill=PAPER, outline=INK, width=1)
+        d.text((x1 - 40 + i * 20, y0 + 5), ch, font=mono_tiny, fill=INK)
+
+    grid_top = y0 + 34
+    cw = (x1 - x0 - 16) / 7
+    for i, head in enumerate(("mo", "tu", "we", "th", "fr", "sa", "su")):
+        d.text((x0 + 8 + i * cw, grid_top), head, font=mono_tiny, fill=INK)
+    # October 2026 starts on a Thursday; show 12 Oct .. 1 Nov plus the selected day
+    days = [None] * 3 + [d for d in range(1, 32)] + [None]
+    highlighted = {0: {3: "evt", 6: "task"}, 1: {0: "birthday", 4: "evt"}}
+    for i, day in enumerate(days[:42]):
+        col, row = i % 7, i // 7
+        cx = x0 + 8 + col * cw + cw / 2
+        cy = grid_top + 16 + row * 19
+        if day is None:
+            continue
+        selected = day == 14
+        if selected:
+            d.rectangle([cx - cw / 2 + 1, cy - 8, cx + cw / 2 - 1, cy + 12], fill=INK)
+        elif day == 13:
+            d.rectangle([cx - cw / 2 + 1, cy - 8, cx + cw / 2 - 1, cy + 12], fill=PATTERN)
+        label = str(day)
+        tw = d.textlength(label, font=mono_tiny)
+        d.text((cx - tw / 2, cy - 6), label, font=mono_tiny, fill=PAPER if selected else INK)
+        mark = highlighted.get(row, {}).get(col)
+        if mark:
+            d.rectangle([cx - 2, cy + 9, cx + 2, cy + 12], fill=PAPER if selected else INK)
+
+    agenda_top = y0 + 34 + 16 + 6 * 19 + 6
+    d.line([x0 + 1, agenda_top - 6, x1 - 1, agenda_top - 6], fill=INK, width=2)
+    d.text((x0 + 8, agenda_top - 4), "wed, 14 oct 2026", font=mono_tiny, fill=INK)
+    d.rectangle([x1 - 26, agenda_top - 6, x1 - 8, agenda_top + 12], fill=INK)
+    d.text((x1 - 21, agenda_top - 4), "+", font=mono_tiny, fill=PAPER)
+    rows = [("evt", "edge snapping demo"), ("tsk", "flash v1.4.0 build"), ("bir", "retro desk day")]
+    for i, (tag, title) in enumerate(rows):
+        ty = agenda_top + 18 + i * 20
+        if ty + 16 > y1 - 22:
+            break
+        d.rectangle([x0 + 8, ty, x0 + 8 + 24, ty + 16], fill=INK)
+        d.text((x0 + 11, ty + 1), tag, font=mono_tiny, fill=PAPER)
+        d.text((x0 + 38, ty + 1), title, font=mono_tiny, fill=INK)
+        d.text((x1 - 40, ty + 1), "del", font=mono_tiny, fill=INK)
+    d.line([x0 + 1, y1 - 20, x1 - 1, y1 - 20], fill=INK, width=2)
+    d.text((x0 + 8, y1 - 17), "6 entries \u00b7 2 open tasks", font=mono_tiny, fill=INK)
+
+
 def panel(caption, style):
     w, h = 780, 1060
     img = Image.new("RGB", (w, h), PAPER)
@@ -240,8 +336,10 @@ def panel(caption, style):
         d.rectangle([0, 0, w, 44], fill=PAPER)
         bevel(d, [0, 0, w - 1, 44])
         # right-hand cluster is laid out first so the window buttons know where to stop
-        clock_w = d.textlength("13:37", font=px_small)
-        d.text((w - 14 - clock_w, 6), "13:37", font=px_small, fill=INK)
+        clock_w = d.textlength("13:37", font=px_small) + d.textlength(":09", font=mono_med)
+        sec_w = d.textlength(":09", font=mono_med)
+        d.text((w - 14 - d.textlength("13:37", font=px_small) - sec_w - 2, 6), "13:37", font=px_small, fill=INK)
+        d.text((w - 16 - sec_w, 20), ":09", font=mono_med, fill=INK)
         rx = w - 24 - clock_w
         for label in ("WIFI 92%", "KB"):
             tw = d.textlength(label, font=mono_tiny)
@@ -259,8 +357,8 @@ def panel(caption, style):
         d.text((rx - cw - 8, 12), chip, font=mono_tiny, fill=INK)
         limit = rx - cw - 24
 
-        x = lab(d, 14, 12, "◆", px_small)
-        x = text_run(d, 44, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
+        pix_diamond(d, 14, 10, cell=5)
+        x = text_run(d, 48, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
         x += 8
         for label, active in [("terminal", True), ("notes.txt", False)]:
             tw = d.textlength(label, font=mono)
@@ -286,9 +384,11 @@ def panel(caption, style):
         d.text((16, h - 150), "mon", font=mono_tiny, fill=INK)
         d.text((16, h - 96), "note", font=mono_tiny, fill=INK)
         d.text((16, h - 42), "setup", font=mono_tiny, fill=INK)
-        # desktop icons
+        # desktop icons, freely placed on the 10x5 grid (flat square frames on Linux)
         for i, (kind, label) in enumerate([("folder", "Files"), ("monitor", "Browser"), ("term", "Terminal"), ("grid", "Gallery")]):
-            glyph_tile(d, 100 + (i % 4) * 96, 70, 62, kind=kind, label=label)
+            glyph_tile(d, 100 + (i % 4) * 96, 70, 62, kind=kind, label=label, shape="flat")
+        for i, (kind, label) in enumerate([("monitor", "Clock"), ("grid", "Notes")]):
+            glyph_tile(d, 100 + i * 96, 190, 62, kind=kind, label=label, shape="flat")
         # widgets
         d.rectangle([w - 250, 60, w - 20, 210], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 250, 60, w - 20, 86], fill=PATTERN)
@@ -296,25 +396,27 @@ def panel(caption, style):
         d.text((w - 240, 96), "13:37", font=px_font, fill=INK)
         d.text((w - 240, 150), "Mon, 13 Oct 2026", font=mono, fill=INK)
         d.text((w - 240, 176), "uptime 2d 4h 12m", font=mono_tiny, fill=INK)
-        window(d, (110, 300, w - 40, 700), "terminal", body_lines=[
+        calendar_widget(d, (500, 300, w - 20, 690))
+        window(d, (110, 300, 470, 700), "terminal", body_lines=[
             "operator@retrobit:~$ neofetch",
-            "   .-------------------.   operator@retrobit-matepad",
-            "   |  | retR0BIT  _ |  |   OS   : retrOS GNU/Linux",
-            "   |  '-------------'  |   WM   : retrobit-wm (Linux)",
-            "   '-------------------'   Theme: Paper / halftone",
-            "        '-----------'      Memory: 3.1G / 7.8G",
+            "   .-----------.   OS: retrOS GNU/Linux",
+            "   | retR0BIT  |   WM: retrobit-wm",
+            "   '-----------'   Theme: Paper/halftone",
+            "     '-------'     Memory: 3.1G / 7.8G",
         ])
-        cursor(d, 400, 700, cell=3)
+        cursor(d, 292, 700, cell=3)
         d.text((115, 720), "operator@retrobit:~$ tiling on", font=mono, fill=INK)
         d.rectangle([110, 760, w - 40, 830], fill=PAPER, outline=INK, width=2)
         d.text((122, 775), "± tiling master–stack aktif", font=mono, fill=INK)
     elif style == "macos":
         d.rectangle([0, 0, w, 40], fill=PAPER)
         d.line([0, 40, w, 40], fill=INK, width=2)
-        lab(d, 14, 10, "◆", px_small)
+        pix_diamond(d, 14, 8, cell=5)
         text_run(d, 48, 11, ["File", "View", "Window", "Help"], mono_med, gap=22)
-        clock_w = d.textlength("13:37", font=px_small)
-        d.text((w - 14 - clock_w, 4), "13:37", font=px_small, fill=INK)
+        clock_w = d.textlength("13:37", font=px_small) + d.textlength(":09", font=mono_med)
+        sec_w = d.textlength(":09", font=mono_med)
+        d.text((w - 14 - d.textlength("13:37", font=px_small) - sec_w - 2, 4), "13:37", font=px_small, fill=INK)
+        d.text((w - 16 - sec_w, 16), ":09", font=mono_med, fill=INK)
         rx = w - 24 - clock_w
         rx = pager(d, rx - (3 * 25 + 12), 8, size=20, cells=3, active=0, windows=(1, 0, 1))
         for label, kind in [("WIFI 92%", "text"), ("KB", "button"), ("[MACOS]", "button")]:
@@ -327,15 +429,19 @@ def panel(caption, style):
                 d.text((rx - tw - 8, 11), label, font=mono_tiny, fill=INK)
                 rx -= tw + 18
         # right-aligned desktop icons
-        for i, (kind, label) in enumerate([("folder", "Files"), ("monitor", "Safari"), ("grid", "Photos")]):
-            glyph_tile(d, w - 120, 66 + i * 124, 62, kind=kind, label=label)
+        for (kind, label), (ix, iy) in zip(
+            [("folder", "Files"), ("monitor", "Safari"), ("grid", "Photos"), ("term", "Terminal")],
+            [(w - 120, 58), (w - 120, 158), (w - 216, 58), (w - 216, 158)],
+        ):
+            glyph_tile(d, ix, iy, 62, kind=kind, label=label, shape="rounded")
         # left widgets
         d.rectangle([30, 70, 260, 220], fill=PAPER, outline=INK, width=2)
         d.rectangle([30, 70, 260, 96], fill=PATTERN)
         d.text((40, 74), "chrono", font=mono_tiny, fill=INK)
         d.text((40, 106), "13:37", font=px_font, fill=INK)
         d.text((40, 160), "Mon, 13 Oct 2026", font=mono, fill=INK)
-        window(d, (250, 260, w - 60, 640), "notes.txt", mac=True, body_lines=[
+        calendar_widget(d, (28, 240, 244, 640))
+        window(d, (262, 260, w - 60, 640), "notes.txt", mac=True, body_lines=[
             "RETROBIT NOTES",
             "==============",
             "",
@@ -344,7 +450,7 @@ def panel(caption, style):
         ])
         # dock
         dock_y = h - 130
-        d.rectangle([60, dock_y, 60 + 5 * 84 + 110, dock_y + 100], fill=PAPER, outline=INK, width=3)
+        d.rectangle([60, dock_y, 60 + 5 * 84 + 160, dock_y + 100], fill=PAPER, outline=INK, width=3)
         d.text((92, dock_y + 12), "▣", font=px_small, fill=INK)
         d.line([140, dock_y + 14, 140, dock_y + 86], fill=INK, width=2)
         for i in range(5):
@@ -361,7 +467,7 @@ def panel(caption, style):
     else:
         fill_dither(d, (0, 0, w, h), PATTERN, cell=4, level_max=4)
         for i, (kind, label) in enumerate([("monitor", "My Computer"), ("folder", "Documents"), ("grid", "Network")]):
-            glyph_tile(d, 24, 28 + i * 132, 64, kind=kind, label=label)
+            glyph_tile(d, 24, 28 + i * 132, 64, kind=kind, label=label, shape="classic")
         d.rectangle([w - 250, 60, w - 20, 250], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 250, 60, w - 20, 86], fill=PATTERN)
         d.text((w - 240, 64), "sysinfo", font=mono_tiny, fill=INK)
@@ -371,36 +477,37 @@ def panel(caption, style):
         d.text((w - 240, 146), "RAM 3.1G / 7.8G", font=mono_tiny, fill=INK)
         d.rectangle([w - 240, 166, w - 30, 180], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 238, 168, w - 100, 178], fill=INK)
-        window(d, (230, 250, w - 70, 660), "Applications", win95=True, body_lines=[
+        calendar_widget(d, (w - 250, 290, w - 20, 680))
+        window(d, (230, 250, w - 258, 660), "Applications", win95=True, body_lines=[
             "search applications…        [ 24/96 ]",
-            "",
-            "▣ Files     ▣ Camera    ▣ Clock",
-            "▣ Notes     ▣ Browser   ▣ Gallery",
-            "▣ Recorder  ▣ Mail      ▣ Music",
-            "",
-            "96 apps · long-press for options",
         ])
+        for i, row in enumerate([["Files", "Camera", "Clock"], ["Notes", "Browser", "Gallery"], ["Recorder", "Mail", "Music"]]):
+            for j, name in enumerate(row):
+                bx = 240 + j * 92
+                by = 250 + 34 + 44 + i * 42
+                pix_app_dot(d, bx, by, 14)
+                d.text((bx + 22, by), name, font=mono_tiny, fill=INK)
+        d.text((244, 250 + 34 + 44 + 3 * 42 + 14), "96 apps - long-press for options", font=mono_tiny, fill=INK)
         # taskbar (kept clear of the caption band at the bottom)
         tb = h - 46 - 62
         d.rectangle([0, tb, w, h], fill=PAPER)
         bevel(d, [0, tb, w - 1, h - 1])
-        d.rectangle([8, tb + 8, 118, tb + 52], fill=PAPER, outline=INK, width=2)
-        d.text((20, tb + 18), "◆ Start", font=px_small, fill=INK)
-        d.rectangle([126, tb + 12, 300, tb + 48], fill=INK)
-        d.text((136, tb + 18), "Applications", font=mono, fill=PAPER)
-        d.rectangle([306, tb + 12, 420, tb + 48], fill=PAPER, outline=INK, width=2)
-        d.text((316, tb + 18), "notes.txt", font=mono, fill=INK)
-        px_ = pager(d, 434, tb + 7, size=30, cells=3, active=0, windows=(1, 1, 0))
-        chip_x = px_ + 3 * 35 + 10
+        d.rectangle([8, tb + 8, 130, tb + 52], fill=PAPER, outline=INK, width=2)
+        pix_diamond(d, 16, tb + 20, cell=4)
+        d.text((48, tb + 20), "Start", font=mono_bold, fill=INK)
+        d.rectangle([138, tb + 12, 300, tb + 48], fill=INK)
+        d.text((148, tb + 18), "Applications", font=mono, fill=PAPER)
+        px_ = pager(d, 310, tb + 7, size=30, cells=3, active=0, windows=(1, 1, 0))
+        chip_x = px_ + 3 * 34 + 12
         d.rectangle([chip_x, tb + 11, chip_x + 84, tb + 47], fill=PAPER, outline=INK, width=2)
         d.text((chip_x + 8, tb + 18), "[WIN]", font=mono_tiny, fill=INK)
-        tray = "WIFI 92%  13:37"
+        tray = "WIFI 92%  13:37:09"
         tray_w = d.textlength(tray, font=mono_tiny)
         d.rectangle([w - tray_w - 60, tb + 10, w - 8, tb + 50], fill=PATTERN)
         d.rectangle([w - tray_w - 52, tb + 16, w - tray_w - 26, tb + 42], fill=PAPER, outline=INK, width=2)
         d.text((w - tray_w - 46, tb + 18), "KB", font=mono_tiny, fill=INK)
         d.text((w - tray_w - 16, tb + 18), tray, font=mono_tiny, fill=INK)
-        cursor(d, 620, 470, cell=3, pressed=True)
+        cursor(d, 620, 700, cell=3, pressed=True)
 
     # caption
     d.rectangle([0, h - 46, w, h], fill=INK)
@@ -411,9 +518,9 @@ def panel(caption, style):
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     panels = [
-        panel("LINUX · retrOS GNU/Linux — top panel, side dock, tiling", "linux"),
+        panel("LINUX · retrOS GNU/Linux — panel, dock, calendar widget, free icon grid", "linux"),
         panel("macOS · Retro System 9 — menu bar, dock, launchpad", "macos"),
-        panel("WINDOWS · Retrodows 95 — start menu, taskbar, tray", "windows"),
+        panel("WINDOWS · Retrodows 95 — start menu, taskbar, tray, desktop widget", "windows"),
     ]
     w = sum(p.width for p in panels) + 40 * (len(panels) + 1)
     h = panels[0].height + 180
@@ -421,7 +528,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil acts as a mouse · edge snapping & virtual desktops",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil as a mouse · device wallpaper in dither · editable calendar · free icon placement on a 10x5 grid · snapping & virtual desktops",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

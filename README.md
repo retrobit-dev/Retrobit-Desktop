@@ -42,12 +42,36 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 ### Sistem visual e-paper
 - **6 palet**: Paper, Sepia, Tri-color (B&W + aksen merah), Ink (dark), Phosphor (hijau CRT), Amber.
   Perintah `invert` membalik kertas ⇄ tinta.
-- **Wallpaper dither**: halftone dots, grid, stipple (Bayer 4×4), hatch, atau polos.
+- **Wallpaper**: tiga sumber, semuanya berakhir sebagai e-paper.
+  - *Pattern* — enam pola dither bawaan (halftone dots, grid, stipple Bayer 4×4, hatch, polos).
+  - *Device* — wallpaper tablet kamu, dibaca lewat WallpaperManager, di-crop, diturunkan resolusinya
+    ke ~260 sel lalu di-dither ulang (satu sel = satu titik tinta/kertas).
+  - *Image* — gambar apa pun dari penyimpanan (Android Photo Picker). Pilihanmu disimpan sebagai
+    URI persistable.
+  Tiga **tone** untuk sumber gambar: `Halftone` (titik rapat), `Gray` (garis scanning halus),
+  `Soft` (blok besar, kontras rendah). Warna aslinya dibuang — hanya kertas, tinta, dan abu-abu.
 - **Ikon aplikasi dirender ulang**: `Color` (asli), `Mono` (grayscale ke ramp tinta→kertas),
   `1-bit` (halftone Bayer + outline, di-scale nearest-neighbour agar pixelnya tajam).
+- **Bentuk bingkai ikon mengikuti tema**: `Auto` (Linux → square flat, macOS → rounded, Windows →
+  bevel klasik), atau pilih manual: `Classic`, `Rounded`, `Flat`, `Plain`. Cache ikon otomatis
+  dibuang saat tema/bentuk berubah.
+- **Jam menampilkan detik** (opsional, `Settings` atau `seconds on|off`) — jam di panel, taskbar,
+  dan widget ikut berubah.
 - Chrome: bevel tebal, bayangan *checker dither*, separator ber-*hatch*, judul jendela bergradien
   dither, marquee tanpa animasi, dan pola scanline halus.
 - Semua ikon UI digambar sebagai **pixel-art 16×16** (glyph didefinisikan di dalam kode).
+
+### Kalender & widget desktop
+- **Widget kalender** di desktop: grid bulan, penanda titik pada hari yang ada acaranya, panel
+  agenda hari terpilih, dan tombol `+` untuk menambah entri **langsung dari desktop**.
+- Empat jenis entri: **event**, **task**, **agenda**, dan **birthday** (birthday otomatis berulang
+  tiap tahun). Task punya kotak centang `[ ]`/`[x]`.
+- **Jendela Calendar** (chip `Calendar`, Spotlight "Calendar", terminal `open calendar`) berisi
+  tampilan bulan besar, daftar agenda 14 hari ke depan, daftar task terbuka, dan daftar birthday.
+- Terminal: `cal` (agenda 14 hari), `cal add "Temu dokter" 2026-11-02 14:30 task`,
+  `cal tasks`, `cal clear`.
+- Semua entri disimpan lokal di SharedPreferences (`retrobit_calendar`) sebagai JSON — tanpa izin,
+  tanpa akun, tanpa jaringan.
 
 ### Window manager
 - Jendela bisa digeser (drag title bar), di-resize (grip kanan bawah), minimize / maximize / close.
@@ -59,8 +83,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Virtual desktop (workspace)**: 1–4 desktop, jendela hidup per-desktop. Pager berupa kotak angka
   di panel / menu bar / taskbar: tap untuk pindah, titik di dalamnya menunjukkan jumlah jendela,
   tekan lama untuk menu desktop (pindah jendela atau ubah jumlah desktop).
-- Matematika layout (tiling & snap) dipisah ke `ui/wm/LayoutMath.kt` — murni Kotlin tanpa Android,
-  jadi bisa di-unit-test (14 test di `app/src/test/.../LayoutMathTest.kt`).
+- **Ikon desktop bisa diletakkan di mana saja**: tiap ikon punya sel sendiri di grid tetap
+  (10×5 di tablet), disimpan per-paket. Lepas ikon di sel berisi → kedua ikon **bertukar tempat**,
+  jadi tidak ada yang terdorong keluar layar. Menu desktop → *Auto arrange icons* untuk kembali
+  ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
+- Matematika layout (tiling & snap) dipisah ke `ui/wm/LayoutMath.kt`, penempatan grid ke
+  `ui/wm/GridMath.kt` — keduanya murni Kotlin tanpa Android, jadi bisa di-unit-test
+  (28 test: 14 di `LayoutMathTest.kt` + 14 di `GridMathTest.kt`).
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -72,13 +101,15 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 ### Aplikasi bawaan
 - **Terminal** (`rb-sh`) — 28+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
-  `workspace 1..4` (`ws`), `wsmove 1..4`, `invert`, `wmctrl`, `boot`, `help`, `exit`,
+  `workspace 1..4` (`ws`), `wsmove 1..4`, `cal`, `wallpaper pattern|device|image`,
+  `seconds on|off`, `arrange`, `invert`, `wmctrl`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
-- **Settings** — gaya desktop, palet, wallpaper, mode ikon, skala UI, **input & devices
+- **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, mode + bentuk ikon, skala UI, **input & devices
   (pena/mouse/keyboard)**, perilaku, tombol "Set as default launcher".
 - **System monitor** — baterai, RAM, penyimpanan, jaringan, uptime, daftar jendela, grafik tren.
 - **Notes** — catatan teks yang tersimpan otomatis.
+- **Calendar** — bulan, agenda, task, birthday; semua bisa ditambah/edit/hapus dari UI.
 - **About** — info build, perangkat, dan daftar pintasan.
 
 ### Interaksi
