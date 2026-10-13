@@ -20,7 +20,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -252,6 +251,15 @@ fun SettingsView(vm: LauncherViewModel) {
                 )
             }
         }
+        ToggleRow("Hold a widget on the home screen to edit & resize it", s.widgetHoldEdit, onGlyph = Glyph.GRID) {
+            s.widgetHoldEdit = it
+        }
+        RetroText(
+            "With this off, widget editing starts from the desktop menu or the button below, and the " +
+                "right edge, bottom edge and corner grip still resize by dragging. Tapping the desktop " +
+                "always leaves edit mode.",
+            size = 10f, color = p.mid, maxLines = 3,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             RetroButton(
                 label = if (vm.widgetEdit) "done editing widgets" else "edit widgets on desktop",

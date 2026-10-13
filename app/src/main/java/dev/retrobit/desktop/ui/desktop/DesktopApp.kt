@@ -12,7 +12,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,7 +19,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
@@ -142,7 +140,8 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                         }
                         ev.key == Key.MetaLeft || ev.key == Key.MetaRight -> { vm.spotlight = true; true }
                         ev.key == Key.Escape -> {
-                            vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false; true
+                            vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false
+                            vm.widgetEdit = false; true
                         }
                         else -> false
                     }

@@ -139,7 +139,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
             floating on|off        apps open in floating desktop windows
             widgets                widgets (widget add|remove <name> | widget width <dp> | widget size <name> <w> <h> |
-                                   widget reset | widget edit on|off | widget layout)
+                                   widget reset | widget edit on|off | widget hold on|off | widget layout)
             workspace 1..4         switch virtual desktop (also: ws)
             wsmove 1..4            send the focused window to a desktop
             wmctrl list|close|tile | invert | boot
@@ -379,6 +379,18 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "edit" -> {
                 vm.widgetEdit = args.getOrNull(1)?.let { it.equals("on", true) || it == "1" } ?: !vm.widgetEdit
                 print("widget editing -> ${if (vm.widgetEdit) "on (hold or drag a widget to resize)" else "off"}")
+            }
+            "hold" -> {
+                val arg = args.getOrNull(1)?.lowercase()
+                vm.settings.widgetHoldEdit = when (arg) {
+                    null -> !vm.settings.widgetHoldEdit
+                    "on", "1", "true" -> true
+                    else -> false
+                }
+                print(
+                    if (vm.settings.widgetHoldEdit) "hold a widget to edit & resize -> on"
+                    else "hold a widget to edit & resize -> off (resize from the edges)"
+                )
             }
             "reset-layout", "layout" -> {
                 s.resetWidgetList()

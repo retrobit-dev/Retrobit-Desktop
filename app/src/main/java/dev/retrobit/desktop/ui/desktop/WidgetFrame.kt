@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -108,9 +107,10 @@ fun WidgetSlot(
                             var drag = handle != null
                             // a hold anywhere on the widget arms the resize, so every widget can be
                             // sized with one gesture instead of hunting for the 22 dp edge strip
+                            val holdEdit = vm.settings.widgetHoldEdit
                             val holdJob = launch {
                                 delay(HoldMs)
-                                if (!moved) {
+                                if (!moved && holdEdit) {
                                     vm.widgetEdit = true
                                     drag = true
                                     dragging = true
@@ -260,7 +260,11 @@ fun DesktopWidgets(vm: LauncherViewModel, modifier: Modifier = Modifier) {
             }
         }
         if (!vm.widgetEdit && widgets.isNotEmpty()) {
-            RetroText("hold a widget to edit or resize", size = 9f, color = p.mid, maxLines = 1)
+            RetroText(
+                if (vm.settings.widgetHoldEdit) "hold a widget to edit or resize (or drag its edges)"
+                else "drag a widget edge to resize - hold-to-edit is off in Settings",
+                size = 9f, color = p.mid, maxLines = 1,
+            )
         }
     }
 }

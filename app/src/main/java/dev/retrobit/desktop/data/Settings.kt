@@ -119,6 +119,13 @@ class Settings(context: Context) {
     /** Every widget starts at the calendar width so the whole column lines up. */
     var widgetWidth: Int by intPref("widgetWidth", 250)
 
+    /**
+     * Hold a widget on the home screen to enter widget editing and size it. Turn it off when a
+     * resting finger keeps starting edit mode by accident; the desktop menu and Settings still
+     * switch it on, and the widget edges stay draggable either way.
+     */
+    var widgetHoldEdit: Boolean by boolPref("widgetHoldEdit", true)
+
     /** Widgets on the home screen, in order ("CLOCK\nCALENDAR\nSYSTEM"). */
     var widgetList: List<String> by listPref("widgetList")
 

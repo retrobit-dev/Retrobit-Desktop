@@ -106,8 +106,15 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   jari. Tanpa hold pun bisa: tarik tepi kanan (lebar), tepi bawah (tinggi), atau grip sudut
   kanan-bawah (keduanya). Ukuran di-snap ke grid 8 px, minimum 160x56 dp, diingat per widget.
 - **Mode edit widget** (`Edit widgets`, terminal `widget edit on`): widget dikelilingi bingkai
-  putus-putus, ada chip nama + ukuran hidup (mis. `CALENDAR 280x420`), tombol `^` `v` `fit`
+  putus-putus, ada chip nama + ukuran hidup (mis. `calendar 280x420`), tombol `^` `v` `fit`
   `remove` di bawah tiap widget, dan isi widget tidak menerima sentuhan supaya tidak salah tekan.
+- **Keluar dari mode edit gampang**: tap di desktop kosong, tombol `done`, tekan `Esc`, atau
+  pilih `Done editing widgets` di menu desktop.
+- **Hold-to-edit bisa dimatikan** kalau jari yang sekadar beristirahat di widget sering tidak
+  sengaja masuk mode edit: *Settings - display widgets → Hold a widget on the home screen to edit
+  & resize it*, atau terminal `widget hold on|off`. Dengan fitur ini mati, mode edit tetap bisa
+  dibuka dari menu desktop/Settings dan resize lewat tepi kanan, tepi bawah, atau grip sudut tetap
+  berfungsi.
 - Urutan widget mengikuti urutan di daftar, jadi `^`/`v` menaikkan atau menurunkan widget di kolom.
   Mau homescreen tanpa widget sama sekali? Hapus semuanya — pilihan itu disimpan.
 - Ukuran bisa diatur dari mana saja: `Settings - display widgets`, terminal `widgets`,
@@ -198,7 +205,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 | Tap & tahan ikon | menu konteks (open, open in window, pin ke dock/desktop, app info, uninstall) |
 | Tap & tahan lalu geser | drag ikon ke dock / sidebar untuk pin |
 | Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, tiling, **add/remove widget**, **edit widgets**, close all) |
-| Tap & tahan widget | masuk **mode edit widget**: resize, `^` `v`, `fit`, `remove` |
+| Tap & tahan widget | masuk **mode edit widget**: resize, `^` `v`, `fit`, `remove` (bisa dimatikan di Settings / `widget hold off`) |
+| Tap desktop kosong atau `Esc` | keluar dari mode edit widget |
 | Tap judul jendela | jendela naik ke depan (click-to-focus) |
 
 ### M-Pencil / stylus sebagai mouse

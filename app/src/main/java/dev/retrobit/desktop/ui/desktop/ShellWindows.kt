@@ -37,15 +37,12 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
-import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.DesktopStyle
-import dev.retrobit.desktop.model.WidgetId
 import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.AppIconTile
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
-import dev.retrobit.desktop.ui.components.RetroButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.retroShadow
@@ -55,7 +52,6 @@ import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 import dev.retrobit.desktop.ui.wm.DockSlots
-import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import dev.retrobit.desktop.ui.wm.ShellMetrics
 import dev.retrobit.desktop.ui.wm.WindowLayer

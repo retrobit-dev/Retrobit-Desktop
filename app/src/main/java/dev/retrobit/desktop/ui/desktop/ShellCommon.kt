@@ -117,7 +117,8 @@ fun DesktopIcons(
             // empty desktop: right click, a held pen, or a held finger opens the desktop menu —
             // this is the way into widget editing and adding widgets
             .desktopClick(
-                primary = { },
+                // a tap on the empty desktop always leaves widget editing
+                primary = { vm.widgetEdit = false },
                 secondary = { pos -> vm.desktopMenu(rootOffset + pos) },
             ),
     ) {

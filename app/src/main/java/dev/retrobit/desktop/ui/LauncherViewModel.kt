@@ -9,7 +9,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import dev.retrobit.desktop.data.AppRepository
 import dev.retrobit.desktop.data.Settings
-import dev.retrobit.desktop.data.SysSnapshot
 import dev.retrobit.desktop.data.SystemInfo
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.DesktopStyle
