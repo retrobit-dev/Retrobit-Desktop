@@ -35,12 +35,30 @@ enum class IconMode(val label: String) {
 
 enum class WinKind(val singleton: Boolean) {
     APPS(false),
+    /** A third-party app "wrapped" in a desktop window: chrome we own, app launched from it. */
+    APPWINDOW(false),
     TERMINAL(false),
     SETTINGS(true),
     SYSMON(true),
     NOTES(true),
     ABOUT(true),
     CALENDAR(true),
+}
+
+/**
+ * Desktop widgets. Each one can be resized by hand; [defaultWidth] is the calendar width so every
+ * widget starts out aligned.
+ */
+enum class WidgetId(val label: String, val defaultWidth: Int, val defaultHeight: Int) {
+    CLOCK("chrono", 250, 0),
+    CALENDAR("calendar", 250, 420),
+    SYSTEM("sysinfo", 250, 0),
+    NOTES("notes", 250, 0),
+    ;
+
+    companion object {
+        fun of(raw: String?): WidgetId? = entries.firstOrNull { it.name.equals(raw, true) || it.label.equals(raw, true) }
+    }
 }
 
 /**

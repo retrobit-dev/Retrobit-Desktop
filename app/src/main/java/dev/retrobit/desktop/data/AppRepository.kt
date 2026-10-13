@@ -60,16 +60,21 @@ class AppRepository(private val context: Context) {
         }, Handler(Looper.getMainLooper()))
     }
 
-    fun launch(app: AppEntry, bounds: Rect? = null): Boolean = try {
-        launcherApps.startMainActivity(app.component, app.user, bounds, null)
+    /**
+     * Launches an app. [bounds] is the rectangle the app should occupy when the device supports
+     * floating / freeform windows ([activityOptionsFor]); the outer Rect is also passed as the
+     * launch source bounds so the system animates it from our window.
+     */
+    fun launch(app: AppEntry, bounds: Rect? = null, options: android.os.Bundle? = null): Boolean = try {
+        launcherApps.startMainActivity(app.component, app.user, bounds, options)
         true
     } catch (t: Throwable) {
-        // Fallback: plain launch intent.
+        // Fallback: plain launch intent, with the floating bounds when we have them.
         runCatching {
             val i = context.packageManager.getLaunchIntentForPackage(app.pkg)
             if (i != null) {
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                context.startActivity(i)
+                if (options != null) context.startActivity(i, options) else context.startActivity(i)
                 true
             } else false
         }.getOrDefault(false)

@@ -90,6 +90,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "arrange" -> arrange()
             "safearea" -> safeArea(args.firstOrNull())
             "dock" -> dock(args)
+            "floating" -> floating(args.firstOrNull())
+            "widgets", "widget" -> widgets(args)
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
             "notes" -> vm.openWindow(WinKind.NOTES)
@@ -135,6 +137,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             arrange                auto arrange desktop icons
             safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
+            floating on|off        apps open in floating desktop windows
+            widgets                widget sizes (widget width <dp> | widget size <name> <w> <h> | widget reset)
             workspace 1..4         switch virtual desktop (also: ws)
             wsmove 1..4            send the focused window to a desktop
             wmctrl list|close|tile | invert | boot
@@ -303,6 +307,58 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "on", "1", "true" -> { vm.settings.showSeconds = true; print("seconds -> on") }
             "off", "0", "false" -> { vm.settings.showSeconds = false; print("seconds -> off") }
             else -> { vm.settings.showSeconds = !vm.settings.showSeconds; print("seconds -> ${if (vm.settings.showSeconds) "on" else "off"}") }
+        }
+    }
+
+    private fun floating(arg: String?) {
+        when (arg?.lowercase()) {
+            "on", "1", "true" -> { vm.settings.floatingApps = true; print("floating apps -> on${freeformNote()}") }
+            "off", "0", "false" -> { vm.settings.floatingApps = false; print("floating apps -> off (every app opens full screen)") }
+            else -> {
+                vm.settings.floatingApps = !vm.settings.floatingApps
+                print("floating apps -> ${if (vm.settings.floatingApps) "on" else "off"}${freeformNote()}")
+            }
+        }
+    }
+
+    private fun freeformNote(): String =
+        if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(vm.appContext)) " (this device supports floating windows)"
+        else " (this device has no floating-window support: apps open full screen)"
+
+    private fun widgets(args: List<String>) {
+        val s = vm.settings
+        when (args.firstOrNull()?.lowercase()) {
+            "width" -> {
+                val w = args.getOrNull(1)?.toIntOrNull()
+                if (w == null) print("usage: widget width <dp>", Kind.ERR)
+                else {
+                    s.widgetWidth = w.coerceIn(160, 900)
+                    print("widget width -> ${s.widgetWidth}dp")
+                }
+            }
+            "size" -> {
+                val id = dev.retrobit.desktop.model.WidgetId.of(args.getOrNull(1))
+                val w = args.getOrNull(2)?.toIntOrNull()
+                val h = args.getOrNull(3)?.toIntOrNull()
+                if (id == null || w == null || h == null) {
+                    print("usage: widget size <${dev.retrobit.desktop.model.WidgetId.entries.joinToString("|") { it.label }}> <w> <h>", Kind.ERR)
+                } else {
+                    s.setWidgetSize(id, w, h)
+                    print("${id.label} -> ${s.widgetWidth(id)} x ${s.widgetHeight(id)} dp")
+                }
+            }
+            "reset" -> {
+                val id = dev.retrobit.desktop.model.WidgetId.of(args.getOrNull(1))
+                if (id == null) { s.resetWidgets(); print("all widgets back to ${s.widgetWidth}dp wide") }
+                else { s.resetWidgetSize(id); print("${id.label} -> defaults") }
+            }
+            else -> {
+                print("desktop widgets (drag the corner on screen to resize)", Kind.HEAD)
+                dev.retrobit.desktop.model.WidgetId.entries.forEach { id ->
+                    val h = s.widgetHeight(id).takeIf { it > 0 } ?: 0
+                    print("  ${id.label.padEnd(10)} ${s.widgetWidth(id)} x $h dp")
+                }
+            }
         }
     }
 

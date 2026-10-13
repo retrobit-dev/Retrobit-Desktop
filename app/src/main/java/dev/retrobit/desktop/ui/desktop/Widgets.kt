@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
@@ -39,7 +40,8 @@ fun WidgetCard(
     title: String,
     glyph: Glyph,
     modifier: Modifier = Modifier,
-    width: Dp = dp(220f),
+    width: Dp = dp(250f),
+    height: Dp? = null,
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
@@ -48,6 +50,7 @@ fun WidgetCard(
     Column(
         modifier
             .width(width)
+            .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
             .background(p.paper)
             .border(dp(1.6f), p.ink)
             .then(
@@ -70,7 +73,7 @@ fun WidgetCard(
 }
 
 @Composable
-fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
+fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp = dp(250f), height: Dp? = null) {
     val s = vm.settings
     val loc = Locale.getDefault()
     val moment = Date(vm.now)
@@ -85,6 +88,8 @@ fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         "chrono",
         Glyph.SYSMON,
         modifier,
+        width = width,
+        height = height,
         onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.CALENDAR) },
     ) {
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(dp(2f))) {
@@ -98,7 +103,7 @@ fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun SystemWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
+fun SystemWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp = dp(250f), height: Dp? = null) {
     val p = LocalPalette.current
     val s = vm.snapshot
     WidgetCard("sysinfo", Glyph.SYSMON, modifier, onClick = { vm.openWindow(WinKind.SYSMON) }) {
@@ -118,9 +123,9 @@ fun SystemWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
 }
 
 @Composable
-fun NotesWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
+fun NotesWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp = dp(250f), height: Dp? = null) {
     val p = LocalPalette.current
-    WidgetCard("notes", Glyph.NOTES, modifier, onClick = { vm.openWindow(WinKind.NOTES) }) {
+    WidgetCard("notes", Glyph.NOTES, modifier, width = width, height = height, onClick = { vm.openWindow(WinKind.NOTES) }) {
         RetroText(
             vm.settings.notes.lines().take(5).joinToString("\n").ifBlank { "empty — tap to write" },
             size = 11f,

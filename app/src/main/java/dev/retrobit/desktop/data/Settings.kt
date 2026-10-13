@@ -54,6 +54,12 @@ class Settings(context: Context) {
     var snapWindows: Boolean by boolPref("snapWindows", true)
     /** Virtual desktops (workspaces), 1..4. */
     var workspaceCount: Int by intPref("workspaceCount", 3)
+    /**
+     * Apps opened from the launcher get their own desktop window (movable, resizable, minimizable)
+     * and, on tablets that support it, are launched into a floating system window with the same
+     * bounds. Off = apps always open full screen.
+     */
+    var floatingApps: Boolean by boolPref("floatingApps", true)
     /** Keep the desktop chrome clear of the punch-hole camera and the rounded display corners. */
     var safeArea: Boolean by boolPref("safeArea", true)
     /** Radius of the display corner the chrome must stay out of, in dp. */
@@ -103,6 +109,49 @@ class Settings(context: Context) {
             .getOrDefault(dev.retrobit.desktop.data.WallpaperTone.HALFTONE)
 
     // ── desktop icon grid ----------------------------------------------------------
+    // ── desktop widget sizes -------------------------------------------------------
+    /** Every widget starts at the calendar width so the whole column lines up. */
+    var widgetWidth: Int by intPref("widgetWidth", 250)
+
+    /** Manual widget sizes, encoded "clock=250,140;calendar=280,420". */
+    var widgetSizes: String by stringPref("widgetSizes", "")
+
+    private fun widgetMap(): Map<String, Pair<Int, Int>> = widgetSizes
+        .split(';')
+        .mapNotNull { part ->
+            val (key, value) = part.split('=').takeIf { it.size == 2 } ?: return@mapNotNull null
+            val (w, h) = value.split(',').takeIf { it.size == 2 } ?: return@mapNotNull null
+            val width = w.trim().toIntOrNull() ?: return@mapNotNull null
+            val height = h.trim().toIntOrNull() ?: return@mapNotNull null
+            key.trim() to (width to height)
+        }
+        .toMap()
+
+    /** Width in dp of a widget: the manual size when set, else the shared widget width. */
+    fun widgetWidth(id: dev.retrobit.desktop.model.WidgetId): Int =
+        widgetMap()[id.name]?.first ?: widgetWidth
+
+    /** Height in dp, or 0 for "as tall as the content needs". */
+    fun widgetHeight(id: dev.retrobit.desktop.model.WidgetId): Int =
+        widgetMap()[id.name]?.second ?: id.defaultHeight
+
+    fun setWidgetSize(id: dev.retrobit.desktop.model.WidgetId, width: Int, height: Int) {
+        val map = widgetMap().toMutableMap()
+        map[id.name] = width.coerceIn(160, 900) to height.coerceIn(0, 1600)
+        widgetSizes = map.entries.joinToString(";") { "${it.key}=${it.value.first},${it.value.second}" }
+    }
+
+    fun resetWidgetSize(id: dev.retrobit.desktop.model.WidgetId) {
+        val map = widgetMap().toMutableMap()
+        map.remove(id.name)
+        widgetSizes = map.entries.joinToString(";") { "${it.key}=${it.value.first},${it.value.second}" }
+    }
+
+    fun resetWidgets() {
+        widgetSizes = ""
+        widgetWidth = 250
+    }
+
     /** Moves a pinned dock / sidebar app to [index]; drag-to-reorder lives in the shells. */
     fun moveDockPin(pkg: String, index: Int) {
         pinnedDock = dev.retrobit.desktop.ui.wm.DockMath.move(pinnedDock, pkg, index)

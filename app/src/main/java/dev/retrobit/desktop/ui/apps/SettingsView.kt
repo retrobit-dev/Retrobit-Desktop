@@ -46,6 +46,7 @@ import dev.retrobit.desktop.ui.theme.rememberWallpaperBrush
 
 @Composable
 fun SettingsView(vm: LauncherViewModel) {
+    val ctx = androidx.compose.ui.platform.LocalContext.current
     val p = LocalPalette.current
     val s = vm.settings
 
@@ -190,6 +191,65 @@ fun SettingsView(vm: LauncherViewModel) {
                 }
             }
         }
+
+        Section("apps & windows")
+        ToggleRow("Open apps as floating windows", s.floatingApps, onGlyph = Glyph.GRID) { s.floatingApps = it }
+        RetroText(
+            dev.retrobit.desktop.data.WindowedLaunch.statusLine(ctx),
+            size = 10.5f, color = p.mid, maxLines = 2,
+        )
+        RetroText(
+            "Every app you open gets a desktop window you can move, resize, minimize, snap and send to " +
+                "another workspace. Where the system supports floating (freeform) windows the app is " +
+                "launched into exactly that rectangle; elsewhere it opens full screen while the window " +
+                "stays as its taskbar entry. To enable floating windows: developer options -> force " +
+                "activities to be resizable, or: adb shell settings put global enable_freeform_support 1",
+            size = 10f, color = p.mid, maxLines = 8,
+        )
+
+        Section("display widgets")
+        RetroText(
+            "All widgets share the calendar width by default. Drag the right edge, the bottom edge or " +
+                "the bottom-right corner of any widget to size it by hand; the size is remembered.",
+            size = 10.5f, color = p.mid, maxLines = 4,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+            listOf(220, 250, 300, 360).forEach { w ->
+                RetroButton(
+                    label = "${w}dp",
+                    active = s.widgetWidth == w,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        s.widgetWidth = w
+                        s.resetWidgets()
+                        s.widgetWidth = w
+                    },
+                )
+            }
+        }
+        dev.retrobit.desktop.model.WidgetId.entries.forEach { id ->
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+                RetroText(id.label, size = 11f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                RetroText(
+                    "${s.widgetWidth(id)} x ${s.widgetHeight(id).takeIf { it > 0 } ?: 0} dp",
+                    size = 10.5f, color = p.mid, maxLines = 1,
+                )
+                RetroButton(
+                    label = if (id == dev.retrobit.desktop.model.WidgetId.CALENDAR) "open" else "reset",
+                    modifier = Modifier.weight(0.7f),
+                    onClick = {
+                        if (id == dev.retrobit.desktop.model.WidgetId.CALENDAR) vm.openWindow(dev.retrobit.desktop.model.WinKind.CALENDAR)
+                        else s.resetWidgetSize(id)
+                    },
+                )
+            }
+        }
+        RetroButton(
+            label = "Reset all widget sizes",
+            glyph = Glyph.GRID,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = { s.resetWidgets() },
+        )
 
         Section("display corners & camera hole")
         RetroText(

@@ -76,7 +76,7 @@ fun AppsView(vm: LauncherViewModel, win: WinState) {
                     onDrop = { a, target ->
                         when (target) {
                             dev.retrobit.desktop.ui.wm.DragState.Drop.DOCK -> vm.toggleDockPin(a)
-                            dev.retrobit.desktop.ui.wm.DragState.Drop.SIDEBAR -> vm.openAppWindow(a)
+                            dev.retrobit.desktop.ui.wm.DragState.Drop.SIDEBAR -> vm.openAppDrawerWindow(a)
                             else -> Unit
                         }
                     },

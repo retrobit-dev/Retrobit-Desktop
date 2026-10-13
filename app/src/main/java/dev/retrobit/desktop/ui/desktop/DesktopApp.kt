@@ -85,6 +85,10 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     LaunchedEffect(settings.iconTheme, settings.style, settings.iconAccent, settings.iconMonogram) {
         dev.retrobit.desktop.data.IconCache.clear()
     }
+    // forget the bookkeeping of windows the user closed
+    LaunchedEffect(vm.wm.windows.size) {
+        vm.appWindows.retain(vm.wm.windows.map { it.id }.toSet())
+    }
 
     CompositionLocalProvider(
         LocalPalette provides palette,

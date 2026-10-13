@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,7 +48,12 @@ import java.time.YearMonth
  * home screen. Everything is stored by [dev.retrobit.desktop.data.CalendarStore].
  */
 @Composable
-fun CalendarWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp = dp(250f)) {
+fun CalendarWidget(
+    vm: LauncherViewModel,
+    modifier: Modifier = Modifier,
+    width: Dp = dp(250f),
+    height: Dp? = null,
+) {
     val p = LocalPalette.current
     val store = vm.calendar
     val today = LocalDate.now()
@@ -61,6 +67,7 @@ fun CalendarWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: 
     Column(
         modifier
             .width(width)
+            .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
             .background(p.paper)
             .border(dp(1.6f), p.ink),
     ) {

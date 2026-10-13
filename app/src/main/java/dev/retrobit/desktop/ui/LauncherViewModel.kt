@@ -32,6 +32,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val repo = AppRepository(app)
     val calendar = dev.retrobit.desktop.data.CalendarStore(app)
     val wm = WindowManager(repo, settings)
+    /** Which desktop windows wrap a launched third-party app. */
+    val appWindows = dev.retrobit.desktop.ui.wm.AppWindows()
     val shell = TerminalShell(this)
 
     var snapshot by mutableStateOf(SystemInfo.snapshot(app))
@@ -156,12 +158,69 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         list.mapNotNull { pkg -> repo.apps.value.firstOrNull { it.pkg == pkg } }
 
     // ── launching ────────────────────────────────────────────────────────────────
+    /**
+     * Opens an app. With "floating apps" on (the default) the app gets a desktop window: the window
+     * is placed on this workspace and the app is sent to exactly those bounds, so on freeform-capable
+     * tablets it really floats above the desktop. With the setting off the app opens full screen.
+     */
     fun launch(app: AppEntry) {
-        val ok = repo.launch(app)
-        if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
+        if (settings.floatingApps) {
+            openAppWindow(app)
+        } else {
+            launchFullScreen(app)
+        }
         startMenu = false
         launchpad = false
         spotlight = false
+    }
+
+    /** The application context, used by the windowed-launch helpers. */
+    val appContext: android.content.Context get() = getApplication()
+
+    /** Opens the wrapper window for [app] and sends the app to that rectangle when possible. */
+    fun openAppWindow(app: AppEntry) {
+        val win = wm.openAppWindow(app) ?: return
+        appWindows.markLaunched(win.id)
+        sendAppToWindow(app, win)
+    }
+
+    /** Re-places the app of an existing window at the window's current bounds. */
+    fun placeAppWindow(win: dev.retrobit.desktop.ui.wm.WinState) {
+        val app = win.app ?: return
+        appWindows.markLaunched(win.id)
+        sendAppToWindow(app, win)
+    }
+
+    /** Brings the app of an app window back to the front (floating where supported). */
+    fun focusAppWindow(win: dev.retrobit.desktop.ui.wm.WinState) {
+        val app = win.app ?: return
+        if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(appContext)) {
+            sendAppToWindow(app, win)
+        } else {
+            launchFullScreen(app)
+        }
+    }
+
+    /** Launches the app into the rectangle of its desktop window. */
+    private fun sendAppToWindow(app: AppEntry, win: dev.retrobit.desktop.ui.wm.WinState) {
+        val bounds = android.graphics.Rect(
+            win.x.toInt(),
+            win.y.toInt(),
+            (win.x + win.width).toInt(),
+            (win.y + win.height).toInt(),
+        )
+        val options = dev.retrobit.desktop.data.WindowedLaunch.activityOptionsFor(appContext, bounds)
+        val ok = repo.launch(app, bounds, options)
+        if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
+        if (options == null) {
+            shell.print("${app.label}: opened full screen (no floating window support on this device)")
+        }
+    }
+
+    /** Plain launch, no window involved. */
+    fun launchFullScreen(app: AppEntry) {
+        val ok = repo.launch(app)
+        if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
     }
 
     fun launchResolved(query: String): Boolean {
@@ -182,7 +241,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         spotlight = false
     }
 
-    fun openAppWindow(app: AppEntry) {
+    /** Opens the Applications window showing [app]'s entry (used by the app context menu). */
+    fun openAppDrawerWindow(app: AppEntry) {
         wm.openApp(app)
         startMenu = false
         launchpad = false
@@ -256,8 +316,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 subtitle = app.pkg + if (app.isWorkProfile) "  [work profile]" else "",
                 anchors = anchor,
                 items = listOf(
-                    MenuItem("Open", GlyphOpen(), onSelect = { launch(app) }),
-                    MenuItem("Open in window", GlyphOpen(), onSelect = { openAppWindow(app) }),
+                    MenuItem("Open (floating window)", GlyphOpen(), onSelect = { launch(app) }),
+                    MenuItem("Open full screen", GlyphOpen(), onSelect = { launchFullScreen(app) }),
+                    MenuItem("Show in app drawer", null, onSelect = { openAppDrawerWindow(app) }),
                     MenuItem(if (inDock) "Remove from dock" else "Add to dock", GlyphPin(), onSelect = { toggleDockPin(app) }),
                     MenuItem(if (onDesktop) "Remove from desktop" else "Pin to desktop", GlyphPin(), onSelect = { toggleDesktopPin(app) }),
                     MenuItem("App info", null, onSelect = { repo.openAppInfo(app) }),

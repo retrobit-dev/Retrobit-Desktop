@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.DesktopStyle
+import dev.retrobit.desktop.model.WidgetId
 import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.AppIconRow
@@ -97,9 +98,9 @@ fun LinuxShell(vm: LauncherViewModel) {
                     Modifier.align(Alignment.TopEnd).padding(dp(10f)).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(dp(10f)),
                 ) {
-                    ClockWidget(vm)
-                    CalendarWidget(vm)
-                    SystemWidget(vm)
+                    WidgetSlot(vm, WidgetId.CLOCK) { w, h -> ClockWidget(vm, width = w.dp, height = h.dpOrNull) }
+                    WidgetSlot(vm, WidgetId.CALENDAR) { w, h -> CalendarWidget(vm, width = w.dp, height = h.dpOrNull) }
+                    WidgetSlot(vm, WidgetId.SYSTEM) { w, h -> SystemWidget(vm, width = w.dp, height = h.dpOrNull) }
                 }
             }
         }
@@ -241,3 +242,7 @@ private fun DockGlyph(glyph: Glyph, label: String, onClick: () -> Unit) {
         RetroText(label, size = 10f, color = p.mid, maxLines = 1)
     }
 }
+
+/** 0 from the widget settings means "as tall as the content needs". */
+private val Int.dpOrNull: androidx.compose.ui.unit.Dp?
+    get() = if (this > 0) androidx.compose.ui.unit.Dp(this.toFloat()) else null

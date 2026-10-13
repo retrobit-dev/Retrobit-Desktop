@@ -16,5 +16,6 @@ fun WindowContent(win: WinState, wm: dev.retrobit.desktop.ui.wm.WindowManager) {
         dev.retrobit.desktop.model.WinKind.NOTES -> NotesView(vm)
         dev.retrobit.desktop.model.WinKind.ABOUT -> AboutView(vm)
         dev.retrobit.desktop.model.WinKind.CALENDAR -> CalendarView(vm)
+        dev.retrobit.desktop.model.WinKind.APPWINDOW -> AppWindowView(vm, win)
     }
 }

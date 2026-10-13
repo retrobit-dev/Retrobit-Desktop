@@ -38,7 +38,7 @@ class WinState(
     /** Virtual desktop this window lives on (0-based). */
     var desktop by mutableStateOf(0)
     var z by mutableStateOf(0)
-    val isApp: Boolean get() = kind == WinKind.APPS
+    val isApp: Boolean get() = kind == WinKind.APPS || kind == WinKind.APPWINDOW
 
     val rect: Rect get() = Rect(x, y, x + width, y + height)
 }
@@ -144,7 +144,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
     fun hasWindowsOn(index: Int): Boolean = windows.any { it.desktop == index }
 
     // ── opening / closing ───────────────────────────────────────────────────────
-    fun open(kind: WinKind, app: AppEntry? = null, title: String? = null) {
+    fun open(kind: WinKind, app: AppEntry? = null, title: String? = null): WinState? {
         if (kind.singleton) {
             // a singleton window is found on any desktop: switch to it instead of opening a twin
             val existing = windows.firstOrNull { it.kind == kind && it.app?.key == app?.key }
@@ -152,7 +152,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
                 if (existing.desktop != desktop) switchDesktop(existing.desktop)
                 existing.minimized = false
                 focus(existing.id)
-                return
+                return existing
             }
         }
         val area = base
@@ -161,11 +161,13 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
             WinKind.APPS -> max(metrics.minW, area.width - metrics.margin * 2)
             WinKind.TERMINAL -> max(metrics.minW, area.width * 0.62f)
             WinKind.CALENDAR -> max(metrics.minW, area.width * 0.66f)
+            WinKind.APPWINDOW -> max(metrics.minW, area.width * 0.58f)
             else -> max(metrics.minW, area.width * 0.55f)
         }
         val h = when (kind) {
             WinKind.APPS -> max(metrics.minH, area.height - metrics.margin * 2)
             WinKind.TERMINAL -> max(metrics.minH, area.height * 0.6f)
+            WinKind.APPWINDOW -> max(metrics.minH, area.height * 0.55f)
             else -> max(metrics.minH, area.height * 0.5f)
         }
         val state = WinState(nextId++, kind, app, title ?: defaultTitle(kind, app))
@@ -179,12 +181,17 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         windows += state
         focusedId = state.id
         if (tiling) retile(true)
+        return state
     }
 
     fun openApp(app: AppEntry) = open(WinKind.APPS, app, app.label)
 
+    /** Opens (or focuses) the desktop window that wraps [app]. */
+    fun openAppWindow(app: AppEntry): WinState? = open(WinKind.APPWINDOW, app, app.label)
+
     private fun defaultTitle(kind: WinKind, app: AppEntry?): String = when (kind) {
         WinKind.APPS -> app?.label ?: "Apps"
+        WinKind.APPWINDOW -> app?.label ?: "app"
         WinKind.TERMINAL -> "terminal"
         WinKind.SETTINGS -> "settings"
         WinKind.SYSMON -> "system monitor"
