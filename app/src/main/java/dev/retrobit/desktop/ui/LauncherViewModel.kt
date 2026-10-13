@@ -62,6 +62,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Bumped when a frame has been moved / resized; the UI debounces and re-places after it. */
     var frameSettleTick by mutableStateOf(0)
 
+    /**
+     * The rectangle last sent to the system per window: an unchanged frame is never re-sent, so a
+     * re-layout or a tiling pass cannot drag an app back to the front for nothing.
+     */
+    private val placedByWindow = HashMap<Int, dev.retrobit.desktop.ui.wm.Placement>()
+
     fun selectIcon(app: AppEntry) {
         selectedApp = app
     }
@@ -326,6 +332,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         force: Boolean = false,
         quiet: Boolean = false,
         float: Boolean = settings.floatingApps,
+        onlyIfChanged: Boolean = false,
     ) {
         if (!float) {
             // the frame is there either way; with floating off the app itself opens full screen
@@ -335,6 +342,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         val placement = placementFor(win)
+        if (onlyIfChanged && placement != null && placedByWindow[win.id] == placement) return
         val options = dev.retrobit.desktop.data.WindowedLaunch.activityOptionsFor(placement)
         placedRect = placement
         if (placement == null) {
@@ -348,6 +356,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
             return
         }
+        placedByWindow[win.id] = placement
         if (quiet) return
         shell.print(
             (if (force) "${app.label}: restarting into " else "${app.label}: placed at ") +
@@ -377,8 +386,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             }
             .forEach { win ->
                 val app = win.app ?: return@forEach
-                sendAppToWindow(app, win, quiet = true)
+                // only frames that really changed are sent again (see placedByWindow)
+                sendAppToWindow(app, win, quiet = true, onlyIfChanged = true)
             }
+    }
+
+    /**
+     * Keeps the app-window bookkeeping in sync with the open windows: called by the desktop whenever
+     * a window is closed, so a recycled window id can never inherit an old rectangle.
+     */
+    fun retainAppWindows(ids: Set<Int>) {
+        appWindows.retain(ids)
+        placedByWindow.keys.retainAll(ids)
     }
 
     /** Plain launch, no window involved. */

@@ -99,7 +99,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     }
     // forget the bookkeeping of windows the user closed
     LaunchedEffect(vm.wm.windows.size) {
-        vm.appWindows.retain(vm.wm.windows.map { it.id }.toSet())
+        vm.retainAppWindows(vm.wm.windows.map { it.id }.toSet())
     }
 
     CompositionLocalProvider(

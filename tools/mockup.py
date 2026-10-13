@@ -604,16 +604,42 @@ def panel(caption, style):
         d.rectangle([w - 240, 166, w - 30, 180], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 238, 168, w - 100, 178], fill=INK)
         calendar_widget(d, (w - 250, 290, w - 20, 680))
-        window(d, (230, 250, w - 258, 660), "Applications", win95=True, body_lines=[
+        # the app drawer is a scrollable list (never a full-screen sheet): most used first, with the
+        # launch count on the right, then the rest A-Z under its own separator
+        win_box = (230, 250, w - 258, 660)
+        window(d, win_box, "Applications", win95=True, body_lines=[
             "search applications…        [ 24/96 ]",
         ])
-        for i, row in enumerate([["Files", "Camera", "Clock"], ["Notes", "Browser", "Gallery"], ["Recorder", "Mail", "Music"]]):
-            for j, name in enumerate(row):
-                bx = 240 + j * 92
-                by = 250 + 34 + 44 + i * 42
-                pix_app_dot(d, bx, by, 14)
-                d.text((bx + 22, by), name, font=mono_tiny, fill=INK)
-        d.text((244, 250 + 34 + 44 + 3 * 42 + 14), "96 apps - long-press for options", font=mono_tiny, fill=INK)
+        lx = 244
+        ly = 250 + 34 + 40
+        d.text((lx, ly), "most used", font=mono_tiny, fill=PATTERN)
+        d.line([lx + 76, ly + 7, w - 272, ly + 7], fill=PATTERN, width=1)
+        ly += 22
+        for name, pkg, uses in [
+            ("Files", "com.android.documentsui", 42),
+            ("Browser", "com.huawei.browser", 31),
+            ("Notes", "com.huawei.notepad", 17),
+        ]:
+            pix_app_dot(d, lx, ly, 12)
+            d.text((lx + 20, ly - 2), name, font=mono_tiny, fill=INK)
+            d.text((lx + 20, ly + 13), pkg, font=mono_tiny, fill=PATTERN)
+            d.text((w - 300, ly + 4), "x" + str(uses), font=mono_tiny, fill=INK)
+            ly += 32
+        d.text((lx, ly + 2), "all apps, a-z", font=mono_tiny, fill=PATTERN)
+        d.line([lx + 92, ly + 9, w - 272, ly + 9], fill=PATTERN, width=1)
+        ly += 26
+        for name, pkg in [
+            ("Camera", "com.huawei.camera"),
+            ("Clock", "com.android.deskclock"),
+            ("Gallery", "com.android.gallery3d"),
+            ("Mail", "com.huawei.email"),
+            ("Music", "com.android.music"),
+        ]:
+            pix_app_dot(d, lx, ly, 12)
+            d.text((lx + 20, ly - 2), name, font=mono_tiny, fill=INK)
+            d.text((lx + 20, ly + 13), pkg, font=mono_tiny, fill=PATTERN)
+            ly += 32
+        d.text((lx, ly + 2), "most used first, then a-z - double tap to open", font=mono_tiny, fill=INK)
         window_grip(d, (230, 250, w - 258, 660))
         # taskbar (kept clear of the caption band at the bottom)
         tb = h - 46 - 62
@@ -645,9 +671,9 @@ def panel(caption, style):
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     panels = [
-        panel("LINUX · retrOS GNU/Linux — icon selected (double tap opens), widget edit mode, resize grips", "linux"),
-        panel("macOS · Retro System 9 — menu bar, dock, launchpad", "macos"),
-        panel("WINDOWS · Retrodows 95 — start menu, taskbar, tray, desktop widget", "windows"),
+        panel("LINUX · retrOS GNU/Linux — icon selected (double tap opens), widget edit mode, maximize → restore", "linux"),
+        panel("macOS · Retro System 9 — menu bar, dock, launchpad panel (not full screen)", "macos"),
+        panel("WINDOWS · Retrodows 95 — app drawer as a list (most used first), start menu, taskbar, tray", "windows"),
     ]
     w = sum(p.width for p in panels) + 40 * (len(panels) + 1)
     h = panels[0].height + 180
