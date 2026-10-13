@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -193,11 +192,11 @@ fun WorkspacePager(vm: LauncherViewModel, modifier: Modifier = Modifier, boxSize
                         color = if (active) p.paper else p.ink,
                     )
                     if (windowsHere > 0) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(1.5f)) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
                             repeat(windowsHere.coerceAtMost(3)) {
                                 Box(
                                     Modifier
-                                        .size(dp(3f))
+                                        .size(3.dp)
                                         .background(if (active) p.paper else p.ink),
                                 )
                             }

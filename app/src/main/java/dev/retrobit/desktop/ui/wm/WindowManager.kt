@@ -126,7 +126,8 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
     }
 
     fun moveFocusedToDesktop(index: Int) {
-        focus()?.let { moveWindowToDesktop(it.id, index) }
+        val w = focused ?: return
+        moveWindowToDesktop(w.id, index)
     }
 
     fun hasWindowsOn(index: Int): Boolean = windows.any { it.desktop == index }
