@@ -53,6 +53,14 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Jendela bisa digeser (drag title bar), di-resize (grip kanan bawah), minimize / maximize / close.
 - Gaya title bar mengikuti tema (traffic light macOS, gradient Win95, solid + tombol kanan Linux).
 - Cascade otomatis, fokus, task list di panel/taskbar, dan **tiling** (master–stack) untuk gaya Linux.
+- **Snap ke tepi layar**: geser jendela ke tepi kiri/kanan → menempati separuh layar, ke tengah-atas →
+  maximize. Muncul pratinjau berupa outline garis putus-putus (dither) sebelum kamu melepasnya.
+  Sudut atas-kiri/kanan tetap mengikuti aturan tepi (kiri/kanan), seperti Aero Snap.
+- **Virtual desktop (workspace)**: 1–4 desktop, jendela hidup per-desktop. Pager berupa kotak angka
+  di panel / menu bar / taskbar: tap untuk pindah, titik di dalamnya menunjukkan jumlah jendela,
+  tekan lama untuk menu desktop (pindah jendela atau ubah jumlah desktop).
+- Matematika layout (tiling & snap) dipisah ke `ui/wm/LayoutMath.kt` — murni Kotlin tanpa Android,
+  jadi bisa di-unit-test (14 test di `app/src/test/.../LayoutMathTest.kt`).
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -62,9 +70,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Dukungan keyboard eksternal dengan 10+ pintasan gaya desktop.
 
 ### Aplikasi bawaan
-- **Terminal** (`rb-sh`) — 25+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
-  `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`, `invert`,
-  `wmctrl`, `boot`, `help`, `exit`, dan peluncuran aplikasi langsung dengan mengetik namanya.
+- **Terminal** (`rb-sh`) — 28+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
+  `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
+  `workspace 1..4` (`ws`), `wsmove 1..4`, `invert`, `wmctrl`, `boot`, `help`, `exit`,
+  dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
 - **Settings** — gaya desktop, palet, wallpaper, mode ikon, skala UI, **input & devices
   (pena/mouse/keyboard)**, perilaku, tombol "Set as default launcher".
@@ -116,6 +125,8 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
 | `Ctrl+Alt+←` / `Ctrl+Alt+→` / `Tab` | pindah fokus antar jendela |
 | `Ctrl+Alt+↑` | maximize/restore jendela aktif |
 | `Ctrl+Alt+K` | munculkan / sembunyikan keyboard internal |
+| `Ctrl+Alt+1..4` | pindah virtual desktop |
+| `Ctrl+Alt+Shift+1..4` | kirim jendela aktif ke desktop tersebut |
 | `Super` (Meta) | Spotlight (cari aplikasi atau jalankan perintah shell) |
 | `Esc` | tutup popup / spotlight / start menu |
 | `Enter` | jalankan perintah di terminal & field satu baris |
@@ -146,8 +157,10 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 Setiap push menjalankan workflow [`.github/workflows/android.yml`](.github/workflows/android.yml):
 
-1. checkout → JDK 17 → Android SDK (platform 35, build-tools 35.0.0) → Gradle (cache)
-2. `./gradlew :app:assembleDebug :app:assembleRelease`
+1. **job `test`** — `./gradlew :app:testDebugUnitTest` (14 unit test untuk matematika tiling &
+   edge-snapping); jumlah test/failure muncul di job summary dan sebagai check annotation
+2. **job `build`** — checkout → JDK 17 → Android SDK (platform 35, build-tools 35.0.0) → Gradle (cache),
+   lalu `./gradlew :app:assembleDebug :app:assembleRelease`
 3. APK diunggah sebagai artifact: `retrobit-desktop-<run>-release.apk` dan `-debug.apk`
 4. Saat dijalankan lewat **workflow_dispatch** (atau saat push tag `v*` / push ke `main`), APK
    dipublikasikan otomatis ke GitHub **Releases** (tag `nightly` untuk pre-release bergulir).
@@ -176,10 +189,12 @@ app/src/main/java/dev/retrobit/desktop/
 ├─ model/Models.kt            # DesktopStyle, PaletteId, WallPattern, IconMode, WinKind, AppEntry
 ├─ ui/theme/                  # Palette, font (VT323 + IBM Plex Mono), pola dither/Bayer
 ├─ ui/components/             # Chrome retro, glyph pixel-art, context menu, icon tile, gesture
-├─ ui/wm/                     # WindowManager, WindowFrame, DragState
+├─ ui/wm/                     # WindowManager, WindowFrame, DragState, LayoutMath (purified tiling/snap maths)
 ├─ ui/apps/                   # Terminal (rb-sh), Applications, Settings, System monitor, Notes, About
 ├─ ui/desktop/                # ShellLinux, ShellMacos, ShellWindows, widget, Spotlight, wallpaper
 └─ ui/boot/BootScreen.kt      # animasi boot
+
+app/src/test/java/dev/retrobit/desktop/ui/wm/LayoutMathTest.kt   # 14 unit test (CI: job "Unit tests")
 ```
 
 ## Font & lisensi

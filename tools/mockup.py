@@ -201,6 +201,22 @@ def window(d, box, title, glyph_label=None, win95=False, mac=False, body_lines=(
     return y
 
 
+def pager(d, x, y, size=26, cells=3, active=0, windows=(1, 0, 1)):
+    """Virtual desktop switcher: numbered squares with window-count dots."""
+    p = INK
+    for i in range(cells):
+        bx = x + i * (size + 5)
+        filled = i == active
+        d.rectangle([bx, y, bx + size, y + size], fill=p if filled else PAPER, outline=p, width=2)
+        num = str(i + 1)
+        nw = d.textlength(num, font=mono_tiny)
+        d.text((bx + size / 2 - nw / 2, y + 2), num, font=mono_tiny, fill=PAPER if filled else INK)
+        for k in range(windows[i] if i < len(windows) else 0):
+            dx = bx + size / 2 - 4 + k * 4
+            d.rectangle([dx, y + size - 6, dx + 2, y + size - 4], fill=PAPER if filled else INK)
+    return x
+
+
 def panel(caption, style):
     w, h = 780, 1060
     img = Image.new("RGB", (w, h), PAPER)
@@ -223,33 +239,40 @@ def panel(caption, style):
         # top panel
         d.rectangle([0, 0, w, 44], fill=PAPER)
         bevel(d, [0, 0, w - 1, 44])
-        x = lab(d, 14, 12, "◆", px_small)
-        x = text_run(d, 44, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
-        # active window button ("terminal")
-        tw = d.textlength("terminal", font=mono)
-        d.rectangle([x + 6, 8, x + 26 + tw, 36], fill=INK)
-        d.text((x + 16, 12), "terminal", font=mono, fill=PAPER)
-        x += 32 + tw
-        tw2 = d.textlength("notes.txt", font=mono)
-        d.rectangle([x + 6, 8, x + 26 + tw2, 36], fill=PAPER, outline=INK, width=2)
-        d.text((x + 16, 12), "notes.txt", font=mono, fill=INK)
-        # right cluster, aligned to the panel edge
+        # right-hand cluster is laid out first so the window buttons know where to stop
         clock_w = d.textlength("13:37", font=px_small)
         d.text((w - 14 - clock_w, 6), "13:37", font=px_small, fill=INK)
         rx = w - 24 - clock_w
-        for label, kind in [("WIFI 92%", "text"), ("KB", "button")]:
-            tw3 = d.textlength(label, font=mono_tiny)
-            if kind == "text":
-                d.text((rx - tw3 - 10, 12), label, font=mono_tiny, fill=INK)
-                rx -= tw3 + 20
+        for label in ("WIFI 92%", "KB"):
+            tw = d.textlength(label, font=mono_tiny)
+            if label == "KB":
+                d.rectangle([rx - tw - 18, 10, rx - 6, 32], fill=PAPER, outline=INK, width=2)
+                d.text((rx - tw - 12, 12), label, font=mono_tiny, fill=INK)
+                rx -= tw + 30
             else:
-                d.rectangle([rx - tw3 - 18, 10, rx - 6, 32], fill=PAPER, outline=INK, width=2)
-                d.text((rx - tw3 - 12, 12), label, font=mono_tiny, fill=INK)
-                rx -= tw3 + 30
+                d.text((rx - tw - 10, 12), label, font=mono_tiny, fill=INK)
+                rx -= tw + 20
+        rx = pager(d, rx - (3 * 27 + 12), 9, size=22, cells=3, active=0, windows=(2, 1, 0))
         chip = "[LINUX]"
         cw = d.textlength(chip, font=mono_tiny)
         d.rectangle([rx - cw - 12, 9, rx - 4, 35], fill=PAPER, outline=INK, width=2)
         d.text((rx - cw - 8, 12), chip, font=mono_tiny, fill=INK)
+        limit = rx - cw - 24
+
+        x = lab(d, 14, 12, "◆", px_small)
+        x = text_run(d, 44, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
+        x += 8
+        for label, active in [("terminal", True), ("notes.txt", False)]:
+            tw = d.textlength(label, font=mono)
+            if x + tw + 26 > limit:
+                break
+            if active:
+                d.rectangle([x, 8, x + tw + 20, 36], fill=INK)
+                d.text((x + 10, 12), label, font=mono, fill=PAPER)
+            else:
+                d.rectangle([x, 8, x + tw + 20, 36], fill=PAPER, outline=INK, width=2)
+                d.text((x + 10, 12), label, font=mono, fill=INK)
+            x += tw + 28
         # left dock
         d.rectangle([0, 44, 78, h], fill=PAPER)
         bevel(d, [0, 44, 78, h])
@@ -293,6 +316,7 @@ def panel(caption, style):
         clock_w = d.textlength("13:37", font=px_small)
         d.text((w - 14 - clock_w, 4), "13:37", font=px_small, fill=INK)
         rx = w - 24 - clock_w
+        rx = pager(d, rx - (3 * 25 + 12), 8, size=20, cells=3, active=0, windows=(1, 0, 1))
         for label, kind in [("WIFI 92%", "text"), ("KB", "button"), ("[MACOS]", "button")]:
             tw = d.textlength(label, font=mono_tiny)
             if kind == "button":
@@ -356,8 +380,8 @@ def panel(caption, style):
             "",
             "96 apps · long-press for options",
         ])
-        # taskbar
-        tb = h - 60
+        # taskbar (kept clear of the caption band at the bottom)
+        tb = h - 46 - 62
         d.rectangle([0, tb, w, h], fill=PAPER)
         bevel(d, [0, tb, w - 1, h - 1])
         d.rectangle([8, tb + 8, 118, tb + 52], fill=PAPER, outline=INK, width=2)
@@ -366,6 +390,10 @@ def panel(caption, style):
         d.text((136, tb + 18), "Applications", font=mono, fill=PAPER)
         d.rectangle([306, tb + 12, 420, tb + 48], fill=PAPER, outline=INK, width=2)
         d.text((316, tb + 18), "notes.txt", font=mono, fill=INK)
+        px_ = pager(d, 434, tb + 7, size=30, cells=3, active=0, windows=(1, 1, 0))
+        chip_x = px_ + 3 * 35 + 10
+        d.rectangle([chip_x, tb + 11, chip_x + 84, tb + 47], fill=PAPER, outline=INK, width=2)
+        d.text((chip_x + 8, tb + 18), "[WIN]", font=mono_tiny, fill=INK)
         tray = "WIFI 92%  13:37"
         tray_w = d.textlength(tray, font=mono_tiny)
         d.rectangle([w - tray_w - 60, tb + 10, w - 8, tb + 50], fill=PATTERN)
@@ -393,7 +421,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil acts as a mouse (1 tap = left click, 2 taps = right click)",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil acts as a mouse · edge snapping & virtual desktops",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:
