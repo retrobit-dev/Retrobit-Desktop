@@ -134,6 +134,20 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   atau lewat terminal `cyberdeck autohide on|off|6`.
 - Tulisan rail/dock di-snap ke grid font 16 px dan ikon dock memakai **ikon asli aplikasi**
   (grayscale), jadi mudah dibaca.
+
+### Quick panel & dock pintar
+- **Quick panel** (tombol gear di rail, terminal `panel`): brightness (drag + `B-`/`B+`/`auto`),
+  rotation lock, night mode (palet ink), toggle chrome/rail/dock, auto-hide on/off + 4/6/10/20s,
+  daftar aplikasi yang sedang terbuka (tap = bawa ke depan + fit ke kotaknya, hold = shell di
+  terminal), dan daftar **no chrome for** (izin bingkai per aplikasi).
+- **Dock pintar**: pembatas dock adalah tombol **pinned / most used first** (`rail mode pinned|used`).
+  Dua app pertama yang dipin tetap, sisanya diisi aplikasi yang paling sering dibuka; berlaku di dock
+  desktop, sidebar, taskbar, widget launcher dan dock cyberdeck. Tahan app di dock cyberdeck untuk
+  pin/unpin (chip yang dipin diberi tanda), dengan konfirmasi singkat di rail (`pins`).
+- **Per-app rules**: aplikasi tertentu bisa dikecualikan dari bingkai; kalau app itu di depan, rail
+  muncul 4 detik dengan alasannya + cara mengembalikannya.
+- UX: tap pada rail kosong atau handle = sembunyikan/munculkan rail, area sentuh tombol diperbesar,
+  tombol `eye` menyembunyikan rail hanya untuk app itu, dan setiap aksi mengeluarkan konfirmasi.
 - Selain itu, permintaan freeform sekarang dikirim lebih tegas: selain rect, launcher juga memanggil
   `setLaunchWindowingMode(FREEFORM)` (reflection) supaya tablet yang mendukung benar-benar
   mengapungkan aplikasinya di dalam kotak.
