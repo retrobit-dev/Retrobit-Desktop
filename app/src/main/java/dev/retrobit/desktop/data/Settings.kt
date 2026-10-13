@@ -51,6 +51,14 @@ class Settings(context: Context) {
      */
     var penRightClick: Boolean by boolPref("penRightClick", true)
 
+    /**
+     * Inside a text field the M-Pencil goes back to being a pen: no arrow cursor, hold is not a right
+     * click and a drag does not move the desktop, so text selection, the selection handles and the
+     * tablet's own hand-writing input all reach the field. Off = the pen keeps behaving like a mouse
+     * everywhere (the old behaviour).
+     */
+    var penTextMode: Boolean by boolPref("penTextMode", true)
+
     /** How long the pen has to rest before the press counts as a right click (ms). */
     var penHoldMs: Int by intPref("penHoldMs", 380)
     /**

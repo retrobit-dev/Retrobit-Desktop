@@ -27,6 +27,8 @@ import kotlin.math.roundToInt
 @Composable
 fun StylusCursorOverlay(router: PointerRouter = LocalPointerRouter.current, size: Dp = dp(17f)) {
     if (!router.showCursor) return
+    // inside a text field the pen is a pen again: no arrow, the field shows its own I-beam
+    if (router.textInput && router.source == InputSource.PEN) return
     val position = router.cursor ?: return
     val pressed = router.cursorPressed
     val p = LocalPalette.current

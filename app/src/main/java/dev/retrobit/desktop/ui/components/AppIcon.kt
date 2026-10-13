@@ -95,6 +95,7 @@ fun AppIconTile(
 ) {
     val p = LocalPalette.current
     val drag = LocalDragState.current
+    val pointer = dev.retrobit.desktop.ui.input.LocalPointerRouter.current
     val labelsEnabled = dev.retrobit.desktop.ui.theme.LocalIconOptions.current.labels
     var origin by remember { mutableStateOf(Offset.Zero) }
     var moved by remember { mutableStateOf(0f) }
@@ -135,6 +136,7 @@ fun AppIconTile(
             onStart = { pos -> drag.start(app, origin + pos) },
             onMove = { pos -> drag.move(origin + pos) },
             onEnd = { completed -> if (completed) finishDrag() else drag.clear() },
+            router = pointer,
         )
         .desktopClick(
             key = app.key,
@@ -205,6 +207,7 @@ fun AppIconRow(
 ) {
     val p = LocalPalette.current
     val drag = LocalDragState.current
+    val pointer = dev.retrobit.desktop.ui.input.LocalPointerRouter.current
     var origin by remember { mutableStateOf(Offset.Zero) }
     var moved by remember { mutableStateOf(0f) }
     val icon = rememberAppIcon(app, inverted = active)
@@ -235,6 +238,7 @@ fun AppIconRow(
                     drag.clear()
                     if (completed) onDrop?.invoke(app, target) else Unit
                 },
+                router = pointer,
             )
             .desktopClick(
                 key = app.key,

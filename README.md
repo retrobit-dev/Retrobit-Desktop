@@ -252,13 +252,15 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`,
   `workspace 1..4` (`ws`), `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
-  `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `widgets` / `widget width <dp>` /
+  `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `pen [text|rightclick|cursor on|off]`,
+  `widgets` / `widget width <dp>` /
   `widget size <name> <w> <h>` / `widget reset`,
   `invert`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
-  **cara membuka app** (dobel klik vs satu klik),
+  **cara membuka app** (dobel klik vs satu klik), **perilaku M-Pencil** (hold = klik kanan, lama
+  hold, panah kursor, mode pena di kolom teks),
   **display widgets** (add/remove/urutkan/reset widget), **app icon look** dengan pratinjau ikon
   hidup, keterbacaan + bentuk + mode ikon, skala UI, **input & devices** (hold time pena, kursor,
   keyboard), perilaku, tombol "Set as default launcher".
@@ -311,6 +313,19 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
   lagi jeda 320 ms pada tap — tap langsung jalan.
 - **Hold adalah jalan masuk ke pengeditan**: hold pada widget → mode edit + resize; hold pada ikon →
   menu ikon; hold pada desktop kosong → menu desktop (`Add widget`, `Remove widget`, `Edit widgets`).
+- **Di dalam kolom teks, pena kembali jadi pena.** Begitu sebuah text field memegang fokus (kursor
+  ketik muncul / keyboard naik), mode mouse dimatikan untuk stylus: panah e-paper hilang dan diganti
+  **I-beam** milik kolomnya, **hold tidak lagi jadi klik kanan**, dan **drag tidak lagi memindahkan
+  ikon/widget** — jadi menyeleksi teks, gagang seleksi, sampai tulisan tangan Huawei (M-Pencil
+  handwriting) sampai ke kolom itu apa adanya, seperti menulis di kertas. Mouse tetap panah seperti
+  biasa (klik kanan, wheel, hover).
+  Keluar dari mode itu: tap di desktop kosong, keluar dari aplikasi (`Esc` / tombol `desktop`),
+  pindah app, atau matikan di *Settings - input & devices → M-Pencil becomes a pen inside text fields*
+  (terminal: `pen text off`).
+- **Pengaturan pena**: hold = klik kanan (`pen rightclick on|off`), lama hold **250 / 380 / 500 /
+  700 ms** (`pen time 380`), panah e-paper (`pen cursor on|off`), dan mode pena di kolom teks
+  (`pen text on|off`) — semuanya ada di *Settings - input & devices*, dan `pen` di terminal mencetak
+  statusnya.
 - Lama hold bisa dipilih: *Settings → Input & devices → hold time* (**250 / 380 / 500 / 700 ms**);
   bisa dimatikan, dan menahan **jari** di desktop juga membuka menu (kebiasaan launcher Android).
 - Ada **kursor pointer e-paper** (panah 1-bit dengan halo) yang mengikuti posisi pena/mouse,

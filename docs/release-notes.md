@@ -10,6 +10,26 @@
 ## Yang baru di {{TAG}}
 
 
+### Pena kembali jadi pena di dalam kolom teks
+Stylus tetap jadi kursor panah di desktop — tap = klik kiri, **hold = klik kanan**, drag = pindah
+ikon — tapi begitu kamu masuk ke **mode input teks** (menyentuh kolom teks sampai kolom itu memegang
+fokus), stylus **kembali ke fungsi aslinya sebagai pena**:
+
+- **Panah e-paper hilang** dan diganti **I-beam** di atas kolomnya (penunjuk yang benar untuk teks).
+- **Hold tidak lagi membuka menu klik kanan**, dan **drag tidak lagi memindahkan ikon/widget** di
+  area kolom — jadi tidak ada lagi menu yang muncul mendadak saat kamu mau menyeleksi teks.
+- **Seleksi teks, gagang seleksi, dan tulisan tangan stylus (handwriting Huawei)** masuk ke kolom apa
+  adanya, karena launcher berhenti menerjemahkan gerakan pena jadi aksi mouse selama mode itu.
+- Mouse tidak terpengaruh: tetap panah, klik kanan tetap klik kanan, wheel tetap menggulir.
+
+Keluar dari mode itu gampang: **tap di desktop kosong**, tekan `Esc` / tombol `desktop` di rail,
+pindah aplikasi — atau matikan fiturnya di *Settings - input & devices → M-Pencil becomes a pen inside
+text fields* (terminal: `pen text off`).
+
+Pengaturan pena lainnya sekarang punya UI dan perintah sendiri: **hold = klik kanan**
+(`pen rightclick on|off`), **lama hold** 250 / 380 / 500 / 700 ms (`pen time 380`), dan
+**panah e-paper** (`pen cursor on|off`); `pen` tanpa argumen mencetak statusnya.
+
 ### Tidak ada lagi floating window: satu aplikasi, satu layar
 Desktop-nya sekarang bersih - **ikon dan widget saja**. Membuka apa pun (aplikasi terpasang,
 terminal, settings, notes) membuka **penuh**, dan bingkai cyberdeck (border hitam, title rail, dock)

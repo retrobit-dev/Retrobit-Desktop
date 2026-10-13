@@ -94,6 +94,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "rail" -> rail(args.firstOrNull(), args.getOrNull(1))
             "pins" -> pins()
             "night" -> night(args.firstOrNull())
+            "pen", "stylus", "pencil" -> penCmd(args)
             "widgets", "widget" -> widgets(args)
             "invert" -> vm.invertTheme()
             "app" -> appCmd(args)
@@ -155,6 +156,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             rail mode pinned|used  what the docks show (pinned apps or most used first)
             pins                   the dock list, in the order it is shown
             night on|off           dark Ink palette / back to the day palette
+            pen [text|rightclick|cursor on|off]   how the M-Pencil behaves (text = pen inside fields)
             cyberdeck preview|grant  show it for a few seconds / ask for the overlay permission
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
@@ -636,6 +638,52 @@ class TerminalShell(private val vm: LauncherViewModel) {
         if (s == null) { print("modes: color | mono | dither", Kind.ERR); return }
         vm.setIconMode(s)
         print("icon mode -> ${s.label}")
+    }
+
+    /**
+     * `pen` — how the M-Pencil behaves. `pen` alone prints the state; `pen text on|off` is the one
+     * that matters here: inside a text field the stylus goes back to being a stylus (no arrow, no
+     * right click on hold, no dragging icons), so writing and selecting text work as on paper.
+     */
+    private fun penCmd(args: List<String>) {
+        val s = vm.settings
+        val what = args.getOrNull(0)?.lowercase()
+        val value = args.getOrNull(1)?.lowercase()
+        fun onOff(current: Boolean): Boolean = when (value) {
+            null -> !current
+            "on", "1", "true", "yes" -> true
+            else -> false
+        }
+        when (what) {
+            null, "status", "info" -> {
+                print("stylus / m-pencil", Kind.HEAD)
+                print("  hold = right click        ${if (s.penRightClick) "on" else "off"}")
+                print("  pen again in text fields  ${if (s.penTextMode) "on" else "off"}")
+                print("  hold time                 ${s.penHoldMs} ms")
+                print("  e-paper arrow cursor      ${if (s.showCursor) "on" else "off"}")
+            }
+            "text", "fields", "input" -> {
+                s.penTextMode = onOff(s.penTextMode)
+                print("stylus in text fields -> ${if (s.penTextMode) "pen (hold is not a right click)" else "mouse"}")
+            }
+            "rightclick", "right", "hold" -> {
+                s.penRightClick = onOff(s.penRightClick)
+                print("hold = right click -> ${if (s.penRightClick) "on" else "off"}")
+            }
+            "cursor", "arrow" -> {
+                s.showCursor = onOff(s.showCursor)
+                print("e-paper arrow cursor -> ${if (s.showCursor) "on" else "off"}")
+            }
+            "time", "ms" -> {
+                val ms = value?.toIntOrNull() ?: args.getOrNull(0)?.toIntOrNull()
+                if (ms == null || ms !in 150..1200) { print("usage: pen time 150..1200", Kind.ERR); return }
+                s.penHoldMs = ms
+                print("hold time -> ${s.penHoldMs} ms until the context menu opens")
+            }
+            else -> {
+                print("usage: pen [text|rightclick|cursor on|off] | pen time <150..1200>", Kind.ERR)
+            }
+        }
     }
 
     private fun scale(arg: String?) {

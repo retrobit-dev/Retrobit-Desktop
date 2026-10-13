@@ -22,6 +22,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
@@ -72,11 +74,15 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     // pen / mouse behaviour follows the settings section "input & devices"
     androidx.compose.runtime.SideEffect { vm.desktopInsets = insets }
-    LaunchedEffect(settings.penRightClick, settings.showCursor, settings.penHoldMs) {
+    LaunchedEffect(settings.penRightClick, settings.showCursor, settings.penHoldMs, settings.penTextMode) {
         pointer.penRightClick = settings.penRightClick
         pointer.showCursor = settings.showCursor
+        pointer.penIsPen = settings.penTextMode
         pointer.holdMs = settings.penHoldMs.coerceIn(150, 1200).toLong()
     }
+    // a different app / shell owns the screen now: whatever field was focused is gone, so the pen
+    // is a mouse again until a field takes the focus back
+    LaunchedEffect(vm.shellOpen, vm.frontApp) { pointer.resetTextFocus() }
     // load / re-render the background whenever the source, the picture, the tone or palette changes
     LaunchedEffect(settings.wallpaperSource, settings.wallpaperUri, settings.wallpaperTone, settings.palette, settings.style) {
         vm.refreshWallpaper()
@@ -115,6 +121,11 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 .focusRequester(focus)
                 .focusable()
                 .watchPointer(pointer)
+                // a tap on empty desktop ends text input mode: focus moves back to the desktop, so the
+                // field loses it, the keyboard steps aside and the pen is a mouse again
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { runCatching { focus.requestFocus() } })
+                }
                 .onPreviewKeyEvent { ev ->
                     if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     when {

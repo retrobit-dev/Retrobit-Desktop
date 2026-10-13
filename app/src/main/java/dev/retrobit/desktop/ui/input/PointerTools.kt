@@ -4,6 +4,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
@@ -36,6 +37,8 @@ fun PointerType.isPenOrMouse(): Boolean = isPen() || this == PointerType.Mouse
  *  · [holdMs]        how long the pen has to rest before the press counts as a right click
  *  · [touchHoldEnabled] holding a finger on an empty surface also opens the menu (launcher habit)
  *  · [showCursor]    draw the e-paper pointer arrow for pen / mouse input
+ *  · [textInput]     a text field has the focus, so the stylus goes back to being a stylus
+ *  · [penIsPen]      honour [textInput] at all (setting "stylus becomes a pen in text fields")
  *
  * Nothing is delayed any more: taps fire immediately and only a hold produces the context menu.
  */
@@ -50,6 +53,34 @@ class PointerRouter(
     var source by mutableStateOf(InputSource.TOUCH)
     var cursor by mutableStateOf<Offset?>(null)
     var cursorPressed by mutableStateOf(false)
+
+    /** The text fields that hold the focus right now (see [textFocusChanged]). */
+    private val focusedFields = mutableStateListOf<Any>()
+
+    /** Honor [textInput]: false keeps the old "the pen is always a mouse" behaviour. */
+    var penIsPen by mutableStateOf(true)
+
+    /**
+     * True while a text field has the focus. The M-Pencil then goes back to being a **pen**, not a
+     * mouse: holding it no longer opens a context menu, dragging it no longer moves icons, and the
+     * e-paper arrow gives way to the field's own I-beam — so the pen can select text and hand
+     * writing over to the tablet's own stylus input.
+     */
+    val textInput: Boolean get() = penIsPen && focusedFields.isNotEmpty()
+
+    /** A text field gained or lost the focus ([field] is its identity, one per field). */
+    fun textFocusChanged(field: Any, focused: Boolean) {
+        if (focused) {
+            if (!focusedFields.contains(field)) focusedFields.add(field)
+        } else {
+            focusedFields.remove(field)
+        }
+    }
+
+    /** Forget every focused field: called when the shell or the app in front changes. */
+    fun resetTextFocus() {
+        if (focusedFields.isNotEmpty()) focusedFields.clear()
+    }
 
     fun clearCursor() {
         if (cursor != null) {
@@ -82,6 +113,10 @@ val LocalKeyboardRequester = staticCompositionLocalOf { KeyboardRequester() }
  *  pen barrel button   → secondary action (context menu)
  *  pen tap             → primary action
  *  pen **held down**   → secondary action (context menu), the pen's right click
+ *
+ * While a text field has the focus the pen is a pen again ([PointerRouter.textInput]): it behaves
+ * like a finger here — no right click on hold, no drag — and the tablet's own stylus input (text
+ * selection, handwriting) reaches the field untouched.
  *
  * With [select] and [doubleClick] set it behaves like a desktop: the first tap only selects (or
  * arms) the item, a second tap inside [PointerRouter.doubleTapWindowMs] opens it, and a hold still
@@ -122,8 +157,9 @@ fun Modifier.desktopClick(
                 while (true) {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val secondaryDown = currentEvent.buttons.isSecondaryPressed
-                    val pen = down.type.isPen()
-                    val touch = !down.type.isPenOrMouse()
+                    // the pen is a mouse, unless a text field has the focus: then it is a pen again
+                    val penAsMouse = down.type.isPen() && !routerState.value.textInput
+                    val touch = !down.type.isPenOrMouse() || (down.type.isPen() && !penAsMouse)
                     val secondary = secondaryState.value
                     val slop = viewConfiguration.touchSlop
                     val holdFor = longPressState.value ?: routerState.value.holdMs
@@ -137,7 +173,7 @@ fun Modifier.desktopClick(
                     var latest: PointerInputChange? = down
 
                     // hold → right click: a timer runs while the pointer rests on the surface
-                    val holdJob = if (secondary != null && !secondaryDown && ((pen && routerState.value.penRightClick) ||
+                    val holdJob = if (secondary != null && !secondaryDown && ((penAsMouse && routerState.value.penRightClick) ||
                             (touch && holdTouchState.value && routerState.value.touchHoldEnabled))) {
                         launch {
                             delay(holdFor)
@@ -209,10 +245,13 @@ fun Modifier.penOrMouseDrag(
     onStart: (Offset) -> Unit,
     onMove: (Offset) -> Unit,
     onEnd: (completed: Boolean) -> Unit,
-): Modifier = this.pointerInput(Unit) {
+    router: PointerRouter? = null,
+): Modifier = this.pointerInput(router) {
     awaitEachGesture {
         val down = awaitFirstDown(requireUnconsumed = false)
         if (!down.type.isPenOrMouse()) return@awaitEachGesture
+        // while a text field has the focus the pen is a pen: it must not drag the desktop around
+        if (down.type.isPen() && router?.textInput == true) return@awaitEachGesture
         val slop = viewConfiguration.touchSlop
         var dragging = false
         var cancelled = false

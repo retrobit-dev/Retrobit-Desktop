@@ -20,6 +20,11 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.pointer.PointerIcon
+import androidx.compose.ui.input.pointer.pointerHoverIcon
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
@@ -311,7 +316,14 @@ fun RetroTextField(
     val p = LocalPalette.current
     val focus = LocalFocusManager.current
     val keyboard = LocalKeyboardRequester.current
+    val pen = dev.retrobit.desktop.ui.input.LocalPointerRouter.current
     val fieldFocus = focusRequester ?: remember { FocusRequester() }
+    // one identity per field: the pen goes back to being a pen while any of them has the focus
+    val fieldKey = remember { Any() }
+    var focused by remember { mutableStateOf(false) }
+    DisposableEffect(fieldKey) {
+        onDispose { if (focused) pen.textFocusChanged(fieldKey, false) }
+    }
     Box(
         modifier
             .background(fill ?: p.paper)
@@ -334,7 +346,13 @@ fun RetroTextField(
             modifier = Modifier
                 .fillMaxWidth()
                 .focusRequester(fieldFocus)
-                .onFocusChanged { if (it.isFocused) keyboard.rememberFocus(fieldFocus) }
+                // the pen / mouse hovers a text field as an I-beam, not as the e-paper arrow
+                .pointerHoverIcon(PointerIcon.Text)
+                .onFocusChanged {
+                    focused = it.isFocused
+                    pen.textFocusChanged(fieldKey, it.isFocused)
+                    if (it.isFocused) keyboard.rememberFocus(fieldFocus)
+                }
                 .onKeyEvent { ev ->
                     // physical keyboards: enter submits single line fields
                     if (singleLine && ev.type == KeyEventType.KeyDown &&

@@ -219,7 +219,7 @@ fun SettingsView(vm: LauncherViewModel) {
                         GlyphIcon(Glyph.PEN, dp(16f))
                         RetroText("M-Pencil", size = 12f, weight = FontWeight.Bold)
                     }
-                    RetroText("1 tap = left click\n2 taps = right click\nbarrel button = right click\ndrag = move icons & widgets", size = 10f, color = p.mid, maxLines = 4)
+                    RetroText("1 tap = left click\nhold = right click\nbarrel button = right click\ndrag = move icons & widgets", size = 10f, color = p.mid, maxLines = 4)
                 }
             }
             Box(
@@ -248,6 +248,34 @@ fun SettingsView(vm: LauncherViewModel) {
                 modifier = Modifier.weight(1f),
                 onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.TERMINAL) },
             )
+        }
+        // the pen is a mouse on the desktop, and a pen again inside a text field
+        ToggleRow("M-Pencil: hold = right click (context menu)", s.penRightClick, onGlyph = Glyph.PEN) {
+            s.penRightClick = it
+        }
+        ToggleRow("M-Pencil becomes a pen inside text fields", s.penTextMode, onGlyph = Glyph.PEN) {
+            s.penTextMode = it
+        }
+        RetroText(
+            "While a text field has the focus the arrow cursor steps aside and the stylus is a stylus " +
+                "again: hold no longer opens a menu, a drag no longer moves icons, and text selection, " +
+                "the selection handles and Huawei's own hand-writing input reach the field untouched. " +
+                "Tap another surface, leave the app or turn this off to get the desktop mouse back.",
+            size = 10.5f, color = p.mid, maxLines = 6,
+        )
+        ToggleRow("Draw the e-paper pointer arrow for pen / mouse", s.showCursor, onGlyph = Glyph.MOUSE) {
+            s.showCursor = it
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroText("hold = right click after", size = 10.5f, color = p.mid, modifier = Modifier.weight(1.5f))
+            listOf(250, 380, 500, 700).forEach { ms ->
+                RetroButton(
+                    label = "${ms}ms",
+                    modifier = Modifier.weight(1f),
+                    active = s.penHoldMs == ms,
+                    onClick = { s.penHoldMs = ms },
+                )
+            }
         }
         RetroText(
             "Android's own keyboard is kept: it appears when you tap a text field and the desktop slides " +
