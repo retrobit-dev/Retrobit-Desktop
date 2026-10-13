@@ -176,8 +176,8 @@ def app_background(d):
     d.rectangle([100, y + 60, 700, y + 200], fill=(232, 231, 227))
 
 
-def title_rail(d, art, title, clock, net, percent, charging, in_frame=True, can_refit=True, size=1.0):
-    """Mirrors RailView.drawTop(). `size` is the rail & dock size (0.85 compact, 1.2 large)."""
+def title_rail(d, art, title, clock, net, percent, charging, in_frame=True, size=1.0):
+    """Mirrors ChromeViews.drawTop(). `size` is the rail & dock size (0.85 compact, 1.2 large)."""
     den = DENSITY * size
     inset = 64                                    # status bar band we cover
     h = 40 * den
@@ -195,7 +195,8 @@ def title_rail(d, art, title, clock, net, percent, charging, in_frame=True, can_
     top = inset + (h - key) / 2.0
 
     right = SCREEN_W - h_pad
-    for name in ("CLOSE", "EYE", "HOME") + (("GRID",) if can_refit else ()) + ("SETTINGS", "KEYBOARD"):
+    # keys, right to left, exactly like ChromeViews.drawTop(): hide, eye, desktop, panel, keyboard
+    for name in ("CLOSE", "EYE", "HOME", "SETTINGS", "KEYBOARD"):
         right = key_box(d, art, name, right, top, key) - 5 * DENSITY
 
     cy = inset + h / 2.0

@@ -16,6 +16,7 @@ OUT = os.path.join(ROOT, "docs/ui-preview.png")
 PAPER = (0xE8, 0xE5, 0xDA)
 INK = (0x1B, 0x1B, 0x1B)
 PATTERN = tuple(int(PAPER[i] * 0.7 + INK[i] * 0.3) for i in range(3))
+ACCENT = INK            # the paper palette has no accent of its own: the square prints in ink
 
 # Pixel Operator (CC0 1.0) — the same files the app bundles.
 # Pixel fonts are designed on an 8/16 px grid: sizes that are multiples of 8 stay crisp.
@@ -206,63 +207,57 @@ def cursor(d, x, y, cell=3, pressed=False):
                              x + (px + 1) * cell - 1, y + (py + 1) * cell - 1], fill=fg)
 
 
-def window(d, box, title, glyph_label=None, win95=False, mac=False, body_lines=()):
+def shell_frame(d, box, title, clock="13:37:09", dock=("Terminal", "Files", "Notes", "Camera", "Settings")):
+    """One of our own apps, **full screen**, in the frame the launcher draws around it.
+
+    Mirrors `ui/desktop/ShellHost.kt`: a 3.5 dp black border all round, a 40 dp title rail (accent
+    square + app name on the left, live clock and the panel / desktop keys on the right) and the
+    54 dp dock strip along the bottom. There are no floating windows and no desktop boxes any more:
+    every app fills the screen and this frame is what makes it read as a window.
+    """
     x0, y0, x1, y1 = box
-    hard_shadow(d, box, offset=5)
-    d.rectangle([x0, y0, x1, y1], fill=PAPER, outline=INK, width=2)
-    bar_h = 34
-    if win95:
-        d.rectangle([x0 + 2, y0 + 2, x1 - 2, y0 + bar_h], fill=PAPER)
-        dither_title_bar(d, (x0 + 2, y0 + 2, x1 - 2, y0 + bar_h))
-        tx, ty = x0 + 10, y0 + 8
-        d.text((tx, ty), title, font=mono_bold, fill=PAPER)
-        for i, label in enumerate(["_", "□", "x"]):
-            bx = x1 - 30 - i * 26
-            d.rectangle([bx, y0 + 7, bx + 20, y0 + 27], fill=PAPER, outline=INK, width=2)
-            d.text((bx + 6, y0 + 4), label, font=mono, fill=INK)
-    elif mac:
-        d.rectangle([x0 + 2, y0 + 2, x1 - 2, y0 + bar_h], fill=PAPER)
-        tw = d.textlength(title, font=mono_bold)
-        d.text(((x0 + x1) / 2 - tw / 2, y0 + 8), title, font=mono_bold, fill=INK)
-        for i, label in enumerate(["x", "-", "+"]):
-            cx = x0 + 16 + i * 24
-            d.ellipse([cx - 8, y0 + 10, cx + 8, y0 + 26], fill=PAPER, outline=INK, width=2)
-            d.text((cx - 4, y0 + 6), label, font=mono_tiny, fill=INK)
-        d.line([x0 + 2, y0 + bar_h + 2, x1 - 2, y0 + bar_h + 2], fill=INK, width=1)
-    else:
-        d.rectangle([x0 + 2, y0 + 2, x1 - 2, y0 + bar_h], fill=INK)
-        d.text((x0 + 10, y0 + 8), title, font=mono_bold, fill=PAPER)
-        for i, kind in enumerate(["close", "max", "min", "float"]):
-            bx = x1 - 30 - i * 26
-            d.rectangle([bx, y0 + 7, bx + 20, y0 + 27], fill=PAPER, outline=INK, width=2)
-            cx0, cy0 = bx + 5, y0 + 11
-            if kind == "close":
-                d.line([cx0, cy0, cx0 + 9, cy0 + 9], fill=INK, width=2)
-                d.line([cx0 + 9, cy0, cx0, cy0 + 9], fill=INK, width=2)
-            elif kind == "min":
-                d.rectangle([cx0, cy0 + 8, cx0 + 9, cy0 + 9], fill=INK)
-            elif kind == "max":
-                d.rectangle([cx0, cy0, cx0 + 9, cy0 + 9], outline=INK, width=2)
-            else:  # float: two offset frames
-                d.rectangle([cx0, cy0 + 3, cx0 + 7, cy0 + 9], outline=INK, width=1)
-                d.rectangle([cx0 + 3, cy0, cx0 + 9, cy0 + 6], outline=INK, width=1)
-    y = y0 + bar_h + 14
-    for line in body_lines:
-        d.text((x0 + 14, y), line, font=mono, fill=INK)
-        y += 22
-    return y
+    d.rectangle(box, fill=INK)                                   # the frame (3.5 dp of ink)
+    bw, rail_h, dock_h = 8, 44, 58
+    rail_top = y0 + bw
+    d.rectangle([x0 + bw, rail_top, x1 - bw, rail_top + rail_h], fill=PAPER)
+    ax, ay = x0 + bw + 12, rail_top + rail_h / 2 - 5
+    d.rectangle([ax, ay, ax + 10, ay + 10], fill=ACCENT)         # the accent square of ShellRail
+    d.text((ax + 20, rail_top + rail_h / 2 - 11), title, font=mono_bold, fill=INK)
+    # readouts and keys, right to left: clock, quick panel, desktop
+    tx = x1 - bw - 12
+    for label in ("desktop", "panel"):
+        tw = d.textlength(label, font=mono_tiny)
+        d.rectangle([tx - tw - 14, rail_top + 8, tx, rail_top + rail_h - 8], fill=PAPER, outline=INK, width=2)
+        d.text((tx - tw - 7, rail_top + rail_h / 2 - 6), label, font=mono_tiny, fill=INK)
+        tx -= tw + 24
+    cw = d.textlength(clock, font=mono)
+    d.text((tx - cw, rail_top + rail_h / 2 - 10), clock, font=mono, fill=INK)
+    # the content area the app owns
+    content = [x0 + bw, rail_top + rail_h, x1 - bw, y1 - bw - dock_h]
+    d.rectangle(content, fill=PAPER)
+    d.line([content[0], content[3], content[2], content[3]], fill=INK, width=2)
+    # dock: the desktop key, the apps, the panel key
+    dy0, dy1 = content[3] + 2, y1 - bw
+    d.rectangle([x0 + bw, dy0, x1 - bw, dy1], fill=PAPER)
+    kx, ks = x0 + bw + 12, 42
+    glyph_tile(d, kx, dy0 + 5, ks, kind="grid", label="", shape="flat")
+    d.text((kx + 4, dy1 - 20), "desktop", font=mono_tiny, fill=INK)
+    d.line([kx + ks + 10, dy0 + 10, kx + ks + 10, dy1 - 10], fill=INK, width=2)
+    tx = kx + ks + 24
+    for label in dock:
+        tw = d.textlength(label, font=mono_tiny)
+        d.rectangle([tx, dy0 + 6, tx + 40, dy0 + 46], fill=PAPER, outline=INK, width=2)
+        d.rectangle([tx + 12, dy0 + 16, tx + 28, dy0 + 32], fill=INK)
+        d.text((tx + 20 - tw / 2, dy1 - 20), label, font=mono_tiny, fill=INK)
+        tx += 48
+    tw = d.textlength("panel", font=mono_tiny)
+    d.rectangle([x1 - bw - tw - 22, dy0 + 8, x1 - bw - 10, dy1 - 10], fill=PAPER, outline=INK, width=2)
+    d.text((x1 - bw - tw - 16, dy1 - 20), "panel", font=mono_tiny, fill=INK)
+    return content
 
 
-def window_grip(d, box, size=14):
-    """Three diagonal marks in the bottom-right corner: the manual resize grip."""
-    x1, y1 = box[2], box[3]
-    for i in range(3):
-        o = i * 4
-        d.line([x1 - size + o, y1 - 3, x1 - 3, y1 - size + o], fill=INK, width=2)
-
-
-def pager(d, x, y, size=26, cells=3, active=0, windows=(1, 0, 1)):
-    """Virtual desktop switcher: numbered squares with window-count dots."""
+def pager(d, x, y, size=26, cells=3, active=0):
+    """Workspace switcher: one numbered square per page of desktop icons and widgets."""
     p = INK
     for i in range(cells):
         bx = x + i * (size + 5)
@@ -271,9 +266,6 @@ def pager(d, x, y, size=26, cells=3, active=0, windows=(1, 0, 1)):
         num = str(i + 1)
         nw = d.textlength(num, font=mono_tiny)
         d.text((bx + size / 2 - nw / 2, y + 2), num, font=mono_tiny, fill=PAPER if filled else INK)
-        for k in range(windows[i] if i < len(windows) else 0):
-            dx = bx + size / 2 - 4 + k * 4
-            d.rectangle([dx, y + size - 6, dx + 2, y + size - 4], fill=PAPER if filled else INK)
     return x
 
 
@@ -399,7 +391,7 @@ def calendar_widget(d, box, mirror=False):
     sx = x0 + 8 + d.textlength(day_label, font=mono_tiny) + 10
     if sx + d.textlength(summary, font=mono_tiny) < x1 - 8:
         d.text((sx, agenda_top + 2), summary, font=mono_tiny, fill=INK)
-    rows = [("14:00", "edge snapping demo"), ("16:30", "flash v1.7.0 build"), ("--:--", "retro desk day *")]
+    rows = [("14:00", "widget resize demo"), ("16:30", "flash v1.13.0 build"), ("--:--", "retro desk day *")]
     for i, (time, title) in enumerate(rows):
         ty = agenda_top + 20 + i * 19
         if ty + 16 > y1 - 6:
@@ -438,6 +430,44 @@ def panel(caption, style):
         grid(img)
     elif style == "macos":
         halftone(img)
+    elif style == "apps":
+        # One app, one screen: the drawer IS the screen and the launcher draws the frame around it
+        # (ui/desktop/ShellHost.kt). Third-party apps get the very same rails from the chrome overlay.
+        c0, c1, c2, c3 = shell_frame(d, (8, 8, w - 8, h - 54), "applications")
+        d.rectangle([c0 + 16, c1 + 16, c2 - 16, c1 + 50], fill=PAPER, outline=INK, width=2)
+        d.text((c0 + 26, c1 + 26), "search applications…", font=mono_tiny, fill=PATTERN)
+        d.text((c2 - 112, c1 + 26), "[ 24 / 96 ]", font=mono_tiny, fill=INK)
+        ly = c1 + 70
+        d.text((c0 + 18, ly), "most used", font=mono_tiny, fill=PATTERN)
+        d.line([c0 + 96, ly + 8, c2 - 18, ly + 8], fill=PATTERN, width=1)
+        ly += 26
+        for name, pkg, uses in [
+            ("Files", "com.android.documentsui", 42),
+            ("Browser", "com.huawei.browser", 31),
+            ("Notes", "com.huawei.notepad", 17),
+            ("Terminal", "dev.retrobit.desktop", 12),
+        ]:
+            pix_app_dot(d, c0 + 22, ly, 12)
+            d.text((c0 + 44, ly - 2), name, font=mono_tiny, fill=INK)
+            d.text((c0 + 44, ly + 13), pkg, font=mono_tiny, fill=PATTERN)
+            d.text((c2 - 66, ly + 4), "x" + str(uses), font=mono_tiny, fill=INK)
+            ly += 36
+        d.text((c0 + 18, ly + 4), "all apps, a-z", font=mono_tiny, fill=PATTERN)
+        d.line([c0 + 106, ly + 12, c2 - 18, ly + 12], fill=PATTERN, width=1)
+        ly += 32
+        for name, pkg in [
+            ("Camera", "com.huawei.camera"),
+            ("Clock", "com.android.deskclock"),
+            ("Gallery", "com.android.gallery3d"),
+            ("Mail", "com.huawei.email"),
+            ("Music", "com.android.music"),
+            ("Settings", "com.android.settings"),
+        ]:
+            pix_app_dot(d, c0 + 22, ly, 12)
+            d.text((c0 + 44, ly - 2), name, font=mono_tiny, fill=INK)
+            d.text((c0 + 44, ly + 13), pkg, font=mono_tiny, fill=PATTERN)
+            ly += 36
+        d.text((c0 + 18, ly + 8), "tap selects · double tap opens · hold for the menu", font=mono_tiny, fill=INK)
     else:
         fill_dither(d, (0, 0, w, h), PATTERN, cell=4, level_max=4)
 
@@ -450,7 +480,7 @@ def panel(caption, style):
         # top panel
         d.rectangle([0, 0, w, 44], fill=PAPER)
         bevel(d, [0, 0, w - 1, 44])
-        # right-hand cluster is laid out first so the window buttons know where to stop
+        # right-hand cluster is laid out first so the menu run knows where to stop
         clock_w = d.textlength("13:37", font=px_small) + d.textlength(":09", font=mono_med)
         sec_w = d.textlength(":09", font=mono_med)
         d.text((w - 14 - d.textlength("13:37", font=px_small) - sec_w - 2, 6), "13:37", font=px_small, fill=INK)
@@ -465,7 +495,7 @@ def panel(caption, style):
             else:
                 d.text((rx - tw - 10, 12), label, font=mono_tiny, fill=INK)
                 rx -= tw + 20
-        rx = pager(d, rx - (3 * 27 + 12), 9, size=22, cells=3, active=0, windows=(2, 1, 0))
+        rx = pager(d, rx - (3 * 27 + 12), 9, size=22, cells=3, active=0)
         chip = "[LINUX]"
         cw = d.textlength(chip, font=mono_tiny)
         d.rectangle([rx - cw - 12, 9, rx - 4, 35], fill=PAPER, outline=INK, width=2)
@@ -473,19 +503,8 @@ def panel(caption, style):
         limit = rx - cw - 24
 
         pix_diamond(d, 14, 10, cell=5)
-        x = text_run(d, 48, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
-        x += 8
-        for label, active in [("terminal", True), ("notes.txt", False)]:
-            tw = d.textlength(label, font=mono)
-            if x + tw + 26 > limit:
-                break
-            if active:
-                d.rectangle([x, 8, x + tw + 20, 36], fill=INK)
-                d.text((x + 10, 12), label, font=mono, fill=PAPER)
-            else:
-                d.rectangle([x, 8, x + tw + 20, 36], fill=PAPER, outline=INK, width=2)
-                d.text((x + 10, 12), label, font=mono, fill=INK)
-            x += tw + 28
+        # the panel menu: no task list - an app fills the screen, so there is nothing to list here
+        text_run(d, 48, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
         # left dock
         d.rectangle([0, 44, 78, h], fill=PAPER)
         bevel(d, [0, 44, 78, h])
@@ -518,30 +537,19 @@ def panel(caption, style):
         # widget edit mode: the user held the calendar, so it is framed, named and re-sizable
         calendar_widget(d, (500, 340, w - 20, 660))
         widget_edit_chrome(d, (500, 340, w - 20, 660), "calendar", "280x300")
-        add_widget_panel(d, (500, 700, w - 20, 900))
-        window(d, (110, 300, 470, 700), "terminal", body_lines=[
-            "operator@retrobit:~$ neofetch",
-            "   .-----------.   OS: retrOS GNU/Linux",
-            "   | retR0BIT  |   WM: retrobit-wm",
-            "   '-----------'   Theme: Paper/halftone",
-            "     '-------'     Memory: 3.1G / 7.8G",
-        ])
-        window_grip(d, (110, 300, 470, 700))
-        cursor(d, 292, 700, cell=3)
-        d.text((115, 720), "operator@retrobit:~$ tiling on", font=mono, fill=INK)
-        d.rectangle([110, 760, 470, 830], fill=PAPER, outline=INK, width=2)
-        d.text((122, 775), "tiling master-stack on", font=mono, fill=INK)
+        add_widget_panel(d, (110, 300, 470, 700))
+        cursor(d, 168, 660, cell=3)
     elif style == "macos":
         d.rectangle([0, 0, w, 40], fill=PAPER)
         d.line([0, 40, w, 40], fill=INK, width=2)
         pix_diamond(d, 14, 8, cell=5)
-        text_run(d, 48, 11, ["File", "View", "Window", "Help"], mono_med, gap=22)
+        text_run(d, 48, 11, ["File", "Edit", "View", "Help"], mono_med, gap=22)
         clock_w = d.textlength("13:37", font=px_small) + d.textlength(":09", font=mono_med)
         sec_w = d.textlength(":09", font=mono_med)
         d.text((w - 14 - d.textlength("13:37", font=px_small) - sec_w - 2, 4), "13:37", font=px_small, fill=INK)
         d.text((w - 16 - sec_w, 16), ":09", font=mono_med, fill=INK)
         rx = w - 24 - clock_w
-        rx = pager(d, rx - (3 * 25 + 12), 8, size=20, cells=3, active=0, windows=(1, 0, 1))
+        rx = pager(d, rx - (3 * 25 + 12), 8, size=20, cells=3, active=0)
         for label, kind in [("WIFI 92%", "text"), ("KB", "button"), ("[MACOS]", "button")]:
             tw = d.textlength(label, font=mono_tiny)
             if kind == "button":
@@ -565,14 +573,14 @@ def panel(caption, style):
         d.text((40, 160), "Mon, 13 Oct 2026", font=mono, fill=INK)
         widget_grip(d, 257, 217)
         calendar_widget(d, (28, 240, 244, 640))
-        window_grip(d, (262, 260, w - 60, 640))
-        window(d, (262, 260, w - 60, 640), "notes.txt", mac=True, body_lines=[
-            "RETROBIT NOTES",
-            "==============",
-            "",
-            "- tap & hold any icon for options",
-            "- type `help` in the terminal",
-        ])
+        agenda_widget(d, (262, 240, w - 60, 390))
+        # notes widget
+        d.rectangle([262, 410, w - 60, 640], fill=PAPER, outline=INK, width=2)
+        d.rectangle([262, 410, w - 60, 436], fill=PATTERN)
+        d.text((272, 414), "notes", font=mono_tiny, fill=INK)
+        for i, line in enumerate(["tap & hold any icon", "for its options", "", "type `help` in the", "terminal for the list"]):
+            d.text((272, 452 + i * 26), line, font=mono, fill=INK)
+        widget_grip(d, w - 63, 637)
         # dock
         dock_y = h - 130
         d.rectangle([60, dock_y, 60 + 5 * 84 + 160, dock_y + 100], fill=PAPER, outline=INK, width=3)
@@ -583,12 +591,6 @@ def panel(caption, style):
             d.rectangle([168 + i * 84, dock_y + 30, 198 + i * 84, dock_y + 66], fill=INK)
         d.line([150 + 5 * 84, dock_y + 14, 150 + 5 * 84, dock_y + 86], fill=INK, width=2)
         d.text((160 + 5 * 84, dock_y + 34), "term", font=mono_tiny, fill=INK)
-        ox = 250
-        for t in ["terminal", "notes.txt"]:
-            tw = d.textlength(t, font=mono_tiny)
-            d.rectangle([ox, dock_y - 30, ox + tw + 16, dock_y - 6], fill=INK)
-            d.text((ox + 8, dock_y - 27), t, font=mono_tiny, fill=PAPER)
-            ox += tw + 26
     else:
         fill_dither(d, (0, 0, w, h), PATTERN, cell=4, level_max=4)
         for i, (kind, label) in enumerate([("monitor", "My Computer"), ("folder", "Documents"), ("grid", "Network")]):
@@ -604,43 +606,8 @@ def panel(caption, style):
         d.rectangle([w - 240, 166, w - 30, 180], fill=PAPER, outline=INK, width=2)
         d.rectangle([w - 238, 168, w - 100, 178], fill=INK)
         calendar_widget(d, (w - 250, 290, w - 20, 680))
-        # the app drawer is a scrollable list (never a full-screen sheet): most used first, with the
-        # launch count on the right, then the rest A-Z under its own separator
-        win_box = (230, 250, w - 258, 660)
-        window(d, win_box, "Applications", win95=True, body_lines=[
-            "search applications…        [ 24/96 ]",
-        ])
-        lx = 244
-        ly = 250 + 34 + 40
-        d.text((lx, ly), "most used", font=mono_tiny, fill=PATTERN)
-        d.line([lx + 76, ly + 7, w - 272, ly + 7], fill=PATTERN, width=1)
-        ly += 22
-        for name, pkg, uses in [
-            ("Files", "com.android.documentsui", 42),
-            ("Browser", "com.huawei.browser", 31),
-            ("Notes", "com.huawei.notepad", 17),
-        ]:
-            pix_app_dot(d, lx, ly, 12)
-            d.text((lx + 20, ly - 2), name, font=mono_tiny, fill=INK)
-            d.text((lx + 20, ly + 13), pkg, font=mono_tiny, fill=PATTERN)
-            d.text((w - 300, ly + 4), "x" + str(uses), font=mono_tiny, fill=INK)
-            ly += 32
-        d.text((lx, ly + 2), "all apps, a-z", font=mono_tiny, fill=PATTERN)
-        d.line([lx + 92, ly + 9, w - 272, ly + 9], fill=PATTERN, width=1)
-        ly += 26
-        for name, pkg in [
-            ("Camera", "com.huawei.camera"),
-            ("Clock", "com.android.deskclock"),
-            ("Gallery", "com.android.gallery3d"),
-            ("Mail", "com.huawei.email"),
-            ("Music", "com.android.music"),
-        ]:
-            pix_app_dot(d, lx, ly, 12)
-            d.text((lx + 20, ly - 2), name, font=mono_tiny, fill=INK)
-            d.text((lx + 20, ly + 13), pkg, font=mono_tiny, fill=PATTERN)
-            ly += 32
-        d.text((lx, ly + 2), "most used first, then a-z - double tap to open", font=mono_tiny, fill=INK)
-        window_grip(d, (230, 250, w - 258, 660))
+        # the desktop is icons and widgets only: the drawer is a full-screen app now (see the
+        # APPS panel), so nothing floats on top of the wallpaper here
         # taskbar (kept clear of the caption band at the bottom)
         tb = h - 46 - 62
         d.rectangle([0, tb, w, h], fill=PAPER)
@@ -648,9 +615,7 @@ def panel(caption, style):
         d.rectangle([8, tb + 8, 130, tb + 52], fill=PAPER, outline=INK, width=2)
         pix_diamond(d, 16, tb + 20, cell=4)
         d.text((48, tb + 20), "Start", font=mono_bold, fill=INK)
-        d.rectangle([138, tb + 12, 300, tb + 48], fill=INK)
-        d.text((148, tb + 18), "Applications", font=mono, fill=PAPER)
-        px_ = pager(d, 310, tb + 7, size=30, cells=3, active=0, windows=(1, 1, 0))
+        px_ = pager(d, 146, tb + 7, size=30, cells=3, active=0)
         chip_x = px_ + 3 * 34 + 12
         d.rectangle([chip_x, tb + 11, chip_x + 84, tb + 47], fill=PAPER, outline=INK, width=2)
         d.text((chip_x + 8, tb + 18), "[WIN]", font=mono_tiny, fill=INK)
@@ -660,7 +625,6 @@ def panel(caption, style):
         d.rectangle([w - tray_w - 52, tb + 16, w - tray_w - 26, tb + 42], fill=PAPER, outline=INK, width=2)
         d.text((w - tray_w - 46, tb + 18), "KB", font=mono_tiny, fill=INK)
         d.text((w - tray_w - 16, tb + 18), tray, font=mono_tiny, fill=INK)
-        cursor(d, 620, 700, cell=3, pressed=True)
 
     # caption
     d.rectangle([0, h - 46, w, h], fill=INK)
@@ -671,9 +635,10 @@ def panel(caption, style):
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     panels = [
-        panel("LINUX · retrOS GNU/Linux — icon selected (double tap opens), widget edit mode, maximize → restore", "linux"),
-        panel("macOS · Retro System 9 — menu bar, dock, launchpad panel (not full screen)", "macos"),
-        panel("WINDOWS · Retrodows 95 — app drawer as a list (most used first), start menu, taskbar, tray", "windows"),
+        panel("LINUX · retrOS GNU/Linux — desktop of icons & widgets, one icon selected (double tap opens), widget edit mode", "linux"),
+        panel("macOS · Retro System 9 — menu bar, widgets, dock (an app fills the screen, never a floating window)", "macos"),
+        panel("WINDOWS · Retrodows 95 — desktop icons & widgets, start menu, workspace switcher, taskbar, tray", "windows"),
+        panel("APPS · one app, one screen — the drawer full screen in the launcher's frame; third-party apps get the same title rail & dock from the chrome overlay", "apps"),
     ]
     w = sum(p.width for p in panels) + 40 * (len(panels) + 1)
     h = panels[0].height + 180
@@ -681,7 +646,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · eight everyday widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · icons follow the palette · hold the pen for right click · floating app windows · reorderable dock · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · eight everyday widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · icons follow the palette · hold the pen for right click · one app per screen: full screen, framed by the cyberdeck chrome (border + title rail + dock) · reorderable dock · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

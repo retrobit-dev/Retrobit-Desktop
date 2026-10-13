@@ -37,9 +37,9 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 | Gaya | Ciri khas |
 | --- | --- |
-| **Linux** (`retrOS GNU/Linux`) | panel atas dengan menu sistem + task list, **side dock** di kiri, ikon grid, widget di kanan atas, **tiling window layout** opsional |
-| **macOS** (`Retro System 9`) | **menu bar** atas (File/View/Window/Help), **dock** bawah dengan indikator jendela berjalan, **Launchpad**, **Spotlight** (⌘/meta atau tombol cari) |
-| **Windows** (`Retrodows 95`) | **start menu** dua kolom, **taskbar** + system tray, ikon desktop bertumpuk di kiri, judul jendela bergradien dither khas Win95 |
+| **Linux** (`retrOS GNU/Linux`) | panel atas dengan menu sistem, **side dock** di kiri, ikon grid, widget di kanan atas (tanpa task list: aplikasi memenuhi layar) |
+| **macOS** (`Retro System 9`) | **menu bar** atas (File/Edit/View/Help), **dock** bawah, **Launchpad**, **Spotlight** (⌘/meta atau tombol cari) |
+| **Windows** (`Retrodows 95`) | **start menu** dua kolom, **taskbar** + system tray, ikon desktop bertumpuk di kiri, tombol & panel ber-bevel dither khas Win95 |
 
 ### Sistem visual e-paper
 - **6 palet**: Paper, Sepia, Tri-color (B&W + aksen merah), Ink (dark), Phosphor (hijau CRT), Amber.
@@ -71,65 +71,22 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   dibuang saat tema/bentuk/mode/palet/skala berubah.
 - **Jam menampilkan detik** (opsional, `Settings` atau `seconds on|off`) — jam di panel, taskbar,
   dan widget ikut berubah.
-- Chrome: bevel tebal, bayangan *checker dither*, separator ber-*hatch*, judul jendela bergradien
+- Chrome: bevel tebal, bayangan *checker dither*, separator ber-*hatch*, title bar ber-bayangan
   dither, marquee tanpa animasi, dan pola scanline halus.
 - Semua ikon UI digambar sebagai **pixel-art 16×16** (glyph didefinisikan di dalam kode).
 
-### Aplikasi terbuka di dalam jendela (floating apps)
-- **Setiap aplikasi yang dibuka selalu terbungkus kotak jendela**, persis seperti jendela Settings /
-  Terminal / Notes: title bar dengan nama + ikon aplikasi, tombol minimize / maximize / close, bisa
-  digeser, di-resize dari 8 arah, di-snap ke tepi, dipindah antar-workspace, dan muncul di taskbar /
-  task list / `ps`. Tidak ada lagi aplikasi yang "lepas" tanpa bingkai — membuka app = membuka
-  jendelanya, dan aplikasi kedua membuka jendela kedua.
-- **Maximize = kotak jendela sebesar desktop, dan restore mengembalikan ukuran semula**: tombol
-  maximize (atau dobel tap title bar, atau `Ctrl+Alt+↑`, atau geser ke tengah-atas) membuat bingkai
-  memenuhi seluruh area desktop; menekannya lagi mengembalikan **persis** ukuran dan posisi
-  sebelumnya — bukan tebakan baru di tengah layar. Matematikanya di `ui/wm/MaximizeMath.kt`
-  (9 unit test), jadi maximize → restore → maximize tidak pernah "menyusut".
-- **Aplikasi diletakkan di dalam kotak jendela** dengan `ActivityOptions.setLaunchBounds` (via
-  `LauncherApps.startMainActivity`). Rect yang dikirim adalah **daerah isi jendela**, bukan seluruh
-  bingkai: di bawah title bar, di dalam border, dan **ditambah safe area** (kamera + sudut
-  melengkung) — dalam **piksel layar**, karena itulah yang diminta API-nya. Matematikanya murni di
-  `ui/wm/AppWindowMath.kt` dengan 9 unit test supaya tidak ada lagi selisih beberapa puluh piksel.
-- **Tiga tombol di jendela aplikasi**:
-  - **`place here`** — minta sistem meletakkan aplikasi di rect jendela sekarang (dipakai saat
-    aplikasi belum berjalan, atau setelah jendela digeser/di-resize);
-  - **`restart into frame`** — aplikasi dijalankan ulang (task-nya di-clear) supaya benar-benar
-    mendarat di rect baru. Android **tidak punya API publik** untuk memindahkan task aplikasi lain
-    yang sedang berjalan, jadi inilah satu-satunya cara yang pasti;
-  - **`bring it back`** / **open full screen**.
-- **Aplikasi mengikuti jendelanya**: setelah title bar digeser atau tepi di-resize, rect otomatis
-  dikirim ulang (debounce 420 ms) — bisa dimatikan di *Settings - apps & windows → Apps follow their
-  window*, atau terminal `appframe follow on|off`. Cek rect yang dikirim dari terminal:
-  `appframe place <app>`.
-- **Kalau perangkat tidak mendukung floating**: aplikasi terbuka penuh (seperti launcher biasa),
-  sementara kotak jendelanya tetap ada sebagai "wakil"-nya di taskbar, daftar jendela dan workspace
-  (minimize/Home untuk melihatnya). Rect tetap dikirim (tidak berbahaya), dan status perangkat
-  ditampilkan di *Settings - apps & windows*.
-  Cara mengaktifkan floating window: *developer options* → *force activities to be resizable*, atau
-  `adb shell settings put global enable_freeform_support 1`.
-- Android sendiri **tidak mengizinkan** satu aplikasi menggambar UI aplikasi lain di dalam view-nya
-  (`android.app.ActivityView` sudah dihapus dari SDK setelah API 29 dan bukan API publik), jadi
-  inilah jalur yang benar: chrome milik kita + jendela sistem milik aplikasi.
-- *Settings - apps & windows → **Float apps inside their window frame*** (atau terminal
-  `floating on|off`): **on** berarti aplikasi diminta mengapung di dalam kotak jendelanya, **off**
-  berarti aplikasi membuka full screen sementara kotak jendelanya tetap jadi entri taskbar
-  (cadangan untuk tablet yang rewel soal floating). Menu konteks ikon aplikasi juga punya
-  **Open in its window** dan **Open full screen**.
-
-### Cyberdeck chrome: kotak jendela tetap terlihat di atas aplikasi
-- Kalau tablet **tidak** bisa memunculkan jendela freeform (kebanyakan EMUI/HarmonyOS, walau *force
-  activities to be resizable* sudah dinyalakan), aplikasi akan membuka full screen dan kotak jendela
-  di belakangnya tidak pernah kelihatan. Untuk itu launcher bisa **menggambar sendiri kotak itu di
-  atas aplikasi**: bingkai 3dp, **title rail** (nama aplikasi, jam, baterai, tombol `fit frame` /
-  `desktop` / `x`) dan **dock** di bawah (desktop, app yang dipin, jendela yang terbuka, tombol
-  sembunyikan). Jadi aplikasi full screen pun terlihat sebagai jendela dari desktop ini.
+### Cyberdeck chrome: bingkai yang menggambar "jendela" di atas aplikasi
+- Setiap aplikasi terbuka **penuh** (launcher tidak pernah meminta floating window), jadi launcher
+  sendiri yang **menggambar bingkainya di atas aplikasi**: border hitam 3,5 dp, **title rail**
+  (nama aplikasi, jam `HH:mm:ss`, baterai, sinyal, dan tombol `hide` / `eye` / `desktop` / `panel` /
+  `keyboard`) serta **dock** di bawah (kunci desktop, aplikasi yang dipin, tombol panel). Itulah
+  yang membuat aplikasi full screen terbaca sebagai jendela dari desktop ini.
 - Menyalakannya: *Settings - cyberdeck chrome → Draw the desktop frame over full-screen apps*
   (butuh izin **display over other apps**, ada tombol `grant permission`), tombol `preview 8s` untuk
   mencoba tanpa keluar dari desktop, atau terminal: `cyberdeck on|off|preview|grant`.
-- Chrome hanya muncul saat launcher tidak terlihat; kalau aplikasi berhasil mengapung, chrome tidak
-  ikut tampil (tidak ada bingkai dobel). Tengah layar tidak ditutup overlay apa pun, dan dock diberi
-  jarak dari gesture bar supaya swipe-naik (home) tetap jalan.
+- Chrome hanya muncul saat launcher tidak terlihat (kalau desktop yang di depan, launcher menggambar
+  bingkainya sendiri — lihat *Satu aplikasi, satu layar*). Tengah layar tidak ditutup overlay apa
+  pun, dan dock diberi jarak dari gesture bar supaya swipe-naik (home) tetap jalan.
 - **Bingkai selalu hitam**, judul rail dimulai setelah lubang kamera, dan **rail auto-hide**:
   setelah beberapa detik title rail + dock menyusut jadi handle tipis di tepi layar (sentuh untuk
   memunculkan; rail juga muncul sebentar tiap ganti aplikasi). Atur di *Settings - cyberdeck chrome*
@@ -150,8 +107,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 ### Quick panel & dock pintar
 - **Quick panel** (tombol gear di rail, terminal `panel`): brightness (drag + `B-`/`B+`/`auto`),
   rotation lock, night mode (palet ink), toggle chrome/rail/dock, auto-hide on/off + 4/6/10/20s,
-  daftar aplikasi yang sedang terbuka (tap = bawa ke depan + fit ke kotaknya, hold = shell di
-  terminal), dan daftar **no chrome for** (izin bingkai per aplikasi).
+  daftar aplikasi untuk dibuka (tap = buka penuh, hold = shell-nya di terminal), dan daftar
+  **no chrome for** (izin bingkai per aplikasi).
 - **Dock pintar**: pembatas dock adalah tombol **pinned / most used first** (`rail mode pinned|used`).
   Dua app pertama yang dipin tetap, sisanya diisi aplikasi yang paling sering dibuka; berlaku di dock
   desktop, sidebar, taskbar, widget launcher dan dock cyberdeck. Tahan app di dock cyberdeck untuk
@@ -172,13 +129,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   supaya judul aplikasi tidak tertimpa.
 - UX: tap pada rail kosong atau handle = sembunyikan/munculkan rail, area sentuh tombol diperbesar,
   tombol `eye` menyembunyikan rail hanya untuk app itu, dan setiap aksi mengeluarkan konfirmasi.
-- Selain itu, permintaan freeform sekarang dikirim lebih tegas: selain rect, launcher juga memanggil
-  `setLaunchWindowingMode(FREEFORM)` (reflection) supaya tablet yang mendukung benar-benar
-  mengapungkan aplikasinya di dalam kotak.
 
 ### App drawer: daftar yang bisa digulir, yang paling sering dipakai di atas
-- **Bukan fullscreen, dan bukan grid ikon**: *Applications* adalah jendela biasa (bisa digeser,
-  di-resize, di-maximize seperti jendela lain) berisi **daftar** satu baris per aplikasi yang bisa
+- **Punya layar sendiri**: *Applications* terbuka **penuh** seperti aplikasi lain (bingkai + title
+  rail + dock, digambar launcher sendiri) dan isinya **daftar** satu baris per aplikasi yang bisa
   digulir — ikon, nama, nama paket, dan berapa kali aplikasi itu dibuka (`x12`).
 - **Urutannya: paling sering dipakai dulu, baru A–Z**. Setiap pembukaan app dicatat (disimpan di
   preferensi sebagai `pkg=count`), lalu daftar dibagi dua bagian dengan label pemisah:
@@ -251,30 +205,20 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 ### Aman untuk kamera & sudut melengkung
 - Tablet modern punya **sudut melengkung** dan **punch-hole kamera**. Launcher menggambar sampai
-  tepi layar, tapi panel, dock, widget, ikon dan jendela digeser masuk sejauh
+  tepi layar, tapi panel, dock, widget, ikon dan title rail digeser masuk sejauh
   `max(cutout, radius sudut)` — jadi tidak ada yang tertutup kamera atau terpotong lengkungan.
 - Cutout dibaca langsung dari window insets (`safeInsetLeft/Top/Right/Bottom`), jadi posisi kamera
   mengikuti perangkat. Radius sudut bisa dipilih di *Settings - display corners & camera hole*
   (`flat`, `12dp`, `20dp`, `28dp`) atau lewat terminal: `safearea on|off|20`.
 
-### Window manager
-- Jendela bisa digeser (drag title bar), di-resize (grip kanan bawah), minimize / maximize / close.
-- Gaya title bar mengikuti tema (traffic light macOS, gradient Win95, solid + tombol kanan Linux).
-- Cascade otomatis, fokus, task list di panel/taskbar, dan **tiling** (master–stack) untuk gaya Linux.
-- **Snap ke tepi layar**: geser jendela ke tepi kiri/kanan → menempati separuh layar, ke tengah-atas →
-  maximize. Muncul pratinjau berupa outline garis putus-putus (dither) sebelum kamu melepasnya.
-  Sudut atas-kiri/kanan tetap mengikuti aturan tepi (kiri/kanan), seperti Aero Snap.
-- **Virtual desktop (workspace)**: 1–4 desktop, jendela hidup per-desktop. Pager berupa kotak angka
-  di panel / menu bar / taskbar: tap untuk pindah, titik di dalamnya menunjukkan jumlah jendela,
-  tekan lama untuk menu desktop (pindah jendela atau ubah jumlah desktop).
-- **Semua sisi jendela bisa di-resize manual**: delapan handle (kiri, kanan, atas, bawah, dan empat
-  sudut) yang bisa ditarik pakai jari, M-Pencil maupun mouse. Ukuran minimum dijaga, jendela tidak
-  bisa keluar dari desktop, dan ukuran hidup (`820x640`) tampil di title bar saat ditarik.
-  Double-tap title bar = maximize/restore, dan maximize selalu bisa dibatalkan ke ukuran semula
-  (`ui/wm/MaximizeMath.kt`).
-- **Floating windows**: setiap jendela mengambang dan punya tombol dua-kotak di title bar untuk
-  keluar-masuk dari layout tiling. Jendela mengambang mempertahankan ukuran yang kamu beri, jendela
-  lain mengikuti tiling master-stack.
+### Desktop, workspace & dock
+- **Desktop itu ikon + widget.** Tidak ada kotak jendela, tidak ada yang mengambang: jadi tidak ada
+  pindah/resize/minimize/maximize, cascade, tiling, maupun edge snapping. Membuka aplikasi =
+  membuka **penuh**, dan bingkai cyberdeck yang membuatnya terbaca sebagai jendela (lihat
+  *Satu aplikasi, satu layar*).
+- **Workspace 1–4** (pager kotak angka di panel / menu bar / taskbar, `Ctrl+Alt+←/→`, `Ctrl+Alt+1..4`,
+  atau terminal `workspace 1..4`): tiap halaman punya **ikon & widget** sendiri. Tap pager = pindah
+  halaman, hold = menu desktop (ubah jumlah desktop).
 - **Ikon dock / sidebar / quick launch bisa diatur urutannya**: tarik ikon ke sepanjang dock, muncul
   penanda garis di slot tujuan. Tarik ikon keluar ke desktop untuk memindahkannya dari dock ke grid,
   atau dari grid ke dock — dua arah.
@@ -283,16 +227,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   jadi tidak ada yang terdorong keluar layar. Menu desktop → *Auto arrange icons* untuk kembali
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
 - Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
-  `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
-  `ui/wm/DockMath.kt` (urutan dock), `ui/wm/WidgetMath.kt` (ukuran + daftar widget),
-  `ui/wm/AppWindowMath.kt` (penempatan aplikasi di kotak jendela), `ui/wm/MaximizeMath.kt`
-  (maximize + restore) dan `data/AppUsage.kt` (urutan app drawer) — **91 test**:
-  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 16 `WidgetMathTest` +
-  9 `AppWindowMathTest` + 9 `MaximizeMathTest` + 10 `AppUsageTest`.
+  `ui/wm/GridMath.kt` (grid ikon), `ui/wm/DockMath.kt` (urutan dock), `ui/wm/WidgetMath.kt`
+  (ukuran + daftar widget) dan `data/AppUsage.kt` (urutan app drawer) — **50 test**:
+  15 `GridMathTest` + 9 `DockMathTest` + 16 `WidgetMathTest` + 10 `AppUsageTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
-- Kursor pointer e-paper untuk pena/mouse, drag langsung untuk memindahkan ikon dan jendela.
+- Kursor pointer e-paper untuk pena/mouse, drag langsung untuk memindahkan ikon dan widget.
 - Keyboard internal Android tetap berfungsi dan bisa dipanggil kapan saja lewat tombol ⌨ di tray
   (atau `Ctrl+Alt+K`); layout menyesuaikan tinggi keyboard.
 - Dukungan keyboard eksternal dengan 10+ pintasan gaya desktop.
@@ -308,23 +249,20 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 ### Aplikasi bawaan
 - **Terminal** (`rb-sh`) — 30+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
-  `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
-  `workspace 1..4` (`ws`), `wsmove 1..4`, `cal`, `wallpaper pattern|device|image`,
+  `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`,
+  `workspace 1..4` (`ws`), `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
-  `floating on|off`, `cyberdeck on|off|preview|grant`, `usage [top|clear]`, `widgets` / `widget width <dp>` /
+  `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `widgets` / `widget width <dp>` /
   `widget size <name> <w> <h>` / `widget reset`,
-  `invert`, `wmctrl`, `boot`, `help`, `exit`,
+  `invert`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
-- **Jendela aplikasi (app window)** — pembungkus desktop untuk aplikasi pihak ketiga: nama + ikon,
-  geometry jendela, tombol *place here* / *open full screen* / *bring it back*, plus penjelasan
-  status floating window di perangkat itu.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
   **cara membuka app** (dobel klik vs satu klik),
   **display widgets** (add/remove/urutkan/reset widget), **app icon look** dengan pratinjau ikon
   hidup, keterbacaan + bentuk + mode ikon, skala UI, **input & devices** (hold time pena, kursor,
   keyboard), perilaku, tombol "Set as default launcher".
-- **System monitor** — baterai, RAM, penyimpanan, jaringan, uptime, daftar jendela, grafik tren.
+- **System monitor** — baterai, RAM, penyimpanan, jaringan, uptime, aplikasi yang memegang layar, grafik tren.
 - **Notes** — catatan teks yang tersimpan otomatis.
 - **Calendar** — bulan, agenda, task, birthday; semua bisa ditambah/edit/hapus dari UI.
 - **About** — info build, perangkat, dan daftar pintasan.
@@ -335,11 +273,11 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 | --- | --- |
 | **Tap ikon** (desktop / app drawer / launchpad) | **memilih** ikon — ikon dicetak terbalik seperti ikon terpilih di desktop |
 | **Dobel klik / dobel tap ikon** | **membuka aplikasi** |
-| Tap & tahan ikon (atau klik kanan / hold pena) | menu aplikasi: open, open full screen, show in app drawer, add/remove desktop, add/remove dock, **add apps or widgets to the desktop…**, app info, uninstall |
+| Tap & tahan ikon (atau klik kanan / hold pena) | menu aplikasi: open, show in app drawer, add/remove desktop, add/remove dock, **add apps or widgets to the desktop…**, app info, uninstall |
 | Tap & tahan lalu geser | drag ikon ke dock / sidebar / desktop |
 | **Enter / Return** | buka ikon yang sedang terpilih |
 | Tap di desktop kosong | lepas pilihan ikon + keluar dari mode edit widget |
-| Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, tiling, **add app/widget**, **add/remove widget**, **edit widgets**, close all) |
+| Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, **add app/widget**, **add/remove widget**, **edit widgets**, desktops/workspaces…) |
 | Tap ikon di dock / sidebar / taskbar / widget launcher | langsung membuka aplikasi (satu klik, seperti taskbar Windows/macOS) |
 | Tap baris di app drawer | memilih baris itu (dobel tap / dobel klik membuka); tap & tahan = menu aplikasi |
 | Tap di luar panel launchpad | menutup panel (tidak menutupi desktop seperti dulu) |
@@ -356,7 +294,6 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   atau dari menu aplikasi (`Add to desktop` / `Add to dock`); atau terminal `app add <nama>`.
 | Tap & tahan widget | masuk **mode edit widget**: resize, `^` `v`, `fit`, `remove` (bisa dimatikan di Settings / `widget hold off`) |
 | Tap desktop kosong atau `Esc` | keluar dari mode edit widget |
-| Tap judul jendela | jendela naik ke depan (click-to-focus) |
 
 ### M-Pencil / stylus sebagai mouse
 
@@ -365,9 +302,9 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
 | Aksi pen | Hasil |
 | --- | --- |
 | 1× tap | **klik kiri** (instan) — buka aplikasi / tekan tombol / pilih menu |
-| **tahan (hold)** | **klik kanan** — menu konteks pada ikon, widget, jendela, atau desktop |
+| **tahan (hold)** | **klik kanan** — menu konteks pada ikon, widget, atau desktop |
 | tombol barrel pada pena | klik kanan (dibaca sebagai tombol sekunder) |
-| sentuh & geser dengan pena | drag langsung: pindahkan ikon, taruh di dock, geser/resize jendela |
+| sentuh & geser dengan pena | drag langsung: pindahkan ikon & widget, taruh ikon di dock |
 
 - **Hold = klik kanan**, persis seperti mouse desktop: istirahatkan pena di atas sesuatu selama
   ±380 ms, menu konteks muncul di titik itu. Aturan lama *dobel-tap* sudah dihapus, jadi tidak ada
@@ -390,16 +327,13 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
 
 | Pintasan | Aksi |
 | --- | --- |
-| `Ctrl+Alt+T` / `Ctrl+Alt+S` | terminal / settings |
-| `Ctrl+Alt+W` / `Ctrl+Alt+M` | tutup jendela aktif / minimize semua |
+| `Ctrl+Alt+T` / `Ctrl+Alt+S` | terminal / settings (keduanya penuh, dengan bingkai) |
+| `Ctrl+Alt+A` | app drawer (Applications) |
 | `Ctrl+Alt+D` | menu desktop |
-| `Ctrl+Alt+←` / `Ctrl+Alt+→` / `Tab` | pindah fokus antar jendela |
-| `Ctrl+Alt+↑` | maximize/restore jendela aktif |
+| `Ctrl+Alt+←` / `Ctrl+Alt+→` / `Ctrl+Alt+1..4` | pindah halaman desktop (ikon & widget) |
 | `Ctrl+Alt+K` | munculkan / sembunyikan keyboard internal |
-| `Ctrl+Alt+1..4` | pindah virtual desktop |
-| `Ctrl+Alt+Shift+1..4` | kirim jendela aktif ke desktop tersebut |
 | `Super` (Meta) | Spotlight (cari aplikasi atau jalankan perintah shell) |
-| `Esc` | tutup popup / spotlight / start menu |
+| `Esc` | keluar dari aplikasi penuh kita dulu, lalu tutup popup / spotlight / start menu |
 | `Enter` | jalankan perintah di terminal & field satu baris |
 
 ### Boot sequence
@@ -433,8 +367,9 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 Setiap push menjalankan workflow [`.github/workflows/android.yml`](.github/workflows/android.yml):
 
-1. **job `test`** — `./gradlew :app:testDebugUnitTest` (72 unit test untuk matematika tiling &
-   edge-snapping); jumlah test/failure muncul di job summary dan sebagai check annotation
+1. **job `test`** — `./gradlew :app:testDebugUnitTest` (50 unit test untuk matematika grid ikon, urutan
+   dock, ukuran widget & urutan app drawer); jumlah test/failure muncul di job summary dan sebagai
+   check annotation
 2. **job `build`** — checkout → JDK 17 → Android SDK (platform 35, build-tools 35.0.0) → Gradle (cache),
    lalu `./gradlew :app:assembleDebug :app:assembleRelease`
 3. APK diunggah sebagai artifact: `retrobit-desktop-<run>-release.apk` dan `-debug.apk`
@@ -465,13 +400,14 @@ app/src/main/java/dev/retrobit/desktop/
 ├─ model/Models.kt            # DesktopStyle, PaletteId, WallPattern, IconMode, WinKind, AppEntry
 ├─ ui/theme/                  # Palette, font (VT323 + IBM Plex Mono), pola dither/Bayer
 ├─ ui/components/             # Chrome retro, glyph pixel-art, context menu, icon tile, gesture
-├─ ui/wm/                     # WindowManager, WindowFrame, DragState, LayoutMath (purified tiling/snap maths)
+├─ ui/wm/                     # DragState + matematika murni: GridMath, DockMath, WidgetMath
 ├─ ui/apps/                   # Terminal (rb-sh), Applications, Settings, System monitor, Notes, About
-├─ ui/desktop/                # ShellLinux, ShellMacos, ShellWindows, widget (Widgets/WidgetsExtra/
-│                             # CalendarWidget/WidgetFrame), Spotlight, wallpaper
+├─ ui/desktop/                # ShellHost (app sendiri penuh: rail + dock), ShellLinux/Macos/Windows,
+│                             # widget (Widgets/WidgetsExtra/CalendarWidget/WidgetFrame), Spotlight
 └─ ui/boot/BootScreen.kt      # animasi boot
 
-app/src/test/java/dev/retrobit/desktop/ui/wm/LayoutMathTest.kt   # 23 unit test (CI: job "Unit tests")
+app/src/test/java/dev/retrobit/desktop/ui/wm/      # GridMathTest, DockMathTest, WidgetMathTest
+app/src/test/java/dev/retrobit/desktop/data/       # AppUsageTest  (CI: job "Unit tests", 50 ekspektasi)
 ```
 
 ## Font & lisensi
@@ -482,7 +418,7 @@ Seluruh antarmuka memakai **Pixel Operator** dan **Pixel Operator Mono** karya J
 
 | File | Dipakai untuk |
 | --- | --- |
-| `pixel_operator.ttf` / `_bold` | judul, jam, judul jendela (`PixelDisplay`) |
+| `pixel_operator.ttf` / `_bold` | judul, jam, title rail (`PixelDisplay`) |
 | `pixel_operator_mono.ttf` / `_mono_bold` / `_mono_hb` | seluruh teks isi, terminal, tabel, progress bar (`PixelMono`) |
 
 Dua catatan teknis penting:
