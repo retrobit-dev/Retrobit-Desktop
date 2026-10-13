@@ -17,12 +17,14 @@ PAPER = (0xE8, 0xE5, 0xDA)
 INK = (0x1B, 0x1B, 0x1B)
 PATTERN = tuple(int(PAPER[i] * 0.7 + INK[i] * 0.3) for i in range(3))
 
-px_font = ImageFont.truetype(os.path.join(FONT_DIR, "vt323.ttf"), 40)
-px_small = ImageFont.truetype(os.path.join(FONT_DIR, "vt323.ttf"), 26)
-mono = ImageFont.truetype(os.path.join(FONT_DIR, "plex_mono_regular.ttf"), 17)
-mono_med = ImageFont.truetype(os.path.join(FONT_DIR, "plex_mono_medium.ttf"), 17)
-mono_bold = ImageFont.truetype(os.path.join(FONT_DIR, "plex_mono_bold.ttf"), 17)
-mono_tiny = ImageFont.truetype(os.path.join(FONT_DIR, "plex_mono_regular.ttf"), 14)
+# Pixel Operator (CC0 1.0) — the same files the app bundles.
+# Pixel fonts are designed on an 8/16 px grid: sizes that are multiples of 8 stay crisp.
+px_font = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 48)
+px_small = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 32)
+mono = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_mono.ttf"), 16)
+mono_med = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_mono_hb.ttf"), 16)
+mono_bold = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_mono_bold.ttf"), 16)
+mono_tiny = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_mono.ttf"), 14)
 
 BAYER = [
     0, 8, 2, 10,
@@ -353,7 +355,7 @@ def main():
     h = panels[0].height + 180
     sheet = Image.new("RGB", (w, h), (0x2A, 0x2A, 0x2A))
     d = ImageDraw.Draw(sheet)
-    big = ImageFont.truetype(os.path.join(FONT_DIR, "vt323.ttf"), 76)
+    big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
     d.text((42, 92), "e-paper launcher for android tablets · m-pencil acts as a mouse (1 tap = left click, 2 taps = right click) · internal keyboard on demand",
            font=mono, fill=(0xC9, 0xC5, 0xB8))

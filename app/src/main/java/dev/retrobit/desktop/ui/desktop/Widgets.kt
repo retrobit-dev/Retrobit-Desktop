@@ -62,7 +62,7 @@ fun WidgetCard(
             horizontalArrangement = Arrangement.spacedBy(dp(6f)),
         ) {
             GlyphIcon(glyph, dp(12f))
-            RetroText(title, size = 10.5f, weight = FontWeight.Bold, maxLines = 1)
+            RetroText(title, size = 11f, weight = FontWeight.Bold, maxLines = 1)
         }
         Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
         Column(Modifier.padding(dp(9f)), verticalArrangement = Arrangement.spacedBy(dp(6f))) { content() }
@@ -108,7 +108,7 @@ fun NotesWidget(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     WidgetCard("notes", Glyph.NOTES, modifier, onClick = { vm.openWindow(WinKind.NOTES) }) {
         RetroText(
             vm.settings.notes.lines().take(5).joinToString("\n").ifBlank { "empty — tap to write" },
-            size = 10.5f,
+            size = 11f,
             color = p.mid,
             maxLines = 5,
         )

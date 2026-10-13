@@ -79,7 +79,7 @@ fun DesktopIcons(
             ) {
                 GlyphIcon(Glyph.GRID, dp(30f))
                 RetroText("desktop is empty", size = 12f, color = p.mid, maxLines = 1)
-                RetroText("open Applications and drag icons here, or long-press for the menu", size = 10.5f, color = p.mid, maxLines = 3)
+                RetroText("open Applications and drag icons here, or long-press for the menu", size = 11f, color = p.mid, maxLines = 3)
             }
             return@Box
         }
@@ -152,8 +152,8 @@ fun StyleChip(vm: LauncherViewModel, compact: Boolean = false) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(5f)),
     ) {
-        RetroText("[${current.label.uppercase()}]", size = 10.5f, weight = FontWeight.Bold, maxLines = 1)
-        if (!compact) RetroText("switch", size = 9.5f, color = p.mid)
+        RetroText("[${current.label.uppercase()}]", size = 11f, weight = FontWeight.Bold, maxLines = 1)
+        if (!compact) RetroText("switch", size = 10f, color = p.mid)
     }
 }
 

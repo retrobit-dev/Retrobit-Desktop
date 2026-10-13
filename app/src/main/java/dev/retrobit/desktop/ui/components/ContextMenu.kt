@@ -94,7 +94,7 @@ fun ContextMenu(
                         if (item.glyph != null) GlyphIcon(item.glyph, dp(15f))
                         RetroText(
                             item.label,
-                            size = 12.5f,
+                            size = 13f,
                             color = if (item.enabled) p.ink else p.mid,
                             modifier = Modifier.weight(1f),
                         )

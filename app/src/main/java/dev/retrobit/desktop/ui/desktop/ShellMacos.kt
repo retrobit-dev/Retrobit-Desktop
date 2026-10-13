@@ -158,7 +158,7 @@ fun MacosShell(vm: LauncherViewModel) {
             KeyboardTrayButton(boxSize = dp(20f))
             RetroText(
                 SimpleDateFormat("EEE dd MMM  " + if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),
-                size = 11.5f, weight = FontWeight.Bold,
+                size = 12f, weight = FontWeight.Bold,
             )
         }
 
@@ -209,7 +209,7 @@ fun MacosShell(vm: LauncherViewModel) {
                         .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.wm.focus(w.id) }
                         .padding(horizontal = dp(6f), vertical = dp(1f)),
                 ) {
-                    RetroText(w.title.take(14), size = 9.5f, color = p.paper, maxLines = 1)
+                    RetroText(w.title.take(14), size = 10f, color = p.paper, maxLines = 1)
                 }
             }
         }
@@ -264,7 +264,7 @@ private fun MenuTitle(label: String, onClick: () -> Unit) {
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
             .padding(horizontal = dp(2f)),
     ) {
-        RetroText(label, size = 11.5f, weight = FontWeight.Medium, color = p.ink)
+        RetroText(label, size = 12f, weight = FontWeight.Medium, color = p.ink)
     }
 }
 
@@ -279,6 +279,6 @@ private fun DockItem(glyph: Glyph, label: String, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(dp(2f)),
     ) {
         GlyphIcon(glyph, dp(36f))
-        RetroText(label, size = 8.5f, color = p.mid, maxLines = 1)
+        RetroText(label, size = 9f, color = p.mid, maxLines = 1)
     }
 }

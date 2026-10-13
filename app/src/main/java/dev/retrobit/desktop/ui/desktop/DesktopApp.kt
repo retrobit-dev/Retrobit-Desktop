@@ -154,7 +154,7 @@ fun Wallpaper(pattern: WallPattern, modifier: Modifier = Modifier) {
         }
         RetroText(
             "RETROBIT E-PAPER · ${p.id.label.uppercase()} · ${pattern.label.uppercase()}",
-            size = 9.5f,
+            size = 10f,
             color = p.ink.copy(alpha = 0.45f),
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(dp(14f)),
         )

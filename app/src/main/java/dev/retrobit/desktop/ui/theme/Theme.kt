@@ -45,10 +45,21 @@ val LocalPalette = staticCompositionLocalOf { Palettes.of(PaletteId.PAPER) }
 val LocalIconMode = staticCompositionLocalOf { IconMode.MONO }
 val LocalDesktopStyle = staticCompositionLocalOf { DesktopStyle.LINUX }
 
-val Plex = FontFamily(
-    Font(R.font.plex_mono_regular, FontWeight.Normal),
-    Font(R.font.plex_mono_medium, FontWeight.Medium),
-    Font(R.font.plex_mono_bold, FontWeight.Bold),
+/**
+ * PixelDisplay Operator (CC0 1.0, Jayvee Enaguas / HarvettFox96) — the proportional cut, used for
+ * headings, clocks and window titles.
+ */
+val PixelDisplay = FontFamily(
+    Font(R.font.pixel_operator, FontWeight.Normal),
+    Font(R.font.pixel_operator_bold, FontWeight.Bold),
 )
 
-val Pixel = FontFamily(Font(R.font.vt323, FontWeight.Normal))
+/**
+ * PixelDisplay Operator Mono (CC0 1.0) — the monospaced cut, used for all body text, the terminal,
+ * tables and progress bars so that ASCII layouts line up.
+ */
+val PixelMono = FontFamily(
+    Font(R.font.pixel_operator_mono, FontWeight.Normal),
+    Font(R.font.pixel_operator_mono_hb, FontWeight.Medium),
+    Font(R.font.pixel_operator_mono_bold, FontWeight.Bold),
+)

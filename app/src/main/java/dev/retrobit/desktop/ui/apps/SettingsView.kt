@@ -61,7 +61,7 @@ fun SettingsView(vm: LauncherViewModel) {
                         onClick = { vm.setStyle(style) },
                     )
                     RetroText(style.osName, size = 10f, color = p.mid, maxLines = 2)
-                    RetroText(style.tagline, size = 9.5f, color = p.mid, maxLines = 3)
+                    RetroText(style.tagline, size = 10f, color = p.mid, maxLines = 3)
                 }
             }
         }
@@ -83,7 +83,7 @@ fun SettingsView(vm: LauncherViewModel) {
                     verticalArrangement = Arrangement.spacedBy(dp(5f)),
                 ) {
                     Box(Modifier.fillMaxWidth().height(dp(14f)).background(pal.ink))
-                    RetroText(id.label, size = 9.5f, color = pal.ink, maxLines = 1)
+                    RetroText(id.label, size = 10f, color = pal.ink, maxLines = 1)
                 }
             }
         }
@@ -104,7 +104,7 @@ fun SettingsView(vm: LauncherViewModel) {
                     verticalArrangement = Arrangement.spacedBy(dp(5f)),
                 ) {
                     Box(Modifier.fillMaxWidth().height(dp(16f)).background(p.paper).then(brush?.let { Modifier.background(it) } ?: Modifier))
-                    RetroText(w.label, size = 9.5f, maxLines = 1)
+                    RetroText(w.label, size = 10f, maxLines = 1)
                 }
             }
         }
@@ -120,7 +120,7 @@ fun SettingsView(vm: LauncherViewModel) {
                             IconMode.MONO -> "grayscale on paper"
                             IconMode.DITHER -> "1-bit halftone"
                         },
-                        size = 9.5f, color = p.mid, maxLines = 2,
+                        size = 10f, color = p.mid, maxLines = 2,
                     )
                 }
             }
@@ -196,7 +196,7 @@ fun SettingsView(vm: LauncherViewModel) {
                 "External keyboards: Ctrl+Alt+T terminal · Ctrl+Alt+S settings · Ctrl+Alt+W close window · " +
                 "Ctrl+Alt+M minimize all · Ctrl+Alt+D desktop menu · Ctrl+Alt+←/→ or Tab cycle windows · " +
                 "Ctrl+Alt+↑ maximize · Super opens Spotlight.",
-            size = 10.5f, color = p.mid, maxLines = 12,
+            size = 11f, color = p.mid, maxLines = 12,
         )
 
         Section("launcher")
@@ -218,7 +218,7 @@ fun SettingsView(vm: LauncherViewModel) {
             "Press the home button (or swipe up from the bottom edge on Huawei devices) and pick " +
                 "\"Retrobit Desktop\" — tick \"always\" to replace the stock launcher. " +
                 "You can switch back any time in Android Settings › Apps › Default apps › Home app.",
-            size = 10.5f, color = p.mid, maxLines = 8,
+            size = 11f, color = p.mid, maxLines = 8,
         )
 
         Section("maintenance")
@@ -259,7 +259,7 @@ fun SettingsView(vm: LauncherViewModel) {
 private fun Section(title: String) {
     val p = LocalPalette.current
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
-        RetroText(title, size = 11.5f, color = p.mid, weight = FontWeight.Bold)
+        RetroText(title, size = 12f, color = p.mid, weight = FontWeight.Bold)
         Box(Modifier.weight(1f).height(dp(1f)).background(p.ink.copy(alpha = 0.35f)))
     }
 }

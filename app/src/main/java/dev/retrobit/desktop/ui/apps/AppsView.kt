@@ -56,7 +56,7 @@ fun AppsView(vm: LauncherViewModel, win: WinState) {
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
                 GlyphIcon(Glyph.GRID, dp(14f))
-                RetroText("${apps.size}/${vm.apps.size}", size = 11.5f, color = p.mid)
+                RetroText("${apps.size}/${vm.apps.size}", size = 12f, color = p.mid)
             }
         }
         Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
@@ -88,7 +88,7 @@ fun AppsView(vm: LauncherViewModel, win: WinState) {
             horizontalArrangement = Arrangement.spacedBy(dp(8f)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RetroText("${vm.apps.size} apps · long-press for options", size = 10.5f, color = p.mid)
+            RetroText("${vm.apps.size} apps · long-press for options", size = 11f, color = p.mid)
         }
     }
 }

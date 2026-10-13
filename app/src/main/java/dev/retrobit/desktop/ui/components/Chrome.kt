@@ -61,7 +61,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.staticCompositionLocalOf
 import dev.retrobit.desktop.ui.theme.ChromePattern
-import dev.retrobit.desktop.ui.theme.Plex
+import dev.retrobit.desktop.ui.theme.PixelDisplay
+import dev.retrobit.desktop.ui.theme.PixelMono
 import dev.retrobit.desktop.ui.theme.Pixel
 import dev.retrobit.desktop.ui.input.LocalKeyboardRequester
 import dev.retrobit.desktop.ui.theme.LocalPalette
@@ -115,9 +116,9 @@ fun RetroText(
         style = TextStyle(
             color = color ?: p.ink,
             fontSize = sp(if (display) size * 1.45f else size),
-            fontFamily = if (display) Pixel else Plex,
+            fontFamily = if (display) PixelDisplay else PixelMono,
             fontWeight = weight,
-            letterSpacing = if (display) 0.6.sp else 0.sp,
+            letterSpacing = 0.sp,
         ),
     )
 }
@@ -312,7 +313,7 @@ fun RetroTextField(
             onValueChange = onValueChange,
             enabled = enabled,
             singleLine = singleLine,
-            textStyle = TextStyle(color = p.ink, fontSize = sp(textSize), fontFamily = Plex),
+            textStyle = TextStyle(color = p.ink, fontSize = sp(textSize), fontFamily = PixelMono),
             cursorBrush = SolidColor(p.ink),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (singleLine) ImeAction.Done else ImeAction.Default),
             keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke(); focus.clearFocus() }),
@@ -379,7 +380,7 @@ fun MarqueeText(text: String, modifier: Modifier = Modifier, size: Float = 12f, 
         maxLines = maxLines,
         modifier = modifier,
         overflow = TextOverflow.Ellipsis,
-        style = TextStyle(color = p.ink, fontSize = sp(size), fontFamily = Plex),
+        style = TextStyle(color = p.ink, fontSize = sp(size), fontFamily = PixelMono),
     )
 }
 

@@ -71,7 +71,7 @@ fun BootScreen(vm: LauncherViewModel, onSkip: () -> Unit) {
                 RetroText(if (pulse > 0.5f) "_" else " ", size = 13f)
             }
             RetroProgress(progress, cells = 32, thickness = dp(12f))
-            RetroText("tap anywhere to skip", size = 10.5f, color = p.mid)
+            RetroText("tap anywhere to skip", size = 11f, color = p.mid)
         }
         Box(
             Modifier

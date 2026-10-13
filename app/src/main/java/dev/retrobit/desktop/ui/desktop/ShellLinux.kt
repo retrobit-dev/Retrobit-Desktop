@@ -143,7 +143,7 @@ fun LinuxShell(vm: LauncherViewModel) {
                     ) {
                         RetroText(
                             w.title.take(18),
-                            size = 10.5f,
+                            size = 11f,
                             color = if (vm.wm.focusedId == w.id && !w.minimized) p.paper else p.ink,
                             maxLines = 1,
                         )
@@ -157,7 +157,7 @@ fun LinuxShell(vm: LauncherViewModel) {
             TrayButton(Glyph.SEARCH) { vm.spotlight = true }
             RetroText(
                 SimpleDateFormat(if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),
-                size = 11.5f, weight = FontWeight.Bold,
+                size = 12f, weight = FontWeight.Bold,
             )
         }
 
@@ -209,7 +209,7 @@ private fun PanelMenu(label: String, onClick: () -> Unit) {
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
             .padding(horizontal = dp(6f), vertical = dp(2f)),
     ) {
-        RetroText(label, size = 11.5f, color = p.ink)
+        RetroText(label, size = 12f, color = p.ink)
     }
 }
 
@@ -225,6 +225,6 @@ private fun DockGlyph(glyph: Glyph, label: String, onClick: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(dp(3f)),
     ) {
         GlyphIcon(glyph, dp(26f))
-        RetroText(label, size = 9.5f, color = p.mid, maxLines = 1)
+        RetroText(label, size = 10f, color = p.mid, maxLines = 1)
     }
 }

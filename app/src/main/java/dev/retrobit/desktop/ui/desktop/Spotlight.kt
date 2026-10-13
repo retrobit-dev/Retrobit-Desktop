@@ -114,8 +114,8 @@ fun Spotlight(vm: LauncherViewModel) {
                         horizontalArrangement = Arrangement.spacedBy(dp(10f)),
                     ) {
                         GlyphIcon(glyph, dp(16f))
-                        RetroText(label, size = 12.5f, modifier = Modifier.weight(1f))
-                        RetroText("command", size = 9.5f, color = p.mid)
+                        RetroText(label, size = 13f, modifier = Modifier.weight(1f))
+                        RetroText("command", size = 10f, color = p.mid)
                     }
                 }
                 items(appHits, key = { it.key }) { app ->
@@ -133,8 +133,8 @@ fun Spotlight(vm: LauncherViewModel) {
                         } else {
                             GlyphIcon(Glyph.FOLDER, dp(16f))
                         }
-                        RetroText(app.label, size = 12.5f, modifier = Modifier.weight(1f))
-                        RetroText(app.pkg, size = 9.5f, color = p.mid, maxLines = 1)
+                        RetroText(app.label, size = 13f, modifier = Modifier.weight(1f))
+                        RetroText(app.pkg, size = 10f, color = p.mid, maxLines = 1)
                     }
                 }
             }

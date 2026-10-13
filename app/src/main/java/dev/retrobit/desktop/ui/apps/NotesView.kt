@@ -46,8 +46,8 @@ fun NotesView(vm: LauncherViewModel) {
             horizontalArrangement = Arrangement.spacedBy(dp(8f)),
         ) {
             RetroText("notes.txt", size = 12f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            RetroText(if (saved) "saved" else "saving…", size = 10.5f, color = p.mid)
-            RetroText("${text.lines().size} L · ${text.length} C", size = 10.5f, color = p.mid)
+            RetroText(if (saved) "saved" else "saving…", size = 11f, color = p.mid)
+            RetroText("${text.lines().size} L · ${text.length} C", size = 11f, color = p.mid)
         }
         Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
         Box(Modifier.fillMaxSize().padding(dp(10f))) {

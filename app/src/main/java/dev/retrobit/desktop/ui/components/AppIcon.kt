@@ -229,7 +229,7 @@ fun AppIconRow(
                 GlyphIcon(Glyph.FOLDER, iconSize * 0.85f)
             }
             if (showLabel) {
-                RetroText(app.label, size = 11.5f, color = if (active) p.paper else p.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                RetroText(app.label, size = 12f, color = if (active) p.paper else p.ink, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
     }

@@ -57,7 +57,7 @@ fun TerminalView(vm: LauncherViewModel) {
                         RetroText(
                             text = if (line.kind == TerminalShell.Kind.IN) line.text else line.text.ifEmpty { " " },
                             color = color,
-                            size = 12.5f,
+                            size = 13f,
                             weight = if (line.kind == TerminalShell.Kind.HEAD) FontWeight.Bold else FontWeight.Normal,
                             maxLines = 3,
                             modifier = Modifier.fillMaxWidth().padding(vertical = dp(0.5f)),
@@ -72,7 +72,7 @@ fun TerminalView(vm: LauncherViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dp(8f)),
         ) {
-            RetroText(shell.prompt(), size = 12.5f, weight = FontWeight.Bold)
+            RetroText(shell.prompt(), size = 13f, weight = FontWeight.Bold)
             Box(Modifier.weight(1f)) {
                 RetroTextField(
                     value = input,

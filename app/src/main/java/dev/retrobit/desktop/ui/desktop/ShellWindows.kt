@@ -210,7 +210,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                         horizontalArrangement = Arrangement.spacedBy(dp(6f)),
                     ) {
                         GlyphIcon(if (w.isApp) Glyph.GRID else Glyph.TERMINAL, dp(12f))
-                        RetroText(w.title, size = 11.5f, color = if (active) p.paper else p.ink, maxLines = 1, modifier = Modifier.weight(1f))
+                        RetroText(w.title, size = 12f, color = if (active) p.paper else p.ink, maxLines = 1, modifier = Modifier.weight(1f))
                     }
                 }
             }

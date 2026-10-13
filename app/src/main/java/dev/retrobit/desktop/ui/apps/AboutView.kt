@@ -46,10 +46,10 @@ fun AboutView(vm: LauncherViewModel) {
     ) {
         Row(horizontalArrangement = Arrangement.spacedBy(dp(10f))) {
             GlyphIcon(Glyph.LOGO, dp(46f))
-            RetroText(logo, size = 8.5f, maxLines = 8)
+            RetroText(logo, size = 9f, maxLines = 8)
         }
         RetroText("RETROBIT DESKTOP", size = 20f, display = true, weight = FontWeight.Bold)
-        RetroText("an Android launcher that dresses your tablet as an e-paper retro computer.", size = 11.5f, maxLines = 3)
+        RetroText("an Android launcher that dresses your tablet as an e-paper retro computer.", size = 12f, maxLines = 3)
         Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink.copy(alpha = 0.4f)))
         kv("version", BuildConfig.VERSION_NAME)
         kv("build", BuildConfig.VERSION_CODE.toString())
@@ -78,9 +78,9 @@ fun AboutView(vm: LauncherViewModel) {
                 "panel/taskbar (or ctrl+alt+k) shows or hides it. External keyboards: ctrl+alt+t terminal ·\n" +
                 "ctrl+alt+s settings · ctrl+alt+w close · ctrl+alt+m minimize all · ctrl+alt+d desktop menu ·\n" +
                 "tab / ctrl+alt+arrows cycle windows · super = spotlight",
-            size = 10.5f, color = p.mid, maxLines = 16,
+            size = 11f, color = p.mid, maxLines = 16,
         )
-        RetroText("MIT-less personal project of retrobit-dev · fonts: VT323 & IBM Plex Mono (OFL)", size = 10f, color = p.mid, maxLines = 3)
+        RetroText("personal project of retrobit-dev · font: Pixel Operator & Pixel Operator Mono (CC0 1.0)", size = 10f, color = p.mid, maxLines = 3)
     }
 }
 
@@ -88,7 +88,7 @@ fun AboutView(vm: LauncherViewModel) {
 private fun kv(key: String, value: String) {
     val p = LocalPalette.current
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
-        RetroText(key.padEnd(14), size = 11.5f, color = p.mid, modifier = Modifier.weight(1f))
-        RetroText(value, size = 11.5f, modifier = Modifier.weight(1.4f))
+        RetroText(key.padEnd(14), size = 12f, color = p.mid, modifier = Modifier.weight(1f))
+        RetroText(value, size = 12f, modifier = Modifier.weight(1.4f))
     }
 }

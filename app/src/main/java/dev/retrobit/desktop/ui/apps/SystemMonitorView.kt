@@ -62,10 +62,10 @@ fun SystemMonitorView(vm: LauncherViewModel) {
 
         Section("memory")
         RetroText("${SystemInfo.fmtBytes(snap.memUsed)} used / ${SystemInfo.fmtBytes(snap.memTotal)} total", size = 12f)
-        RetroText(SystemInfo.bar(snap.memFrac, 32), size = 12.5f, color = p.mid)
+        RetroText(SystemInfo.bar(snap.memFrac, 32), size = 13f, color = p.mid)
         Section("storage (/data)")
         RetroText("${SystemInfo.fmtBytes(snap.diskUsed)} used / ${SystemInfo.fmtBytes(snap.diskTotal)} total", size = 12f)
-        RetroText(SystemInfo.bar(snap.diskFrac, 32), size = 12.5f, color = p.mid)
+        RetroText(SystemInfo.bar(snap.diskFrac, 32), size = 13f, color = p.mid)
         Section("trend (memory samples)")
         Trend(spark)
         Section("uptime / network")
@@ -74,7 +74,7 @@ fun SystemMonitorView(vm: LauncherViewModel) {
         RetroText("battery : " + if (snap.battery < 0) "unavailable" else "${snap.battery}%" + if (snap.charging) " (charging)" else "", size = 12f)
         Section("open windows (${vm.wm.windows.size})")
         if (vm.wm.windows.isEmpty()) {
-            RetroText("none — long-press the desktop for a menu", size = 11.5f, color = p.mid)
+            RetroText("none — long-press the desktop for a menu", size = 12f, color = p.mid)
         } else {
             vm.wm.windows.forEach { w ->
                 Row(
@@ -82,9 +82,9 @@ fun SystemMonitorView(vm: LauncherViewModel) {
                     horizontalArrangement = Arrangement.spacedBy(dp(8f)),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    RetroText("#${w.id}", size = 11.5f, color = p.mid)
-                    RetroText(w.kind.name.lowercase(), size = 11.5f, weight = FontWeight.Bold)
-                    RetroText(w.title, size = 11.5f, color = p.mid, maxLines = 1, modifier = Modifier.weight(1f))
+                    RetroText("#${w.id}", size = 12f, color = p.mid)
+                    RetroText(w.kind.name.lowercase(), size = 12f, weight = FontWeight.Bold)
+                    RetroText(w.title, size = 12f, color = p.mid, maxLines = 1, modifier = Modifier.weight(1f))
                     if (w.minimized) dev.retrobit.desktop.ui.components.RetroIconButton(
                         label = "+",
                         boxSize = dp(22f),
@@ -118,7 +118,7 @@ private fun Metric(label: String, value: String, frac: Float) {
             .padding(dp(8f)),
         verticalArrangement = Arrangement.spacedBy(dp(4f)),
     ) {
-        RetroText(label, size = 10.5f, color = p.mid)
+        RetroText(label, size = 11f, color = p.mid)
         RetroText(value, size = 17f, display = true, weight = FontWeight.Bold)
         RetroProgress(frac, cells = 8, thickness = dp(8f))
     }
