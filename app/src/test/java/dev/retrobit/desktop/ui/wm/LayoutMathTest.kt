@@ -120,8 +120,20 @@ class LayoutMathTest {
     }
 
     @Test
-    fun `a wide window at the top is not treated as maximize when off centre`() {
-        val window = Rect(area.left + 200f, area.top + 1f, area.left + 1150f, 300f)
+    fun `the top left corner snaps left instead of maximizing`() {
+        val window = Rect(area.left + 4f, area.top + 1f, area.left + 404f, 400f)
+        assertEquals(SnapZone.LEFT, LayoutMath.zoneFor(area, window))
+    }
+
+    @Test
+    fun `the top right corner snaps right instead of maximizing`() {
+        val window = Rect(area.right - 404f, area.top + 1f, area.right - 4f, 400f)
+        assertEquals(SnapZone.RIGHT, LayoutMath.zoneFor(area, window))
+    }
+
+    @Test
+    fun `a small window at the top but off to one side does not maximize`() {
+        val window = Rect(area.left + 120f, area.top + 1f, area.left + 480f, 240f)
         assertNull(LayoutMath.zoneFor(area, window))
     }
 
