@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -40,6 +39,7 @@ import dev.retrobit.desktop.ui.components.LocalUiScale
 import dev.retrobit.desktop.ui.components.RetroIconButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
+import dev.retrobit.desktop.ui.input.keyboardRoom
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import java.util.Date
 
@@ -69,9 +69,8 @@ fun ShellHost(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 // The window frame (border, title rail, dock) never moves: when the keyboard opens, only
                 // the app's own content makes room for it, so the terminal's input line and the notes /
-                // settings fields stay visible instead of hiding behind the keyboard. In "lift" mode the
-                // whole desktop already slides up, so the content must not be padded a second time.
-                .then(if (vm.settings.keyboardLiftsLayout) Modifier else Modifier.imePadding()),
+                // settings fields stay visible instead of hiding behind the keyboard.
+                .keyboardRoom(vm.settings),
         ) {
             ShellContent(kind)
         }

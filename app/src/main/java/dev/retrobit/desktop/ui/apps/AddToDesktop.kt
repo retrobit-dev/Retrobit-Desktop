@@ -34,6 +34,7 @@ import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.RetroButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
+import dev.retrobit.desktop.ui.input.keyboardRoom
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.retroShadow
 import dev.retrobit.desktop.ui.components.rememberAppIcon
@@ -61,7 +62,9 @@ fun AddToDesktopDialog(vm: LauncherViewModel) {
             .background(p.ink.copy(alpha = 0.35f))
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                 vm.appPicker = false
-            },
+            }
+            // the panel is centred: it steps up over the keyboard instead of hiding its app list
+            .keyboardRoom(vm.settings),
         contentAlignment = Alignment.Center,
     ) {
         Column(

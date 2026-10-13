@@ -3,6 +3,7 @@ package dev.retrobit.desktop.ui.input
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
@@ -61,6 +62,16 @@ fun StylusCursorOverlay(router: PointerRouter = LocalPointerRouter.current, size
         }
     }
 }
+
+/**
+ * Room for the on-screen keyboard on a surface the launcher owns, following the "keyboard lifts the
+ * layout" preference: by default the surface itself makes room for the keyboard (the desktop and the
+ * window frame never move); with the old slide-up mode the whole desktop already moved, so padding
+ * here would push the content up twice.
+ */
+@Composable
+fun Modifier.keyboardRoom(settings: dev.retrobit.desktop.data.Settings): Modifier =
+    if (settings.keyboardLiftsLayout) this else this.imePadding()
 
 /** Tray / panel button that summons or hides the on-screen (internal) keyboard. */
 @Composable
