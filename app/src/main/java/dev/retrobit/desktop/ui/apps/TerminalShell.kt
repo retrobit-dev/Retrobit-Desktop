@@ -94,6 +94,16 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "widgets", "widget" -> widgets(args)
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
+            "app" -> appCmd(args)
+            "doubleclick", "dblclick" -> {
+                val arg = args.firstOrNull()?.lowercase()
+                vm.settings.doubleClickOpen = when (arg) {
+                    null -> !vm.settings.doubleClickOpen
+                    "on", "1", "true" -> true
+                    else -> false
+                }
+                print("double click opens apps -> ${if (vm.settings.doubleClickOpen) "on (tap selects)" else "off (tap opens)"}")
+            }
             "notes" -> vm.openWindow(WinKind.NOTES)
             "calendar", "cal-ui" -> vm.openWindow(WinKind.CALENDAR)
             "settings", "config" -> vm.openWindow(WinKind.SETTINGS)
@@ -138,6 +148,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
             floating on|off        apps open in floating desktop windows
+            app add|remove <name>  put an app on the desktop / take it off
+            doubleclick on|off     apps open with a double click (tap selects) or a single tap
             widgets                widgets (widget add|remove <name> | widget width <dp> | widget size <name> <w> <h> |
                                    widget reset | widget edit on|off | widget hold on|off | widget layout)
             workspace 1..4         switch virtual desktop (also: ws)
@@ -325,6 +337,34 @@ class TerminalShell(private val vm: LauncherViewModel) {
     private fun freeformNote(): String =
         if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(vm.appContext)) " (this device supports floating windows)"
         else " (this device has no floating-window support: apps open full screen)"
+
+    /** `app add <name>` puts an app on the desktop, `app remove <name>` takes it off. */
+    private fun appCmd(args: List<String>) {
+        val action = args.getOrNull(0)?.lowercase()
+        val name = args.drop(1).joinToString(" ")
+        val app = vm.apps.firstOrNull {
+            it.label.equals(name, true) || it.pkg.equals(name, true) ||
+                (name.isNotBlank() && it.label.lowercase().startsWith(name.lowercase()))
+        }
+        when {
+            action == null || app == null -> {
+                print(
+                    "usage: app add <name|pkg> | app remove <name|pkg>",
+                    if (app == null && name.isNotBlank()) Kind.ERR else Kind.OUT,
+                )
+                print("on the desktop now: ${vm.settings.pinnedDesktop.size} apps")
+            }
+            action.startsWith("a") -> {
+                vm.addAppToDesktop(app)
+                print("${app.label} added to the desktop (${vm.settings.pinnedDesktop.size} apps)")
+            }
+            action.startsWith("r") -> {
+                vm.toggleDesktopPin(app)
+                print("${app.label} removed from the desktop (${vm.settings.pinnedDesktop.size} apps)")
+            }
+            else -> print("usage: app add <name|pkg> | app remove <name|pkg>", Kind.ERR)
+        }
+    }
 
     private fun widgetNames() = dev.retrobit.desktop.model.WidgetId.entries.joinToString("|") { it.label }
 

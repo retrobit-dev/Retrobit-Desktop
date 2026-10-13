@@ -117,8 +117,11 @@ fun DesktopIcons(
             // empty desktop: right click, a held pen, or a held finger opens the desktop menu —
             // this is the way into widget editing and adding widgets
             .desktopClick(
-                // a tap on the empty desktop always leaves widget editing
-                primary = { vm.widgetEdit = false },
+                // a tap on the empty desktop leaves widget editing and drops the icon selection
+                primary = {
+                    vm.widgetEdit = false
+                    vm.clearSelection()
+                },
                 secondary = { pos -> vm.desktopMenu(rootOffset + pos) },
             ),
     ) {
@@ -148,19 +151,6 @@ fun DesktopIcons(
                     }
                 }
             }
-        }
-
-        if (placements.isEmpty()) {
-            Column(
-                Modifier.align(Alignment.Center).padding(dp(20f)),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(dp(6f)),
-            ) {
-                GlyphIcon(Glyph.GRID, dp(30f))
-                RetroText("desktop is empty", size = 12f, color = p.mid, maxLines = 1)
-                RetroText("open Applications and drag icons here, or long-press for the menu", size = 11f, color = p.mid, maxLines = 3)
-            }
-            return@Box
         }
 
         placements.forEach { (app, cell) ->
@@ -199,7 +189,10 @@ private fun DesktopIcon(
     AppIconTile(
         app = app,
         iconSize = dp(54f),
+        selected = vm.selectedApp?.key == app.key,
+        openOnDoubleClick = vm.settings.doubleClickOpen,
         onOpen = { vm.launch(it) },
+        onSelect = { vm.selectIcon(it) },
         onContextMenu = { a, pos -> vm.appMenu(a, pos) },
         onDrop = { dropped, target ->
             when (target) {

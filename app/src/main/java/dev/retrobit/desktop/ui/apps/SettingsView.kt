@@ -435,6 +435,16 @@ fun SettingsView(vm: LauncherViewModel) {
             size = 10f, color = p.mid, maxLines = 5,
         )
         ToggleRow("Show pointer cursor for pen & mouse", s.showCursor, onGlyph = Glyph.CURSOR) { s.showCursor = it }
+        ToggleRow("Apps open with a double click / double tap (tap selects)", s.doubleClickOpen, onGlyph = Glyph.GRID) {
+            s.doubleClickOpen = it
+        }
+        RetroText(
+            "Desktop style: one tap marks the icon (it is printed inverted) and shows its name, the " +
+                "second tap opens the app. A hold always opens the app menu, where an app can be added " +
+                "to the desktop or the dock. Turn this off to open apps with a single tap again. Docks, " +
+                "sidebars, the taskbar and the launcher widget stay one-click either way.",
+            size = 10f, color = p.mid, maxLines = 5,
+        )
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier.weight(1f).border(dp(1.6f), p.ink).padding(dp(9f)),

@@ -129,6 +129,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                                 items(vm.apps.take(24), key = { it.key }) { app ->
                                     AppIconTile(
                                         app = app,
+                                        openOnDoubleClick = false,   // start menu / taskbar list
                                         iconSize = dp(34f),
                                         labelSize = 10f,
                                         onOpen = { vm.launch(it) },
@@ -202,6 +203,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                             app = app,
                             iconSize = dp(24f),
                             showLabel = false,
+                            openOnDoubleClick = false,   // quick launch: one click, like the taskbar
                             onOpen = { vm.launch(it) },
                             onContextMenu = { a, pos -> vm.appMenu(a, pos) },
                             onDrop = { a, target -> dockDrop(vm, a, dockSlots, drag.lastPosition, target) },

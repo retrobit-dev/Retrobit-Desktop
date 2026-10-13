@@ -54,6 +54,13 @@ class Settings(context: Context) {
 
     /** How long the pen has to rest before the press counts as a right click (ms). */
     var penHoldMs: Int by intPref("penHoldMs", 380)
+    /**
+     * Desktop-style opening: a tap on a desktop icon, app-drawer icon or launchpad icon only selects
+     * it, a double click / double tap opens the app and a hold opens its menu. Turn it off for the
+     * old one-tap launching. Docks, sidebars and the launcher widget stay one-click.
+     */
+    var doubleClickOpen: Boolean by boolPref("doubleClickOpen", true)
+
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
     /** Drag a window against a screen edge to snap it (half screen / maximize). */
@@ -231,6 +238,13 @@ class Settings(context: Context) {
 
     fun clearIconCells() {
         iconCells = ""
+    }
+
+    /** Forgets the stored cell of one app, so the grid can drop it into the first free cell. */
+    fun clearIconCell(pkg: String) {
+        val map = parseCells().toMutableMap()
+        if (map.remove(pkg) == null) return
+        iconCells = map.entries.joinToString(";") { "${it.key}=${it.value.first},${it.value.second}" }
     }
 
     private fun parseCells(): Map<String, Pair<Int, Int>> {

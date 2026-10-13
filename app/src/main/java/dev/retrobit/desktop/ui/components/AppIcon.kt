@@ -71,8 +71,13 @@ fun rememberAppIcon(app: AppEntry, inverted: Boolean = false): ImageBitmap? {
 }
 
 /**
- * An app icon on the desktop / dock / sidebar.
- * Long-press opens the context menu; long-press + move drags the icon onto the dock or sidebar.
+ * An app icon on the desktop / app drawer / launchpad / dock / sidebar.
+ *
+ * Desktop style: a tap **selects** the icon ([onSelect] + `selected`), a **double tap / double click
+ * opens** it when [openOnDoubleClick] is on, and a **hold** opens its context menu (touch long-press,
+ * pen hold, mouse or pen right click). Docks and quick-launch strips pass
+ * `openOnDoubleClick = false` so they stay one-click, like every desktop taskbar.
+ * Long-press + move still drags the icon onto the dock, the desktop or the app drawer.
  */
 @Composable
 fun AppIconTile(
@@ -82,7 +87,9 @@ fun AppIconTile(
     labelSize: Float = 11f,
     showLabel: Boolean = true,
     selected: Boolean = false,
+    openOnDoubleClick: Boolean = true,
     onOpen: (AppEntry) -> Unit,
+    onSelect: (AppEntry) -> Unit = {},
     onContextMenu: ((AppEntry, Offset) -> Unit)? = null,
     onDrop: ((AppEntry, DragState.Drop) -> Unit)? = null,
 ) {
@@ -133,6 +140,8 @@ fun AppIconTile(
             key = app.key,
             primary = { onOpen(app) },
             secondary = { pos -> onContextMenu?.invoke(app, origin + pos) },
+            select = { onSelect(app) },
+            doubleClick = openOnDoubleClick,
             holdTouch = false,   // the tile already turns a long press into a context menu
         )
         .padding(vertical = dp(5f), horizontal = dp(2f))

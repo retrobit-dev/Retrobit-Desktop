@@ -28,6 +28,7 @@ import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.dp
+import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.WinState
 
@@ -41,7 +42,13 @@ fun AppsView(vm: LauncherViewModel, win: WinState) {
         if (q.isEmpty()) vm.apps else vm.apps.filter { it.label.lowercase().contains(q) || it.pkg.contains(q) }
     }
 
-    Column(Modifier.fillMaxSize().background(p.paper)) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(p.paper)
+            // tapping the drawer's empty space drops the icon selection
+            .desktopClick(primary = { vm.clearSelection() }),
+    ) {
         Row(
             Modifier.fillMaxWidth().padding(dp(8f)),
             verticalAlignment = Alignment.CenterVertically,
@@ -71,7 +78,11 @@ fun AppsView(vm: LauncherViewModel, win: WinState) {
                     app = app,
                     iconSize = dp(48f),
                     labelSize = 11f,
+                    // the drawer scrolls: a tap selects, a double tap opens, a hold opens the menu
+                    selected = vm.selectedApp?.key == app.key,
+                    openOnDoubleClick = vm.settings.doubleClickOpen,
                     onOpen = { vm.launch(it) },
+                    onSelect = { vm.selectIcon(it) },
                     onContextMenu = { a, pos -> vm.appMenu(a, pos) },
                     onDrop = { a, target ->
                         when (target) {
@@ -88,7 +99,11 @@ fun AppsView(vm: LauncherViewModel, win: WinState) {
             horizontalArrangement = Arrangement.spacedBy(dp(8f)),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            RetroText("${vm.apps.size} apps · long-press for options", size = 11f, color = p.mid)
+            RetroText(
+                if (vm.settings.doubleClickOpen) "${vm.apps.size} apps · double tap to open · hold for options"
+                else "${vm.apps.size} apps · tap to open · hold for options",
+                size = 11f, color = p.mid,
+            )
         }
     }
 }

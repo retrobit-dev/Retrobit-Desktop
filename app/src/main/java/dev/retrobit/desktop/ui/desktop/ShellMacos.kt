@@ -190,6 +190,7 @@ fun MacosShell(vm: LauncherViewModel) {
                             app = app,
                             iconSize = dp(46f),
                             showLabel = false,
+                            openOnDoubleClick = false,   // dock: one click opens, like macOS
                             onOpen = { vm.launch(it) },
                             onContextMenu = { a, pos -> vm.appMenu(a, pos) },
                             onDrop = { a, target ->
@@ -246,7 +247,10 @@ fun MacosShell(vm: LauncherViewModel) {
                             AppIconTile(
                                 app = app,
                                 iconSize = dp(46f),
+                                selected = vm.selectedApp?.key == app.key,
+                                openOnDoubleClick = vm.settings.doubleClickOpen,
                                 onOpen = { vm.launch(it) },
+                                onSelect = { vm.selectIcon(it) },
                                 onContextMenu = { a, pos -> vm.appMenu(a, pos) },
                                 onDrop = { a, _ -> vm.toggleDockPin(a) },
                             )

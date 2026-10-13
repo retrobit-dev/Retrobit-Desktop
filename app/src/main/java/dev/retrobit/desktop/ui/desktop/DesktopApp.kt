@@ -139,9 +139,12 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                             true
                         }
                         ev.key == Key.MetaLeft || ev.key == Key.MetaRight -> { vm.spotlight = true; true }
+                        ev.key == Key.Enter -> {
+                            vm.openSelected(); true
+                        }
                         ev.key == Key.Escape -> {
                             vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false
-                            vm.widgetEdit = false; true
+                            vm.widgetEdit = false; vm.appPicker = false; true
                         }
                         else -> false
                     }
@@ -178,6 +181,9 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 }
 
                 if (vm.spotlight) Spotlight(vm)
+
+                // "add apps or widgets to the desktop" panel
+                if (vm.appPicker) dev.retrobit.desktop.ui.apps.AddToDesktopDialog(vm)
 
                 DragGhost(dp(64f))
 

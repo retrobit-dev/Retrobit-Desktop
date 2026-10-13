@@ -112,6 +112,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   cukup tampil sebagai kartu kosong, dan mode edit ditandai bingkai putus-putus.
 - **Widget bisa ditambah atau dihapus dari homescreen**:
   - **tekan lama (hold) / klik kanan di desktop kosong** → menu desktop berisi
+    `Add apps or widgets to the desktop…` (panel lengkap dengan pencarian aplikasi), lalu
     `Add widget: <nama>` / `Remove widget: <nama>` untuk tiap widget, plus `Edit widgets`;
   - di **mode edit** ada panel `widgets` di bawah kolom widget (delapan tombol toggle, yang aktif
     ditandai `*`), lengkap dengan `done`, `reset sizes`, dan `reset layout`;
@@ -207,6 +208,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   geometry jendela, tombol *place here* / *open full screen* / *bring it back*, plus penjelasan
   status floating window di perangkat itu.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
+  **cara membuka app** (dobel klik vs satu klik),
   **display widgets** (add/remove/urutkan/reset widget), **app icon look** dengan pratinjau ikon
   hidup, keterbacaan + bentuk + mode ikon, skala UI, **input & devices** (hold time pena, kursor,
   keyboard), perilaku, tombol "Set as default launcher".
@@ -219,10 +221,25 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 | Aksi | Hasil |
 | --- | --- |
-| Tap ikon | jalankan aplikasi |
-| Tap & tahan ikon | menu konteks (open, open in window, pin ke dock/desktop, app info, uninstall) |
-| Tap & tahan lalu geser | drag ikon ke dock / sidebar untuk pin |
-| Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, tiling, **add/remove widget**, **edit widgets**, close all) |
+| **Tap ikon** (desktop / app drawer / launchpad) | **memilih** ikon — ikon dicetak terbalik seperti ikon terpilih di desktop |
+| **Dobel klik / dobel tap ikon** | **membuka aplikasi** |
+| Tap & tahan ikon (atau klik kanan / hold pena) | menu aplikasi: open, open full screen, show in app drawer, add/remove desktop, add/remove dock, **add apps or widgets to the desktop…**, app info, uninstall |
+| Tap & tahan lalu geser | drag ikon ke dock / sidebar / desktop |
+| **Enter / Return** | buka ikon yang sedang terpilih |
+| Tap di desktop kosong | lepas pilihan ikon + keluar dari mode edit widget |
+| Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, tiling, **add app/widget**, **add/remove widget**, **edit widgets**, close all) |
+| Tap ikon di dock / sidebar / taskbar / widget launcher | langsung membuka aplikasi (satu klik, seperti taskbar Windows/macOS) |
+
+- **Membuka app butuh dobel klik** di desktop, app drawer, dan launchpad; satu tap hanya memilih
+  (ikon jadi terbalik + nama tercetak) supaya tidak salah buka saat menggulir atau menggeser.
+  Bisa dikembalikan ke satu klik: *Settings - input & devices → Apps open with a double click*, atau
+  terminal `doubleclick off`.
+- **App drawer bisa digulir tanpa membuka aplikasi**: geseran tidak pernah dihitung sebagai klik
+  (melewati touch slop → tidak ada aksi), jadi menggulir daftar aplikasi aman.
+- **Menambah app atau widget ke desktop**: dari mana saja — panel `add to desktop` (menu desktop →
+  `Add apps or widgets to the desktop…`, atau menu aplikasi → entri yang sama) berisi daftar aplikasi
+  yang bisa dicari (tap sekali = pasang ke desktop, tap lagi = lepas) plus delapan tombol widget;
+  atau dari menu aplikasi (`Add to desktop` / `Add to dock`); atau terminal `app add <nama>`.
 | Tap & tahan widget | masuk **mode edit widget**: resize, `^` `v`, `fit`, `remove` (bisa dimatikan di Settings / `widget hold off`) |
 | Tap desktop kosong atau `Esc` | keluar dari mode edit widget |
 | Tap judul jendela | jendela naik ke depan (click-to-focus) |

@@ -83,6 +83,11 @@ val LocalKeyboardRequester = staticCompositionLocalOf { KeyboardRequester() }
  *  pen tap             → primary action
  *  pen **held down**   → secondary action (context menu), the pen's right click
  *
+ * With [select] and [doubleClick] set it behaves like a desktop: the first tap only selects (or
+ * arms) the item, a second tap inside [PointerRouter.doubleTapWindowMs] opens it, and a hold still
+ * opens the context menu. Moving the pointer past the touch slop never fires a tap at all, so a
+ * scroll inside a list cannot launch an application by accident.
+ *
  * Holding the pen is what opens the context menu — the same gesture as right-clicking on a desktop,
  * and the way into editing widgets and icons. [key] restarts the detector when the composable is
  * recycled for another item, which cancels a still pending gesture.
@@ -91,6 +96,10 @@ val LocalKeyboardRequester = staticCompositionLocalOf { KeyboardRequester() }
 fun Modifier.desktopClick(
     primary: (Offset) -> Unit,
     secondary: ((Offset) -> Unit)? = null,
+    /** Fired by the first tap of a pair: the item is only selected, [primary] comes on the second. */
+    select: ((Offset) -> Unit)? = null,
+    /** Desktop-style opening: [primary] runs on the second tap, [select] on the first. */
+    doubleClick: Boolean = false,
     longPressMs: Long? = null,
     /** Surfaces that already implement a long press (icon tiles) pass false to avoid a double menu. */
     holdTouch: Boolean = true,
@@ -104,6 +113,9 @@ fun Modifier.desktopClick(
     val routerState = rememberUpdatedState(router)
     return this.pointerInput(key) {
         coroutineScope {
+            // survive between gestures: the second tap of a double click has to find the first one
+            var lastTapAt = 0L
+            var lastTapPos = Offset.Zero
             awaitPointerEventScope {
                 while (true) {
                     val down = awaitFirstDown(requireUnconsumed = false)
@@ -117,6 +129,7 @@ fun Modifier.desktopClick(
                     var consumed = false
                     var position = down.position
                     var moved = false
+                    var dragged = false
                     var fired = false
                     var release: PointerInputChange? = null
                     var latest: PointerInputChange? = down
@@ -147,6 +160,7 @@ fun Modifier.desktopClick(
                         position = change.position
                         if (!moved && (change.position - down.position).getDistance() > slop) {
                             moved = true
+                            dragged = true
                             holdJob?.cancel()
                         }
                         if (!change.pressed) {
@@ -159,9 +173,24 @@ fun Modifier.desktopClick(
                     // Claim the gesture: without this the surface underneath would treat the same press
                     // as its own and open a second menu.
                     release?.consume()
+                    val selectAction = selectState.value
                     when {
+                        dragged            -> Unit          // a scroll or a drag, never a click
                         secondaryDown && secondary != null -> secondary.invoke(position)
-                        fired -> Unit                       // already handled by the hold
+                        fired              -> Unit          // already handled by the hold
+                        doubleClickState.value && selectAction != null -> {
+                            val now = System.currentTimeMillis()
+                            val close = now - lastTapAt <= routerState.value.doubleTapWindowMs &&
+                                (lastTapPos - position).getDistance() <= slop * 2f
+                            if (close) {
+                                lastTapAt = 0L
+                                primaryState.value(position)
+                            } else {
+                                lastTapAt = now
+                                lastTapPos = position
+                                selectAction.invoke(position)
+                            }
+                        }
                         else -> primaryState.value(position)
                     }
                 }

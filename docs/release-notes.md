@@ -9,33 +9,32 @@
 
 ## Yang baru di {{TAG}}
 
-- **Desktop bersih**: label bantuan di homescreen dihapus — `no widgets`, `desktop is empty`,
-  `marked * are on the desktop`, `hold a widget to edit or resize(s)`, dan `empty — tap to write`
-  tidak muncul lagi. Widget kosong cukup tampil sebagai kartu kosong, dan mode edit ditandai bingkai
-  putus-putus.
-- **Detik jam sejajar dengan menit**: widget `chrono` sekarang menggambar `13:37:09` dalam satu blok
-  angka dengan baseline yang sama (sebelumnya detik menggantung kecil di samping).
-- **Widget kalender jauh lebih ringkas**: tanpa kotak di sekeliling tiap tanggal, header dengan
-  `<` `>` `+` dalam satu baris, satu baris ringkasan hari terpilih (`wed, 14 oct 2026 - 3 entries`),
-  maksimal tiga entri, dan tidak ada lagi editor di dalam widget (ketuk entri untuk membuka app
-  Calendar). Tinggi defaultnya sekarang setinggi isi, jadi kartunya sekitar 300 dp, bukan 420 dp.
-- **Empat widget baru**: `agenda` (14 hari ke depan), `tasks` (task belum selesai, sekali tekan
-  selesai), `launcher` (pintasan aplikasi dock), dan `power` (baterai besar + status charge).
-  Total sekarang delapan widget dan kolom menampung maksimal delapan.
-- Perapian: `sysinfo` mengikuti ukuran manual, tombol widget di panel mode edit jadi delapan.
+- **Hold = menu, tap = pilih, dobel klik = buka.** Di desktop, app drawer, dan launchpad: satu tap
+  hanya **memilih** ikon (ikon dicetak terbalik + namanya tercetak), **dobel klik / dobel tap**
+  membuka aplikasi, dan **hold** membuka menu aplikasi — persis kebiasaan desktop. `Enter` juga
+  membuka ikon yang sedang terpilih, dan tap di area kosong melepas pilihan.
+- **App drawer tidak lagi langsung membuka app**: menggulir daftar tidak pernah dihitung sebagai
+  klik (gestur yang melewati touch slop tidak memicu aksi apa pun), jadi daftar bisa digulir dengan
+  tenang walaupun jarinya berhenti di atas ikon.
+- **Menambah app atau widget ke desktop**: panel baru **`add to desktop`** (menu desktop →
+  `Add apps or widgets to the desktop…`, atau dari menu aplikasi) berisi daftar aplikasi yang bisa
+  dicari — tap sekali memasang ke desktop, tap lagi melepas — plus delapan tombol widget, tombol
+  `arrange`, dan penghitung `n apps on the desktop`. Menu aplikasi juga punya `Add to desktop` /
+  `Add to dock`, dan terminal: `app add <nama>`, `app remove <nama>`.
+- **Bisa dikembalikan ke satu klik**: *Settings - input & devices → Apps open with a double click /
+  double tap (tap selects)*, atau terminal `doubleclick on|off`. Dock, sidebar, taskbar, start menu,
+  dan widget `launcher` tetap satu klik seperti biasa.
+- Aplikasi yang ditambahkan ke desktop langsung menempati sel kosong pertama, jadi tidak menimpa
+  atau menumpuk ikon yang sudah ada.
 
-### Fitur dari v1.7.x (kalau kamu melompat dari v1.6.x)
+### Fitur dari v1.8.0 (kalau kamu melompat dari v1.7.x)
 
-- **Widget bisa ditambah / dihapus dari homescreen** (menu desktop, panel `widgets` di mode edit,
-  Settings, terminal `widget add|remove|layout`).
-- **Semua widget bisa diubah ukurannya dengan hold**, plus tepi kanan/bawah dan grip sudut; hold di
-  tengah widget meresize ke arah terdekat.
-- **Ikon aplikasi benar-benar mengikuti palet** (bug "ikon tidak berubah" diperbaiki: render key
-  selalu digambar ulang, semua palet punya accent, ada pratinjau ikon hidup + `re-ink icons now`).
-- **Stylus: klik kanan = HOLD** (bukan dobel-tap) dan itu jalan masuk pengeditan; tap tetap klik kiri
-  tanpa jeda 320 ms, lama hold bisa dipilih 250/380/500/700 ms.
-- Mode edit bisa ditinggalkan dengan tap di desktop, `Esc`, atau `done`, dan hold-to-edit bisa
-  dimatikan (`widget hold on|off`).
+- Desktop bersih tanpa teks bantuan, detik jam sejajar dengan menit (`13:37:09`), widget kalender
+  jauh lebih ringkas (grid tanpa kotak, 3 entri, tanpa editor di dalam widget).
+- Empat widget baru: `agenda`, `tasks`, `launcher`, `power` (total delapan).
+- Widget bisa ditambah / dihapus dari homescreen dan diubah ukurannya dengan hold.
+- Ikon aplikasi mengikuti palet (bug "ikon tidak berubah" diperbaiki) + pratinjau ikon hidup.
+- Stylus: klik kanan = hold; tap tidak lagi tertunda.
 
 ## Cara pasang
 

@@ -44,6 +44,41 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     var spotlight by mutableStateOf(false)
     var startMenu by mutableStateOf(false)
     var launchpad by mutableStateOf(false)
+    /**
+     * The icon the user tapped once: it is drawn inverted (like a selected desktop icon) and opens on
+     * the second tap, on Enter, or from its context menu.
+     */
+    var selectedApp by mutableStateOf<AppEntry?>(null)
+
+    /** True while the "add app or widget to the desktop" panel is open. */
+    var appPicker by mutableStateOf(false)
+
+    fun selectIcon(app: AppEntry) {
+        selectedApp = app
+    }
+
+    fun clearSelection() {
+        selectedApp = null
+    }
+
+    /** Opens whatever is currently selected (Enter, or a second tap on the icon). */
+    fun openSelected() {
+        selectedApp?.let { launch(it) }
+    }
+
+    /**
+     * Puts [app] on the home screen: it is pinned to the desktop list and its stored grid cell is
+     * cleared, so the icon lands in the first free cell instead of on top of another icon.
+     */
+    fun addAppToDesktop(app: AppEntry) {
+        if (!settings.pinnedDesktop.contains(app.pkg)) {
+            settings.pinnedDesktop = settings.pinnedDesktop + app.pkg
+            shell.print("${app.label} added to the desktop")
+        }
+        settings.clearIconCell(app.pkg)
+        selectedApp = app
+    }
+
     /** Bumped on demand so every icon is rendered again (see IconCache.clear / "re-ink icons"). */
     var iconEpoch by mutableStateOf(0)
 
@@ -174,6 +209,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
      * tablets it really floats above the desktop. With the setting off the app opens full screen.
      */
     fun launch(app: AppEntry) {
+        selectedApp = null
         if (settings.floatingApps) {
             openAppWindow(app)
         } else {
@@ -320,6 +356,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun appMenu(app: AppEntry, anchor: Offset) {
         val inDock = settings.pinnedDock.contains(app.pkg)
         val onDesktop = settings.pinnedDesktop.contains(app.pkg)
+        selectedApp = app
         openMenu(
             MenuRequest(
                 title = app.label,
@@ -330,7 +367,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     MenuItem("Open full screen", GlyphOpen(), onSelect = { launchFullScreen(app) }),
                     MenuItem("Show in app drawer", null, onSelect = { openAppDrawerWindow(app) }),
                     MenuItem(if (inDock) "Remove from dock" else "Add to dock", GlyphPin(), onSelect = { toggleDockPin(app) }),
-                    MenuItem(if (onDesktop) "Remove from desktop" else "Pin to desktop", GlyphPin(), onSelect = { toggleDesktopPin(app) }),
+                    MenuItem("Add apps or widgets to the desktop…", GlyphPin(), onSelect = { appPicker = true }),
+                    MenuItem(if (onDesktop) "Remove from desktop" else "Add to desktop", GlyphPin(), onSelect = {
+                        if (onDesktop) toggleDesktopPin(app) else addAppToDesktop(app)
+                    }),
                     MenuItem("App info", null, onSelect = { repo.openAppInfo(app) }),
                     MenuItem("Uninstall", null, onSelect = { repo.uninstall(app) }),
                 ),
@@ -349,6 +389,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 subtitle = settings.style.osName,
                 anchors = anchor,
                 items = listOf(
+                    MenuItem("Add apps or widgets to the desktop…", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
+                        appPicker = true
+                    }),
                     MenuItem("Applications", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = { openWindow(WinKind.APPS) }),
                     MenuItem("Terminal", dev.retrobit.desktop.ui.components.Glyph.TERMINAL, onSelect = { openWindow(WinKind.TERMINAL) }),
                     MenuItem("System monitor", dev.retrobit.desktop.ui.components.Glyph.SYSMON, onSelect = { openWindow(WinKind.SYSMON) }),

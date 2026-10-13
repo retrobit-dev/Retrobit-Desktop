@@ -104,12 +104,16 @@ def dither_title_bar(d, box, cells=14, height_cells=3):
                 )
 
 
-def glyph_tile(d, x, y, size, kind="folder", label="", paper=PAPER, ink=INK, shape="flat"):
+def glyph_tile(d, x, y, size, kind="folder", label="", paper=PAPER, ink=INK, shape="flat", selected=False):
     """16x16-ish pixel-art app icon placeholder + label, mimicking IconMode.MONO output.
 
     `shape` documents IconTheme.AUTO: flat (Linux square), rounded (macOS), classic (Windows bevel).
     """
     inner = size - 10
+    if selected:
+        # the selected plate the app paints behind the icon (Modifier.background(ink))
+        d.rectangle([x - 3, y - 3, x + inner + 3, y + inner + 3], fill=ink)
+        paper, ink = ink, paper
     if shape == "rounded":
         d.rounded_rectangle([x, y, x + inner, y + inner], radius=12, fill=paper, outline=ink, width=2)
     elif shape == "classic":
@@ -136,7 +140,12 @@ def glyph_tile(d, x, y, size, kind="folder", label="", paper=PAPER, ink=INK, sha
                 d.rectangle([x + 4 + gx * 12, y + 4 + gy * 12, x + 12 + gx * 12, y + 12 + gy * 12], fill=ink)
     if label:
         tw = d.textlength(label, font=mono_tiny)
-        d.text((x + inner / 2 - tw / 2, y + inner + 4), label, font=mono_tiny, fill=ink)
+        if selected:
+            # inverted name chip (ink plate, paper text)
+            d.rectangle([x + inner / 2 - tw / 2 - 4, y + inner + 2, x + inner / 2 + tw / 2 + 4, y + inner + 16], fill=ink)
+            d.text((x + inner / 2 - tw / 2, y + inner + 4), label, font=mono_tiny, fill=paper)
+        else:
+            d.text((x + inner / 2 - tw / 2, y + inner + 4), label, font=mono_tiny, fill=ink)
 
 
 CURSOR_ROWS = [
@@ -492,7 +501,9 @@ def panel(caption, style):
         d.text((16, h - 42), "setup", font=mono_tiny, fill=INK)
         # desktop icons, freely placed on the 10x5 grid (flat square frames on Linux)
         for i, (kind, label) in enumerate([("folder", "Files"), ("monitor", "Browser"), ("term", "Terminal"), ("grid", "Gallery")]):
-            glyph_tile(d, 100 + (i % 4) * 96, 70, 62, kind=kind, label=label, shape="flat")
+            # one icon is selected (tap selects, double tap opens): ink plate + inverted name chip
+            glyph_tile(d, 100 + (i % 4) * 96, 70, 62, kind=kind, label=label, shape="flat",
+                       selected=label == "Terminal")
         for i, (kind, label) in enumerate([("monitor", "Clock"), ("grid", "Notes")]):
             glyph_tile(d, 100 + i * 96, 190, 62, kind=kind, label=label, shape="flat")
         # widgets
@@ -634,7 +645,7 @@ def panel(caption, style):
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     panels = [
-        panel("LINUX · retrOS GNU/Linux — panel, dock, widget edit mode (hold a widget), resize grips", "linux"),
+        panel("LINUX · retrOS GNU/Linux — icon selected (double tap opens), widget edit mode, resize grips", "linux"),
         panel("macOS · Retro System 9 — menu bar, dock, launchpad", "macos"),
         panel("WINDOWS · Retrodows 95 — start menu, taskbar, tray, desktop widget", "windows"),
     ]
@@ -644,7 +655,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · eight everyday widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · icons follow the palette · hold the pen for right click · floating app windows · reorderable dock · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · eight everyday widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · icons follow the palette · hold the pen for right click · floating app windows · reorderable dock · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:
