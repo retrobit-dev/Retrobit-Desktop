@@ -151,6 +151,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     var invertRequested by mutableStateOf(0)
         private set
 
+    /** Invert the current palette (paper <-> ink), e-paper style dark mode. */
+    fun invertTheme() { invertRequested++ }
+
     fun setTiling(on: Boolean) { wm.retile(on) }
 
     // ── menus ────────────────────────────────────────────────────────────────────

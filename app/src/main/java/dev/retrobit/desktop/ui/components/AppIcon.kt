@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -238,4 +239,4 @@ fun DragGhost(size: Dp = dp(60f)) {
 
 @Composable
 private fun Modifier.offsetTo(x: Float, y: Float): Modifier =
-    this.then(androidx.compose.foundation.layout.offset { androidx.compose.ui.unit.IntOffset(x.toInt(), y.toInt()) })
+    this.offset { androidx.compose.ui.unit.IntOffset(x.toInt(), y.toInt()) }

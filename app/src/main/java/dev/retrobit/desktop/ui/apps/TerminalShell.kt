@@ -81,7 +81,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "icons", "iconmode" -> icons(args.firstOrNull())
             "scale" -> scale(args.firstOrNull())
             "tiling" -> tiling(args.firstOrNull())
-            "invert" -> vm.invertRequested++
+            "invert" -> vm.invertTheme()
             "notes" -> vm.openWindow(WinKind.NOTES)
             "settings", "config" -> vm.openWindow(WinKind.SETTINGS)
             "sysmon", "top" -> vm.openWindow(WinKind.SYSMON)
