@@ -21,6 +21,17 @@
 - Kelas `PanelSwitch` (bus broadcast) dan receiver di `MainActivity` dihapus - satu jalur saja,
   dan jalur itu hidup selama chrome hidup.
 
+### Brightness sekarang benar-benar mengubah layar, walau aplikasi lain di depan
+- Dulu brightness hanya dipasang di **window launcher**, jadi saat kamu menggeser groove di panel
+  sementara sebuah aplikasi memegang layar, tidak ada yang berubah terlihat (window launcher sedang
+  tidak ada di layar).
+- Sekarang nilai itu ikut dibawa oleh **window overlay yang kita punya** di situasi itu: title rail,
+  dock, dan bingkai (`CyberdeckChrome.State.brightness` → `ChromeService.applyBrightness()`), dan
+  panelnya sendiri membawa nilai itu selagi terbuka (`PanelService.refresh()`), jadi menggeser groove
+  langsung terlihat gelap/terangnya.
+- `auto` mengembalikan kontrol ke tablet (nilai `-1` = device), sama seperti sebelumnya; dan saat
+  desktop yang di depan, window launcher tetap yang mengatur seperti dulu.
+
 ### Hemat baterai: chrome berhenti saat layar mati
 - Service chrome memantau layar: saat **layar mati** tick per detik dihentikan dan rail diturunkan ke
   handle (bingkainya tetap, karena bingkai tidak digambar ulang); saat layar hidup lagi tick jalan

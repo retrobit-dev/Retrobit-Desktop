@@ -56,6 +56,12 @@ object CyberdeckChrome {
         val railMode: String = "pinned",
         /** How big the rails read: 1f is the plain size, and the rail/dock heights follow it. */
         val size: Float = 1f,
+        /**
+         * Screen brightness the overlay windows carry: 0.05..1, or -1 while the tablet decides.
+         * The rails are the only windows we own while another app is in front, so this is what
+         * makes the quick panel's brightness groove visible from inside an app.
+         */
+        val brightness: Float = -1f,
         /** A short confirmation ("pinned to the dock: Files") drawn on the rail for a moment. */
         val flash: String = "",
     )

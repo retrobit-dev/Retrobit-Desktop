@@ -391,6 +391,7 @@ class ChromeService : Service() {
             lastTitle = state.title
             keepAwake()
         }
+        applyBrightness()
         val clockText = clockText()
         border?.let {
             it.state = state
@@ -439,6 +440,28 @@ class ChromeService : Service() {
             p.height = barsHeight(view)
             runCatching { wm.updateViewLayout(view, p) }
             view.invalidate()
+        }
+    }
+
+    @Volatile
+    private var windowBrightness = -1f
+
+    /**
+     * Carries the brightness the quick panel asked for on the overlay windows themselves.
+     *
+     * While the launcher is in front, the activity window is dimmed (the normal way to do it).
+     * While *another* app owns the screen, the launcher window is not on screen at all - the rails
+     * and the frame are, and they are the only windows of ours the display can read a brightness
+     * from. Without this the groove in the panel would look like it does nothing.
+     */
+    private fun applyBrightness() {
+        val wanted = CyberdeckChrome.state.brightness.let { if (it > 0f) it.coerceIn(0.05f, 1f) else -1f }
+        if (wanted == windowBrightness) return
+        windowBrightness = wanted
+        listOfNotNull(border, top, dock).forEach { view ->
+            val lp = view.layoutParams as? WindowManager.LayoutParams ?: return@forEach
+            lp.screenBrightness = wanted
+            runCatching { wm.updateViewLayout(view, lp) }
         }
     }
 

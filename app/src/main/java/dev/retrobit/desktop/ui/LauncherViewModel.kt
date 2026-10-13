@@ -355,6 +355,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             net = snapshot.net,
             railMode = settings.railMode,
             size = CyberdeckChrome.sizeFactor(settings.chromeSize),
+            brightness = settings.brightness,
             flash = chromeFlash.takeIf { System.currentTimeMillis() - chromeFlashAt < 2_500L }.orEmpty(),
         )
     }

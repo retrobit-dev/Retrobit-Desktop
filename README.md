@@ -149,6 +149,9 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Ukuran rail & dock**: `compact` / `normal` / `large` / `huge` (Settings, quick panel, atau
   `cyberdeck size ...`). Ini skala chrome sendiri, jadi tinggi rail, ukuran huruf, ikon dan area
   sentuh tombol ikut berubah tanpa mengubah skala desktop.
+- **Quick panel selalu hidup**: tombolnya memanggil launcher langsung (bukan broadcast yang hanya
+  terdaftar saat launcher di depan), dan brightness-nya dibawa oleh window overlay - jadi mengatur
+  layar dari dalam aplikasi lain benar-benar terasa.
 - **Hemat baterai**: saat layar mati, tick chrome berhenti dan rail diturunkan ke handle; rail yang
   auto-hidden tidak digambar ulang tiap detik.
 - **Per-app rules**: aplikasi tertentu bisa dikecualikan dari bingkai; kalau app itu di depan, rail

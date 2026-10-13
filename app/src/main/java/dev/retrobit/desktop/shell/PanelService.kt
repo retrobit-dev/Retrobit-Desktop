@@ -137,6 +137,7 @@ class PanelService : Service() {
                 PixelFormat.TRANSLUCENT,
             ).apply {
                 gravity = Gravity.TOP or Gravity.START
+                screenBrightness = PanelChrome.state.brightness?.coerceIn(0.05f, 1f) ?: -1f
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
                 }
@@ -156,6 +157,14 @@ class PanelService : Service() {
         val v = view ?: return
         runCatching { PanelChrome.onRefresh?.invoke() }
         v.state = PanelChrome.state
+        // the panel is the topmost window while it is up, so it carries the brightness itself:
+        // dragging the groove dims the screen right away, even inside another app
+        val wanted = PanelChrome.state.brightness?.coerceIn(0.05f, 1f) ?: -1f
+        val lp = v.layoutParams as? WindowManager.LayoutParams
+        if (lp != null && lp.screenBrightness != wanted) {
+            lp.screenBrightness = wanted
+            runCatching { wm.updateViewLayout(v, lp) }
+        }
         v.invalidate()
     }
 
