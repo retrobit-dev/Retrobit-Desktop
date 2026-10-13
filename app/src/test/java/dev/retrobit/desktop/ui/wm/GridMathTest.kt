@@ -91,8 +91,9 @@ class GridMathTest {
         val occupied = setOf(0 to 0, 1 to 0, 0 to 1)
         val free = GridMath.nearestFree(spec, occupied, 0 to 0)
         assertFalse(free in occupied)
-        // (1,1) is two steps away, (2,0) also two — both acceptable, but never the target itself
-        assertTrue(free == (1 to 1) || free == (2 to 0))
+        // (1,1), (2,0) and (0,2) are all two steps away — any of them is a correct answer
+        val distance = kotlin.math.abs(free.first) + kotlin.math.abs(free.second)
+        assertEquals(2, distance)
     }
 
     @Test

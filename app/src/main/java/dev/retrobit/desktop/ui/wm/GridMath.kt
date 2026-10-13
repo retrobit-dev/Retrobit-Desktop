@@ -70,11 +70,14 @@ object GridMath {
     fun autoCells(spec: GridSpec, count: Int): List<Pair<Int, Int>> {
         val out = ArrayList<Pair<Int, Int>>(count)
         var index = 0
-        while (out.size < count && index < spec.capacity) {
-            out += index % spec.cols to index / spec.cols
+        while (out.size < count) {
+            val col = index / spec.rows
+            val row = index % spec.rows
+            if (col >= spec.cols) break
+            out += col to row
             index++
         }
-        // if there are more icons than cells, keep appending on the last column
+        // if there are more icons than cells, keep stacking them on the last cell
         while (out.size < count) out += (spec.cols - 1) to (spec.rows - 1)
         return out
     }
