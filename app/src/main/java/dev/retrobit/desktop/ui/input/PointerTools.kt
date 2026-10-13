@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.isSecondaryPressed
 import androidx.compose.ui.input.pointer.pointerInput
@@ -103,8 +104,8 @@ fun Modifier.desktopClick(
                     // follow the gesture until it lifts or somebody else (drag / scroll) takes over
                     var consumed = false
                     var position = down.position
-                    var released = false
-                    while (!released) {
+                    var release: PointerInputChange? = null
+                    while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
                         if (change.isConsumed) {
@@ -112,15 +113,18 @@ fun Modifier.desktopClick(
                             break
                         }
                         position = change.position
-                        if (!change.pressed) released = true
+                        if (!change.pressed) {
+                            release = change
+                            break
+                        }
                     }
                     if (consumed) continue
+                    // Claim the gesture: without this the surface underneath would treat the same tap
+                    // as its own and, for a pen double tap, open the desktop menu as well.
+                    release?.consume()
                     val secondaryAction = secondaryState.value
                     when {
-                        secondaryDown && secondaryAction != null -> {
-                            down.consume()
-                            secondaryAction.invoke(position)
-                        }
+                        secondaryDown && secondaryAction != null -> secondaryAction.invoke(position)
                         pen && secondaryAction != null && routerState.value.penRightClick -> {
                             if (pendingJob?.isActive == true) {
                                 // second pen tap inside the window → right click
