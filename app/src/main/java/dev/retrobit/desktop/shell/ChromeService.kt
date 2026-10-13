@@ -244,6 +244,8 @@ class ChromeService : Service() {
         }
         if (!canDraw()) return
         measure()
+        // set before the views are created: their height is read while they are added
+        railsShown = true
         runCatching {
             val ink = CyberdeckChrome.state
             val b = BorderView(this).apply { state = ink }
@@ -275,7 +277,6 @@ class ChromeService : Service() {
                 dock = d
             }
             visible = true
-            railsShown = true
             railsHiddenAt = 0L
             lastTitle = CyberdeckChrome.state.title
             updateBattery(force = true)
