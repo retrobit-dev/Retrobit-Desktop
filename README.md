@@ -52,6 +52,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `Soft` (blok besar, kontras rendah). Warna aslinya dibuang — hanya kertas, tinta, dan abu-abu.
 - **Ikon aplikasi dirender ulang**: `Color` (asli), `Mono` (grayscale ke ramp tinta→kertas),
   `1-bit` (halftone Bayer + outline, di-scale nearest-neighbour agar pixelnya tajam).
+- **Ikon mudah dikenali**: bingkai ikon diwarnai **accent palet** (merah di tri-color, hijau di
+  phosphor, kuning di amber), ada **plat huruf pertama** aplikasi di sudut ikon supaya aplikasi
+  dengan ikon mirip tetap bisa dibedakan, dan **chip nama** tercetak di bawah tiap ikon desktop.
+  Ketiganya bisa dimatikan di *Settings - app icon readability*.
 - **Bentuk bingkai ikon mengikuti tema**: `Auto` (Linux → square flat, macOS → rounded, Windows →
   bevel klasik), atau pilih manual: `Classic`, `Rounded`, `Flat`, `Plain`. Cache ikon otomatis
   dibuang saat tema/bentuk berubah.
@@ -73,6 +77,14 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Semua entri disimpan lokal di SharedPreferences (`retrobit_calendar`) sebagai JSON — tanpa izin,
   tanpa akun, tanpa jaringan.
 
+### Aman untuk kamera & sudut melengkung
+- Tablet modern punya **sudut melengkung** dan **punch-hole kamera**. Launcher menggambar sampai
+  tepi layar, tapi panel, dock, widget, ikon dan jendela digeser masuk sejauh
+  `max(cutout, radius sudut)` — jadi tidak ada yang tertutup kamera atau terpotong lengkungan.
+- Cutout dibaca langsung dari window insets (`safeInsetLeft/Top/Right/Bottom`), jadi posisi kamera
+  mengikuti perangkat. Radius sudut bisa dipilih di *Settings - display corners & camera hole*
+  (`flat`, `12dp`, `20dp`, `28dp`) atau lewat terminal: `safearea on|off|20`.
+
 ### Window manager
 - Jendela bisa digeser (drag title bar), di-resize (grip kanan bawah), minimize / maximize / close.
 - Gaya title bar mengikuti tema (traffic light macOS, gradient Win95, solid + tombol kanan Linux).
@@ -83,13 +95,24 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Virtual desktop (workspace)**: 1–4 desktop, jendela hidup per-desktop. Pager berupa kotak angka
   di panel / menu bar / taskbar: tap untuk pindah, titik di dalamnya menunjukkan jumlah jendela,
   tekan lama untuk menu desktop (pindah jendela atau ubah jumlah desktop).
+- **Semua sisi jendela bisa di-resize manual**: delapan handle (kiri, kanan, atas, bawah, dan empat
+  sudut) yang bisa ditarik pakai jari, M-Pencil maupun mouse. Ukuran minimum dijaga, jendela tidak
+  bisa keluar dari desktop, dan ukuran hidup (`820x640`) tampil di title bar saat ditarik.
+  Double-tap title bar = maximize/restore.
+- **Floating windows**: setiap jendela mengambang dan punya tombol dua-kotak di title bar untuk
+  keluar-masuk dari layout tiling. Jendela mengambang mempertahankan ukuran yang kamu beri, jendela
+  lain mengikuti tiling master-stack.
+- **Ikon dock / sidebar / quick launch bisa diatur urutannya**: tarik ikon ke sepanjang dock, muncul
+  penanda garis di slot tujuan. Tarik ikon keluar ke desktop untuk memindahkannya dari dock ke grid,
+  atau dari grid ke dock — dua arah.
 - **Ikon desktop bisa diletakkan di mana saja**: tiap ikon punya sel sendiri di grid tetap
   (10×5 di tablet), disimpan per-paket. Lepas ikon di sel berisi → kedua ikon **bertukar tempat**,
   jadi tidak ada yang terdorong keluar layar. Menu desktop → *Auto arrange icons* untuk kembali
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
-- Matematika layout (tiling & snap) dipisah ke `ui/wm/LayoutMath.kt`, penempatan grid ke
-  `ui/wm/GridMath.kt` — keduanya murni Kotlin tanpa Android, jadi bisa di-unit-test
-  (28 test: 14 di `LayoutMathTest.kt` + 14 di `GridMathTest.kt`).
+- Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
+  `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
+  `ui/wm/DockMath.kt` (urutan dock) — **47 test**: 23 `LayoutMathTest` + 15 `GridMathTest` +
+  9 `DockMathTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -102,10 +125,12 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Terminal** (`rb-sh`) — 28+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
   `workspace 1..4` (`ws`), `wsmove 1..4`, `cal`, `wallpaper pattern|device|image`,
-  `seconds on|off`, `arrange`, `invert`, `wmctrl`, `boot`, `help`, `exit`,
+  `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
+  `invert`, `wmctrl`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
-- **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, mode + bentuk ikon, skala UI, **input & devices
+- **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
+  **keterbacaan ikon**, mode + bentuk ikon, skala UI, **input & devices
   (pena/mouse/keyboard)**, perilaku, tombol "Set as default launcher".
 - **System monitor** — baterai, RAM, penyimpanan, jaringan, uptime, daftar jendela, grafik tren.
 - **Notes** — catatan teks yang tersimpan otomatis.

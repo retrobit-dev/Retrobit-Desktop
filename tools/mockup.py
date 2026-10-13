@@ -223,15 +223,33 @@ def window(d, box, title, glyph_label=None, win95=False, mac=False, body_lines=(
     else:
         d.rectangle([x0 + 2, y0 + 2, x1 - 2, y0 + bar_h], fill=INK)
         d.text((x0 + 10, y0 + 8), title, font=mono_bold, fill=PAPER)
-        for i, label in enumerate(["x", "+", "-"]):
+        for i, kind in enumerate(["close", "max", "min", "float"]):
             bx = x1 - 30 - i * 26
             d.rectangle([bx, y0 + 7, bx + 20, y0 + 27], fill=PAPER, outline=INK, width=2)
-            d.text((bx + 6, y0 + 4), label, font=mono, fill=INK)
+            cx0, cy0 = bx + 5, y0 + 11
+            if kind == "close":
+                d.line([cx0, cy0, cx0 + 9, cy0 + 9], fill=INK, width=2)
+                d.line([cx0 + 9, cy0, cx0, cy0 + 9], fill=INK, width=2)
+            elif kind == "min":
+                d.rectangle([cx0, cy0 + 8, cx0 + 9, cy0 + 9], fill=INK)
+            elif kind == "max":
+                d.rectangle([cx0, cy0, cx0 + 9, cy0 + 9], outline=INK, width=2)
+            else:  # float: two offset frames
+                d.rectangle([cx0, cy0 + 3, cx0 + 7, cy0 + 9], outline=INK, width=1)
+                d.rectangle([cx0 + 3, cy0, cx0 + 9, cy0 + 6], outline=INK, width=1)
     y = y0 + bar_h + 14
     for line in body_lines:
         d.text((x0 + 14, y), line, font=mono, fill=INK)
         y += 22
     return y
+
+
+def window_grip(d, box, size=14):
+    """Three diagonal marks in the bottom-right corner: the manual resize grip."""
+    x1, y1 = box[2], box[3]
+    for i in range(3):
+        o = i * 4
+        d.line([x1 - size + o, y1 - 3, x1 - 3, y1 - size + o], fill=INK, width=2)
 
 
 def pager(d, x, y, size=26, cells=3, active=0, windows=(1, 0, 1)):
@@ -404,6 +422,7 @@ def panel(caption, style):
             "   '-----------'   Theme: Paper/halftone",
             "     '-------'     Memory: 3.1G / 7.8G",
         ])
+        window_grip(d, (110, 300, 470, 700))
         cursor(d, 292, 700, cell=3)
         d.text((115, 720), "operator@retrobit:~$ tiling on", font=mono, fill=INK)
         d.rectangle([110, 760, w - 40, 830], fill=PAPER, outline=INK, width=2)
@@ -441,6 +460,7 @@ def panel(caption, style):
         d.text((40, 106), "13:37", font=px_font, fill=INK)
         d.text((40, 160), "Mon, 13 Oct 2026", font=mono, fill=INK)
         calendar_widget(d, (28, 240, 244, 640))
+        window_grip(d, (262, 260, w - 60, 640))
         window(d, (262, 260, w - 60, 640), "notes.txt", mac=True, body_lines=[
             "RETROBIT NOTES",
             "==============",
@@ -488,6 +508,7 @@ def panel(caption, style):
                 pix_app_dot(d, bx, by, 14)
                 d.text((bx + 22, by), name, font=mono_tiny, fill=INK)
         d.text((244, 250 + 34 + 44 + 3 * 42 + 14), "96 apps - long-press for options", font=mono_tiny, fill=INK)
+        window_grip(d, (230, 250, w - 258, 660))
         # taskbar (kept clear of the caption band at the bottom)
         tb = h - 46 - 62
         d.rectangle([0, tb, w, h], fill=PAPER)
@@ -518,7 +539,7 @@ def panel(caption, style):
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     panels = [
-        panel("LINUX · retrOS GNU/Linux — panel, dock, calendar widget, free icon grid", "linux"),
+        panel("LINUX · retrOS GNU/Linux — panel, dock, calendar widget, resize grips", "linux"),
         panel("macOS · Retro System 9 — menu bar, dock, launchpad", "macos"),
         panel("WINDOWS · Retrodows 95 — start menu, taskbar, tray, desktop widget", "windows"),
     ]
@@ -528,7 +549,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil as a mouse · device wallpaper in dither · editable calendar · free icon placement on a 10x5 grid · snapping & virtual desktops",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil as a mouse · resize every window edge by hand · floating windows · reorderable dock · palette-aware icons with name chips · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:
