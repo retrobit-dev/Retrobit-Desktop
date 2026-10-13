@@ -98,7 +98,7 @@ fun Modifier.desktopClick(
             awaitPointerEventScope {
                 while (true) {
                     val down = awaitFirstDown(requireUnconsumed = false)
-                    val secondaryDown = down.buttons.isSecondaryPressed
+                    val secondaryDown = currentEvent.buttons.isSecondaryPressed
                     val pen = down.type.isPen()
                     // follow the gesture until it lifts or somebody else (drag / scroll) takes over
                     var consumed = false

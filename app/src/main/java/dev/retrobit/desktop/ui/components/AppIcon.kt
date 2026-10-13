@@ -80,6 +80,12 @@ fun AppIconTile(
     var moved by remember { mutableStateOf(0f) }
     val icon = rememberAppIcon(app, inverted = selected)
 
+    fun finishDrag() {
+        val target = drag.dropTarget()
+        drag.clear()
+        onDrop?.invoke(app, target)
+    }
+
     val tileModifier = modifier
         .width(iconSize + dp(18f))
         .onGloballyPositioned { origin = it.positionInRoot() }

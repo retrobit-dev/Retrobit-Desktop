@@ -91,9 +91,9 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.W -> { vm.wm.focused?.let { vm.wm.close(it.id) }; true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.D -> { vm.desktopMenu(Offset(120f, 160f)); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.K -> { vm.toggleKeyboard?.invoke(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Right -> { vm.wm.cycleFocus(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Left -> { vm.wm.cycleFocus(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Up -> {
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionRight -> { vm.wm.cycleFocus(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionLeft -> { vm.wm.cycleFocus(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionUp -> {
                             vm.wm.focused?.let { vm.wm.toggleMaximize(it.id) }; true
                         }
                         ev.key == Key.Tab -> { vm.wm.cycleFocus(); true }
