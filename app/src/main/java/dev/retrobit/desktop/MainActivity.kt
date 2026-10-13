@@ -37,6 +37,9 @@ class MainActivity : ComponentActivity() {
     private val vm: LauncherViewModel by viewModels()
     private val keyboard = KeyboardRequester()
 
+    /** Display-cutout insets (punch-hole camera) as [left, top, right, bottom] in px. */
+    private val cutout = androidx.compose.runtime.mutableStateOf(IntArray(0))
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -71,10 +74,21 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets ->
+            val cut = insets.displayCutout
+            cutout.value = if (cut == null || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
+                IntArray(0)
+            } else {
+                intArrayOf(cut.safeInsetLeft, cut.safeInsetTop, cut.safeInsetRight, cut.safeInsetBottom)
+            }
+            insets
+        }
+
         setContent {
             CompositionLocalProvider(
                 LocalViewModel provides vm,
                 LocalKeyboardRequester provides keyboard,
+                dev.retrobit.desktop.ui.theme.LocalCutoutInsets provides cutout.value,
             ) {
                 Root(vm)
             }

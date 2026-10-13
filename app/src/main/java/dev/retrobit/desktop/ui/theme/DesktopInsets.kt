@@ -1,11 +1,8 @@
 package dev.retrobit.desktop.ui.theme
 
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.dp
 
 /**
@@ -31,7 +28,14 @@ data class DesktopInsets(
     }
 }
 
+/** The safe area the shells must honour (camera hole + rounded corners). */
 val LocalDesktopInsets = staticCompositionLocalOf { DesktopInsets.Zero }
+
+/**
+ * Display-cutout insets in px, as `[left, top, right, bottom]`, filled in by [MainActivity] from
+ * the window insets. Empty on devices without a cutout (or below Android 9).
+ */
+val LocalCutoutInsets = staticCompositionLocalOf { IntArray(0) }
 
 /**
  * Combines the punch-hole / cutout insets reported by the system with the rounded-corner margin.
@@ -42,12 +46,13 @@ val LocalDesktopInsets = staticCompositionLocalOf { DesktopInsets.Zero }
 fun rememberDesktopInsets(enabled: Boolean, cornerDp: Int): DesktopInsets {
     if (!enabled) return DesktopInsets.Zero
     val density = LocalDensity.current
-    val layoutDirection = LocalLayoutDirection.current
-    val cutout = WindowInsets.displayCutout
+    val cutout = LocalCutoutInsets.current
     val corner = with(density) { cornerDp.dp.toPx() }
-    val left = maxOf(cutout.getLeft(density, layoutDirection), corner)
-    val top = maxOf(cutout.getTop(density), corner)
-    val right = maxOf(cutout.getRight(density, layoutDirection), corner)
-    val bottom = maxOf(cutout.getBottom(density), corner)
-    return DesktopInsets(left, top, right, bottom)
+    fun side(index: Int): Float = (cutout.getOrNull(index) ?: 0).toFloat()
+    return DesktopInsets(
+        left = maxOf(side(0), corner),
+        top = maxOf(side(1), corner),
+        right = maxOf(side(2), corner),
+        bottom = maxOf(side(3), corner),
+    )
 }

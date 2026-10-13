@@ -249,8 +249,6 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
             TitleButton(Sym.MAX, inverted = true, onClick = { wm.toggleMaximize(win.id) })
             TitleButton(Sym.CLOSE, inverted = true, onClick = { wm.close(win.id) })
         }
-        }
-        if (!win.maximized) ResizeHandles(win, wm, grab)
     }
 }
 
