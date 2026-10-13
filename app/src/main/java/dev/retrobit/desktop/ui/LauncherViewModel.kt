@@ -181,6 +181,21 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Wired by the activity: summon or hide the internal (on-screen) keyboard. */
     var toggleKeyboard: (() -> Unit)? = null
 
+    /** True while the launcher is the app in front; the clock / battery timer runs only then. */
+    var foreground by mutableStateOf(false)
+        private set
+
+    /** Called from the activity's lifecycle so the timer can idle in the background. */
+    fun setForeground(value: Boolean) {
+        if (foreground == value) return
+        foreground = value
+        if (value) {
+            // coming back to the front: refresh at once instead of waiting for the next tick
+            now = System.currentTimeMillis()
+            viewModelScope.launch { snapshot = SystemInfo.snapshot(getApplication()) }
+        }
+    }
+
     private var seeded = false
 
     init {
@@ -190,9 +205,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         repo.registerChanges { viewModelScope.launch { repo.reload() } }
         viewModelScope.launch { repo.reload(); seedDefaults() }
         viewModelScope.launch {
+            var ticks = 0
             while (true) {
-                snapshot = SystemInfo.snapshot(getApplication())
-                now = System.currentTimeMillis()
+                // The clock only has to tick while the launcher is actually on screen. In the
+                // background the old loop kept waking up once a second and asked the system for the
+                // battery, memory, disk and network state every time — a binder round-trip per
+                // second, forever, for a widget nobody could see.
+                if (foreground) {
+                    now = System.currentTimeMillis()
+                    // the heavy figures change slowly: once every five seconds is plenty
+                    if (ticks % 5 == 0) snapshot = SystemInfo.snapshot(getApplication())
+                    ticks++
+                }
                 delay(1000)
             }
         }
@@ -609,12 +633,16 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             booting = true
             bootLines.clear()
+            val cores = Runtime.getRuntime().availableProcessors()
+            val abi = android.os.Build.SUPPORTED_ABIS.firstOrNull() ?: "unknown"
+            val metrics = getApplication<Application>().resources.displayMetrics
+            fun bootLine(text: String) = text.padEnd(42, '.') + " OK"
             val lines = listOf(
                 "Retrobit BIOS v1.0  (c) retrobit-dev",
-                "detecting e-paper panel .................. OK",
-                "cpu: arm64 / 8 cores .................... OK",
-                "framebuffer 2560x1600 / 16 grays ........ OK",
-                "mounting /dev/paper0 .................... OK",
+                bootLine("detecting e-paper panel"),
+                bootLine("cpu: $abi / $cores cores"),
+                bootLine("framebuffer ${metrics.widthPixels}x${metrics.heightPixels} / 16 grays"),
+                bootLine("mounting /dev/paper0"),
                 "loading window manager: " + settings.style.tagline.split(" · ").first(),
                 "starting retrobit-desktop.service ....... OK",
                 "",

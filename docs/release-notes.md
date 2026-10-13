@@ -9,6 +9,34 @@
 
 ## Yang baru di {{TAG}}
 
+
+### Terminal: tombol cepat jadi ikon
+- Empat tombol cepat di bawah terminal (`help`, `previous`, `next`, `clear`) sekarang **hanya ikon**,
+  bukan kata: tanda tanya, panah atas, panah bawah, dan tanda silang. Tidak ada lagi label teks yang
+  memakan lebar baris perintah.
+- Glyph-nya digambar sendiri sebagai pixel-art 16x16 di `ui/components/Glyphs.kt` (dua glyph baru:
+  `HELP`, `UP`, `DOWN`, `CLOSE`), jadi tetap tajam di semua skala UI dan warnanya ikut palet.
+
+### Rapikan supaya benar-benar siap dipakai
+- **Ikon tidak lagi dibuang setiap kembali ke homescreen.** Sebelumnya setiap kali launcher muncul
+  lagi (dan setiap ada aplikasi baru terpasang) seluruh cache ikon dihapus, jadi semua ikon digambar
+  ulang — boros dan kadang terlihat berkedip. Sekarang cache hanya dibuang kalau daftar aplikasi
+  benar-benar berubah, dan ukurannya dibatasi **berdasarkan memori** (12 MB), bukan jumlah entri.
+- **Timer jam berhenti saat launcher tidak di depan.** Dulu loop 1 detik terus berjalan di latar
+  belakang sambil menanyakan baterai, memori, disk, dan jaringan ke sistem setiap detik. Sekarang
+  loop-nya hanya hidup saat launcher benar-benar tampil, dan angka sistem dibaca tiap 5 detik.
+- **Format tanggal tidak lagi dibuat ulang tiap detik** di widget jam, panel, menu bar, dan taskbar.
+- **Waktu kalender disimpan dengan angka ASCII** (`Locale.US`), jadi entri tetap terbaca di
+  perangkat dengan bahasa yang memakai angka non-Latin.
+- **Angka sistem (memori, disk) memakai `Locale.US`** supaya tidak muncul `3,1G` di perangkat
+  berkoma-desimal.
+- **Satu string UI memakai panah `→` yang tidak ada di font Pixel Operator** — diganti `>`.
+- **UI scale dibatasi 0.6-2.0** saat dibaca, jadi nilai lama yang rusak tidak bisa membuat desktop
+  tidak terbaca.
+- **Launcher tidak akan crash kalau layanan sistem tidak tersedia**: `LauncherApps` /
+  `UserManager` sekarang aman bila `null`.
+- **Layar boot menampilkan angka sebenarnya**: jumlah core CPU, ABI, dan resolusi layar perangkat.
+
 - **Semua aplikasi sekarang selalu terbungkus kotak jendela.** Membuka aplikasi dari mana saja
   (desktop, app drawer, dock, sidebar, taskbar, Spotlight) membuka **jendela desktop**-nya dulu —
   persis seperti jendela Settings / Terminal: title bar, minimize, maximize, close, geser, resize 8

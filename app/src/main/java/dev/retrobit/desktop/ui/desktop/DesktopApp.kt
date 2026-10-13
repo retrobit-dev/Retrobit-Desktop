@@ -114,7 +114,9 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         ),
         LocalDesktopStyle provides settings.style,
         dev.retrobit.desktop.ui.theme.LocalDesktopInsets provides insets,
-        LocalUiScale provides settings.uiScale,
+        // clamped: a value coming from an old install (or a corrupted preference) must never be
+        // able to render the whole desktop unreadable
+        LocalUiScale provides settings.uiScale.coerceIn(0.6f, 2.0f),
         LocalViewModel provides vm,
         LocalDragState provides drag,
         LocalPointerRouter provides pointer,
@@ -240,7 +242,7 @@ fun Wallpaper(
                         size = 16f, display = true,
                     )
                     RetroText(
-                        note.ifEmpty { "choose a picture in Settings → wallpaper" },
+                        note.ifEmpty { "choose a picture in Settings > wallpaper" },
                         size = 11f, color = p.mid, maxLines = 3,
                     )
                 }

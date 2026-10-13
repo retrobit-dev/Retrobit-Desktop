@@ -9,6 +9,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.time.LocalDate
 import java.time.LocalTime
+import java.util.Locale
 import java.util.UUID
 
 /**
@@ -102,7 +103,8 @@ class CalendarStore(context: Context) {
                     put("title", e.title)
                     put("kind", e.kind.name)
                     put("date", e.date.toString())
-                    if (e.time != null) put("time", String.format("%02d:%02d", e.time.hour, e.time.minute))
+                    // Locale.US: the stored text has to read back with ASCII digits on every device
+                    if (e.time != null) put("time", String.format(Locale.US, "%02d:%02d", e.time.hour, e.time.minute))
                     put("done", e.done)
                     if (e.notes.isNotEmpty()) put("notes", e.notes)
                 }

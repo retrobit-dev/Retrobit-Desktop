@@ -236,6 +236,15 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   (atau `Ctrl+Alt+K`); layout menyesuaikan tinggi keyboard.
 - Dukungan keyboard eksternal dengan 10+ pintasan gaya desktop.
 
+### Terminal: tombol cepat ikon + rapi di latar
+- Tombol cepat di bawah terminal adalah **ikon saja** (tanda tanya = `help`, panah atas/bawah =
+  riwayat perintah, tanda silang = bersihkan layar) — glyph pixel-art 16x16 yang digambar sendiri,
+  bukan label teks.
+- Ikon aplikasi tidak lagi digambar ulang setiap launcher kembali ke depan (cache hanya dibuang
+  kalau daftar aplikasi benar-benar berubah) dan cache-nya dibatasi memori, bukan jumlah entri.
+- Timer jam berhenti saat launcher tidak di depan, angka sistem dibaca tiap 5 detik, dan format
+  tanggal tidak dibuat ulang tiap detik.
+
 ### Aplikasi bawaan
 - **Terminal** (`rb-sh`) — 28+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,

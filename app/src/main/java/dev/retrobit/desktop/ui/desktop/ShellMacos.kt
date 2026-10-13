@@ -50,9 +50,7 @@ import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import dev.retrobit.desktop.ui.wm.ShellMetrics
 import dev.retrobit.desktop.ui.wm.WindowLayer
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 /**
  * Classic Mac style shell: top menu bar, bottom dock, Launchpad overlay,
@@ -157,7 +155,8 @@ fun MacosShell(vm: LauncherViewModel) {
             TrayStatus(vm)
             KeyboardTrayButton(boxSize = dp(20f))
             RetroText(
-                SimpleDateFormat("EEE dd MMM  " + if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),
+                rememberClockFormat("EEE dd MMM  " + if (vm.settings.use24h) "HH:mm" else "hh:mm a")
+                    .format(Date(vm.now)),
                 size = 12f, weight = FontWeight.Bold,
             )
         }

@@ -368,3 +368,15 @@ fun TrayButton(glyph: Glyph, active: Boolean = false, onClick: () -> Unit) {
         GlyphIcon(glyph, dp(14f))
     }
 }
+
+/**
+ * The clock formatter of the panel / menu bar / taskbar.
+ *
+ * The shells redraw once a second and used to build a new `SimpleDateFormat` on every tick; the
+ * pattern only changes when the 12/24-hour setting or the system locale does.
+ */
+@Composable
+fun rememberClockFormat(pattern: String): java.text.SimpleDateFormat =
+    remember(pattern, java.util.Locale.getDefault()) {
+        java.text.SimpleDateFormat(pattern, java.util.Locale.getDefault())
+    }

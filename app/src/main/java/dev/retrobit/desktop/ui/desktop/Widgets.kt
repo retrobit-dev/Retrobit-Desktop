@@ -77,12 +77,20 @@ fun ClockWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: Dp 
     val s = vm.settings
     val loc = Locale.getDefault()
     val moment = Date(vm.now)
-    val h = SimpleDateFormat(if (s.use24h) "HH" else "hh", loc).format(moment)
-    val m = SimpleDateFormat("mm", loc).format(moment)
-    val sec = SimpleDateFormat("ss", loc).format(moment)
-    val ampm = SimpleDateFormat("a", loc).format(moment)
-    val date = SimpleDateFormat("EEE, dd MMM yyyy", loc).format(moment)
-    val weekday = SimpleDateFormat("EEEE", loc).format(moment)
+    // The formatters are remembered: this widget redraws every second, and building six
+    // SimpleDateFormat objects per tick is pure waste on a tablet that runs on battery.
+    val hour = remember(loc, s.use24h) { SimpleDateFormat(if (s.use24h) "HH" else "hh", loc) }
+    val minute = remember(loc) { SimpleDateFormat("mm", loc) }
+    val second = remember(loc) { SimpleDateFormat("ss", loc) }
+    val meridiem = remember(loc) { SimpleDateFormat("a", loc) }
+    val day = remember(loc) { SimpleDateFormat("EEE, dd MMM yyyy", loc) }
+    val dayName = remember(loc) { SimpleDateFormat("EEEE", loc) }
+    val h = hour.format(moment)
+    val m = minute.format(moment)
+    val sec = second.format(moment)
+    val ampm = meridiem.format(moment)
+    val date = day.format(moment)
+    val weekday = dayName.format(moment)
 
     WidgetCard(
         "chrono",

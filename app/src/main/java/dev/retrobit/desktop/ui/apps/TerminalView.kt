@@ -23,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.retrobit.desktop.ui.LauncherViewModel
@@ -84,37 +83,43 @@ fun TerminalView(vm: LauncherViewModel) {
                     },
                 )
             }
-            QuickKeys { text ->
-                when (text) {
-                    "prev" -> input = shell.historyPrev(input)
-                    "next" -> input = shell.historyNext()
-                    "clear" -> shell.clear()
-                    "help" -> shell.submit("help")
+            QuickKeys { key ->
+                when (key) {
+                    Quick.HELP -> shell.submit("help")
+                    Quick.PREV -> input = shell.historyPrev(input)
+                    Quick.NEXT -> input = shell.historyNext()
+                    Quick.CLEAR -> shell.clear()
                 }
             }
         }
     }
 }
 
+/**
+ * The terminal's quick keys, drawn as icons only: help (question mark), previous / next command
+ * (arrows) and clear (cross). Four small boxes instead of four word buttons, so the input line keeps
+ * its width; the commands themselves are still listed by `help`.
+ */
+private enum class Quick(val glyph: dev.retrobit.desktop.ui.components.Glyph) {
+    HELP(dev.retrobit.desktop.ui.components.Glyph.HELP),
+    PREV(dev.retrobit.desktop.ui.components.Glyph.UP),
+    NEXT(dev.retrobit.desktop.ui.components.Glyph.DOWN),
+    CLEAR(dev.retrobit.desktop.ui.components.Glyph.CLOSE),
+}
+
 @Composable
-private fun QuickKeys(onKey: (String) -> Unit) {
-    val p = LocalPalette.current
+private fun QuickKeys(onKey: (Quick) -> Unit) {
     Row(
         Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(dp(5f)),
     ) {
-        listOf("help", "prev", "next", "clear").forEach { k ->
-            Box(
-                Modifier
-                    .background(p.paper)
-                    .padding(horizontal = dp(4f)),
-            ) {
-                dev.retrobit.desktop.ui.components.RetroIconButton(
-                    label = k,
-                    boxSize = dp(30f),
-                    onClick = { onKey(k) },
-                )
-            }
+        Quick.entries.forEach { key ->
+            dev.retrobit.desktop.ui.components.RetroIconButton(
+                glyph = key.glyph,
+                boxSize = dp(30f),
+                onClick = { onKey(key) },
+            )
         }
+
     }
 }

@@ -49,9 +49,7 @@ import dev.retrobit.desktop.ui.wm.WindowLayer
 import dev.retrobit.desktop.ui.wm.ShellMetrics
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 /**
  * GNU/Linux style shell: top panel with a system menu + window buttons, a left side dock,
@@ -154,7 +152,7 @@ fun LinuxShell(vm: LauncherViewModel) {
             KeyboardTrayButton(boxSize = dp(22f))
             TrayButton(Glyph.SEARCH) { vm.spotlight = true }
             RetroText(
-                SimpleDateFormat(if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),
+                rememberClockFormat(if (vm.settings.use24h) "HH:mm" else "hh:mm a").format(Date(vm.now)),
                 size = 12f, weight = FontWeight.Bold,
             )
         }

@@ -21,7 +21,17 @@ import dev.retrobit.desktop.model.IconTheme
  *  DITHER – 1-bit ordered (Bayer) dither at low resolution, outlined, shown with nearest-neighbour scaling
  */
 object IconCache {
-    private val cache = LruCache<String, ImageBitmap>(600)
+    /** Roughly 12 MB of bitmaps: enough for a tablet-sized desktop, small enough to stay polite. */
+    private const val MAX_BYTES = 12 * 1024 * 1024
+
+    /**
+     * Icons are cached by **bytes**, not by count: a 128 px icon is ~64 KB, so a count-based cache of
+     * 600 entries could quietly hold 40 MB and make the whole launcher feel heavy.
+     */
+    private val cache = object : LruCache<String, ImageBitmap>(MAX_BYTES) {
+        override fun sizeOf(key: String, value: ImageBitmap): Int =
+            (value.width * value.height * 4).coerceAtLeast(1)
+    }
 
     private val bayer = intArrayOf(0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5)
 

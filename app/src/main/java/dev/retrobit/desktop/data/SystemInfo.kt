@@ -2,15 +2,13 @@ package dev.retrobit.desktop.data
 
 import android.app.ActivityManager
 import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.BatteryManager
 import android.os.Environment
 import android.os.StatFs
 import android.os.SystemClock
-import androidx.core.content.ContextCompat
+import java.util.Locale
 
 data class SysSnapshot(
     val battery: Int = -1,
@@ -31,17 +29,15 @@ object SystemInfo {
     fun snapshot(ctx: Context): SysSnapshot {
         var battery = -1
         var charging = false
+        // BatteryManager properties instead of registering for the sticky battery broadcast: this
+        // snapshot is refreshed on a timer, and registering a receiver every second (which is what
+        // the old code did) is both slower and heavier than asking the service.
         runCatching {
-            val i: Intent? = ContextCompat.registerReceiver(
-                ctx, null, IntentFilter(Intent.ACTION_BATTERY_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED,
-            )
-            if (i != null) {
-                val level = i.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                val scale = i.getIntExtra(BatteryManager.EXTRA_SCALE, 100)
-                if (level >= 0 && scale > 0) battery = level * 100 / scale
-                val status = i.getIntExtra(BatteryManager.EXTRA_STATUS, -1)
-                charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
-            }
+            val bm = ctx.getSystemService(BatteryManager::class.java)
+            val capacity = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            if (capacity in 0..100) battery = capacity
+            val status = bm.getIntProperty(BatteryManager.BATTERY_PROPERTY_STATUS)
+            charging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
         }
         var memUsed = 0L
         var memTotal = 1L
@@ -78,7 +74,10 @@ object SystemInfo {
 
     fun fmtBytes(b: Long): String {
         val g = b / (1024.0 * 1024 * 1024)
-        return if (g >= 1) String.format("%.1fG", g) else String.format("%dM", b / (1024 * 1024))
+        // Locale.US: these are technical readouts, and "3,1G" on a comma-decimal device looks like a
+        // corrupt number next to the ASCII bars
+        return if (g >= 1) String.format(Locale.US, "%.1fG", g)
+        else String.format(Locale.US, "%dM", b / (1024 * 1024))
     }
 
     fun fmtUptime(ms: Long): String {

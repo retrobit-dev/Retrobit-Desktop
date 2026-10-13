@@ -18,8 +18,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
 
 class AppRepository(private val context: Context) {
-    private val launcherApps = context.getSystemService(LauncherApps::class.java)
-    private val userManager = context.getSystemService(UserManager::class.java)
+    /** Both services are always present on a phone/tablet, but never trust a platform lookup. */
+    private val launcherApps: LauncherApps? = context.getSystemService(LauncherApps::class.java)
+    private val userManager: UserManager? = context.getSystemService(UserManager::class.java)
 
     private val _apps = MutableStateFlow<List<AppEntry>>(emptyList())
     val apps: StateFlow<List<AppEntry>> = _apps
@@ -27,10 +28,12 @@ class AppRepository(private val context: Context) {
     suspend fun reload() = withContext(Dispatchers.IO) {
         val me = Process.myUserHandle()
         val result = ArrayList<AppEntry>()
-        val profiles: List<UserHandle> = runCatching { userManager.userProfiles }.getOrDefault(listOf(me))
+        val launcher = launcherApps ?: return@withContext
+        val profiles: List<UserHandle> = runCatching { userManager?.userProfiles }.getOrNull()
+            ?.takeIf { it.isNotEmpty() } ?: listOf(me)
         for (user in profiles) {
             val serial = runCatching { userManager.getSerialNumberForUser(user) }.getOrDefault(0L)
-            val list = runCatching { launcherApps.getActivityList(null, user) }.getOrDefault(emptyList())
+            val list = runCatching { launcher.getActivityList(null, user) }.getOrDefault(emptyList())
             for (info in list) {
                 val cn = info.componentName
                 if (cn.packageName == context.packageName) continue
@@ -46,12 +49,16 @@ class AppRepository(private val context: Context) {
             }
         }
         result.sortWith(compareBy<AppEntry> { it.label.lowercase() }.thenBy { it.isWorkProfile })
-        IconCache.clear()
+        // Clearing the whole icon cache on every reload (which happens on every onResume and on every
+        // package change) made the desktop re-render every icon for nothing. Only a changed app set —
+        // an install, an uninstall, a renamed package — invalidates the pictures.
+        if (result.map { it.key } != _apps.value.map { it.key }) IconCache.clear()
         _apps.value = result
     }
 
     fun registerChanges(onChange: () -> Unit) {
-        launcherApps.registerCallback(object : LauncherApps.Callback() {
+        val launcher = launcherApps ?: return
+        launcher.registerCallback(object : LauncherApps.Callback() {
             override fun onPackageRemoved(packageName: String?, user: UserHandle?) = onChange()
             override fun onPackageAdded(packageName: String?, user: UserHandle?) = onChange()
             override fun onPackageChanged(packageName: String?, user: UserHandle?) = onChange()
@@ -81,7 +88,8 @@ class AppRepository(private val context: Context) {
             if (options != null) context.startActivity(i, options) else context.startActivity(i)
             true
         } else {
-            launcherApps.startMainActivity(app.component, app.user, bounds, options)
+            val launcher = launcherApps ?: throw IllegalStateException("no launcher service")
+            launcher.startMainActivity(app.component, app.user, bounds, options)
             true
         }
     } catch (t: Throwable) {
@@ -97,7 +105,7 @@ class AppRepository(private val context: Context) {
     }
 
     fun openAppInfo(app: AppEntry) {
-        runCatching { launcherApps.startAppDetailsActivity(app.component, app.user, null, null) }
+        runCatching { launcherApps?.startAppDetailsActivity(app.component, app.user, null, null) }
     }
 
     fun uninstall(app: AppEntry) {

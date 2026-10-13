@@ -30,7 +30,6 @@ import dev.retrobit.desktop.data.WallpaperSource
 import dev.retrobit.desktop.data.WallpaperTone
 import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.IconMode
-import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.ui.LauncherViewModel

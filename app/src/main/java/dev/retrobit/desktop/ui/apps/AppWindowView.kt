@@ -95,7 +95,7 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
             )
             RetroText(
                 "safe area kept clear: ${vm.desktopInsets.left.toInt()}, ${vm.desktopInsets.top.toInt()} px  " +
-                    "|  ui scale ${vm.settings.uiScale}  |  density ${"%.2f".format(density)}",
+                    "|  ui scale ${vm.settings.uiScale}  |  density ${String.format(java.util.Locale.US, "%.2f", density)}",
                 size = 10f, color = p.mid, maxLines = 2,
             )
             RetroText(

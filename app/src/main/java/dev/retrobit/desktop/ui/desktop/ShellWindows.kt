@@ -55,9 +55,7 @@ import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import dev.retrobit.desktop.ui.wm.ShellMetrics
 import dev.retrobit.desktop.ui.wm.WindowLayer
-import java.text.SimpleDateFormat
 import java.util.Date
-import java.util.Locale
 
 /**
  * Windows 95 style shell: taskbar with Start button and tray at the bottom,
@@ -246,7 +244,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                 TrayButton(Glyph.SEARCH) { vm.spotlight = true }
                 TrayButton(Glyph.SYSMON) { vm.openWindow(WinKind.SYSMON) }
                 RetroText(
-                    SimpleDateFormat(if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),
+                    rememberClockFormat(if (vm.settings.use24h) "HH:mm" else "hh:mm a").format(Date(vm.now)),
                     size = 12f, weight = FontWeight.Bold,
                 )
             }
