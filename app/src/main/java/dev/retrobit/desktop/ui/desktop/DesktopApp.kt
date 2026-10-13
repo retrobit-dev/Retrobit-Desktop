@@ -74,15 +74,21 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     // pen / mouse behaviour follows the settings section "input & devices"
-    LaunchedEffect(settings.penRightClick, settings.showCursor) {
+    LaunchedEffect(settings.penRightClick, settings.showCursor, settings.penHoldMs) {
         pointer.penRightClick = settings.penRightClick
         pointer.showCursor = settings.showCursor
+        pointer.holdMs = settings.penHoldMs.coerceIn(150, 1200).toLong()
     }
     // load / re-render the background whenever the source, the picture, the tone or palette changes
     LaunchedEffect(settings.wallpaperSource, settings.wallpaperUri, settings.wallpaperTone, settings.palette, settings.style) {
         vm.refreshWallpaper()
     }
-    LaunchedEffect(settings.iconTheme, settings.style, settings.iconAccent, settings.iconMonogram) {
+    // the icon cache key already carries ink/paper/theme/accent, but clearing on top of that rules
+    // out a stale bitmap ever surviving a palette, mode, shape or size change
+    LaunchedEffect(
+        settings.iconTheme, settings.style, settings.iconAccent,
+        settings.iconMonogram, settings.iconMode, settings.palette, settings.uiScale,
+    ) {
         dev.retrobit.desktop.data.IconCache.clear()
     }
     // forget the bookkeeping of windows the user closed
@@ -94,6 +100,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         LocalPalette provides palette,
         LocalIconMode provides settings.iconMode,
         LocalIconTheme provides IconTheme.resolve(settings.iconThemeEnum, settings.style),
+        dev.retrobit.desktop.ui.theme.LocalIconEpoch provides vm.iconEpoch,
         dev.retrobit.desktop.ui.theme.LocalIconOptions provides dev.retrobit.desktop.ui.theme.IconOptions(
             accent = if (settings.iconAccent) palette.accentColor else null,
             monogram = settings.iconMonogram,

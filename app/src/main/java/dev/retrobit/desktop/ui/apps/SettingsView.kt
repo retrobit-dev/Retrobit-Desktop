@@ -207,48 +207,68 @@ fun SettingsView(vm: LauncherViewModel) {
             size = 10f, color = p.mid, maxLines = 8,
         )
 
-        Section("display widgets")
+        Section("display widgets (home screen)")
         RetroText(
-            "All widgets share the calendar width by default. Drag the right edge, the bottom edge or " +
-                "the bottom-right corner of any widget to size it by hand; the size is remembered.",
-            size = 10.5f, color = p.mid, maxLines = 4,
+            "Add or remove widgets here, or right click / hold the desktop and use the widget entries. " +
+                "Hold a widget on the home screen to edit it: it turns into a resize handle, shows its " +
+                "name, and gets buttons to remove it, move it up or down in the column and reset its size.",
+            size = 10.5f, color = p.mid, maxLines = 5,
         )
+        dev.retrobit.desktop.model.WidgetId.entries.forEach { id ->
+            val on = s.isWidgetEnabled(id)
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+                RetroText(
+                    (if (on) "[x] " else "[ ] ") + id.label,
+                    size = 11.5f,
+                    weight = if (on) FontWeight.Bold else FontWeight.Normal,
+                    modifier = Modifier.weight(1.4f),
+                    maxLines = 1,
+                )
+                RetroText(
+                    "${s.widgetWidth(id)}x${s.widgetHeight(id)} dp",
+                    size = 10f, color = p.mid, maxLines = 1, modifier = Modifier.weight(1f),
+                )
+                RetroButton(
+                    label = if (on) "remove" else "add",
+                    active = on,
+                    modifier = Modifier.weight(0.9f),
+                    onClick = { if (on) s.removeWidget(id) else s.addWidget(id) },
+                )
+                RetroButton(label = "^", modifier = Modifier.weight(0.4f), onClick = { s.moveWidget(id, -1) })
+                RetroButton(label = "v", modifier = Modifier.weight(0.4f), onClick = { s.moveWidget(id, 1) })
+                RetroButton(label = "size", modifier = Modifier.weight(0.8f), onClick = { s.resetWidgetSize(id) })
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             listOf(220, 250, 300, 360).forEach { w ->
                 RetroButton(
-                    label = "${w}dp",
+                    label = "all ${w}dp",
                     active = s.widgetWidth == w,
                     modifier = Modifier.weight(1f),
                     onClick = {
                         s.widgetWidth = w
                         s.resetWidgets()
-                        s.widgetWidth = w
                     },
                 )
             }
         }
-        dev.retrobit.desktop.model.WidgetId.entries.forEach { id ->
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
-                RetroText(id.label, size = 11f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                RetroText(
-                    "${s.widgetWidth(id)} x ${s.widgetHeight(id).takeIf { it > 0 } ?: 0} dp",
-                    size = 10.5f, color = p.mid, maxLines = 1,
-                )
-                RetroButton(
-                    label = if (id == dev.retrobit.desktop.model.WidgetId.CALENDAR) "open" else "reset",
-                    modifier = Modifier.weight(0.7f),
-                    onClick = {
-                        if (id == dev.retrobit.desktop.model.WidgetId.CALENDAR) vm.openWindow(dev.retrobit.desktop.model.WinKind.CALENDAR)
-                        else s.resetWidgetSize(id)
-                    },
-                )
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+            RetroButton(
+                label = if (vm.widgetEdit) "done editing widgets" else "edit widgets on desktop",
+                glyph = Glyph.GRID,
+                active = vm.widgetEdit,
+                modifier = Modifier.weight(1.6f),
+                onClick = { vm.widgetEdit = !vm.widgetEdit },
+            )
+            RetroButton(
+                label = "reset layout",
+                modifier = Modifier.weight(1f),
+                onClick = { s.resetWidgetList() },
+            )
         }
-        RetroButton(
-            label = "Reset all widget sizes",
-            glyph = Glyph.GRID,
-            modifier = Modifier.fillMaxWidth(),
-            onClick = { s.resetWidgets() },
+        RetroText(
+            "on the home screen: ${dev.retrobit.desktop.ui.desktop.widgetSummary(vm)}",
+            size = 10f, color = p.mid, maxLines = 2,
         )
 
         Section("display corners & camera hole")
@@ -274,6 +294,13 @@ fun SettingsView(vm: LauncherViewModel) {
             }
         }
 
+        Section("app icon look (live preview)")
+        RetroText(
+            "These are the real icons of your apps, rendered with the settings below and the active " +
+                "palette — the desktop, dock and app drawer use exactly the same pipeline.",
+            size = 10.5f, color = p.mid, maxLines = 3,
+        )
+        AppIconPreview(vm)
         Section("app icon readability")
         RetroText(
             "Icons are redrawn for e-paper: the frame follows the active palette, an optional letter " +
@@ -283,12 +310,25 @@ fun SettingsView(vm: LauncherViewModel) {
         ToggleRow("Name chips under icons", s.iconLabels, onGlyph = Glyph.GRID) { s.iconLabels = it }
         ToggleRow("First-letter plate on icons", s.iconMonogram, onGlyph = Glyph.ABOUT) {
             s.iconMonogram = it
-            dev.retrobit.desktop.data.IconCache.clear()
+            vm.reinkIcons()
         }
         ToggleRow("Palette accent colour on icon frames", s.iconAccent, onGlyph = Glyph.SETTINGS) {
             s.iconAccent = it
-            dev.retrobit.desktop.data.IconCache.clear()
+            vm.reinkIcons()
         }
+        RetroButton(
+            label = "Reset icon look (mono + accent + letter plate)",
+            glyph = Glyph.LOGO,
+            modifier = Modifier.fillMaxWidth(),
+            onClick = {
+                s.iconMode = dev.retrobit.desktop.model.IconMode.MONO
+                s.iconTheme = dev.retrobit.desktop.model.IconTheme.AUTO.name
+                s.iconAccent = true
+                s.iconMonogram = true
+                s.iconLabels = true
+                vm.reinkIcons()
+            },
+        )
 
         Section("app icon shape")
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
@@ -299,7 +339,7 @@ fun SettingsView(vm: LauncherViewModel) {
                         active = s.iconThemeEnum == theme,
                         onClick = {
                             s.iconTheme = theme.name
-                            dev.retrobit.desktop.data.IconCache.clear()
+                            vm.reinkIcons()
                         },
                     )
                     RetroText(
@@ -367,8 +407,25 @@ fun SettingsView(vm: LauncherViewModel) {
         )
 
         Section("input & devices — pen, mouse, keyboard")
-        ToggleRow("Pen double-tap = right click (tap twice with the M-Pencil to open the context menu)",
+        ToggleRow("Hold the pen = right click (M-Pencil: rest it on a widget, icon or the desktop)",
             s.penRightClick, onGlyph = Glyph.PEN) { s.penRightClick = it }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+            RetroText("hold time", size = 11f, modifier = Modifier.weight(1f), maxLines = 1)
+            listOf(250, 380, 500, 700).forEach { ms ->
+                RetroButton(
+                    label = "${ms}ms",
+                    active = s.penHoldMs == ms,
+                    modifier = Modifier.weight(1f),
+                    onClick = { s.penHoldMs = ms },
+                )
+            }
+        }
+        RetroText(
+            "Tap = left click (opens apps, moves focus). Hold = right click: the context menu opens " +
+                "where you rested the pen, exactly like right-clicking a desktop. Holding a widget " +
+                "also starts editing it (resize, remove, add). The barrel button still works as right click.",
+            size = 10f, color = p.mid, maxLines = 5,
+        )
         ToggleRow("Show pointer cursor for pen & mouse", s.showCursor, onGlyph = Glyph.CURSOR) { s.showCursor = it }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
             Box(

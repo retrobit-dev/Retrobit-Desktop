@@ -46,8 +46,14 @@ class Settings(context: Context) {
     var showGrid: Boolean by boolPref("showGrid", true)
     /** Free icon placement on the desktop grid: encoded "pkg=col,row" pairs. */
     var iconCells: String by stringPref("iconCells", "")
-    /** M-Pencil / stylus: double tap behaves as a right click (context menu). */
+    /**
+     * M-Pencil / stylus: **hold** the pen on something to open its context menu (right click), the
+     * way a desktop mouse works. Tap stays a left click; the barrel button also works.
+     */
     var penRightClick: Boolean by boolPref("penRightClick", true)
+
+    /** How long the pen has to rest before the press counts as a right click (ms). */
+    var penHoldMs: Int by intPref("penHoldMs", 380)
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
     /** Drag a window against a screen edge to snap it (half screen / maximize). */
@@ -112,6 +118,52 @@ class Settings(context: Context) {
     // ── desktop widget sizes -------------------------------------------------------
     /** Every widget starts at the calendar width so the whole column lines up. */
     var widgetWidth: Int by intPref("widgetWidth", 250)
+
+    /** Widgets on the home screen, in order ("CLOCK\nCALENDAR\nSYSTEM"). */
+    var widgetList: List<String> by listPref("widgetList")
+
+    /** Widgets the home screen starts with; the user can add or remove any of them. */
+    val defaultWidgets: List<String> = listOf("CLOCK", "CALENDAR", "SYSTEM")
+
+    /**
+     * The enabled widgets. A fresh install (no saved list) starts with [defaultWidgets]; once the
+     * user has changed the list, even an empty one is respected — an empty home screen is a choice.
+     */
+    val widgets: List<dev.retrobit.desktop.model.WidgetId>
+        get() {
+            val raw = if (sp.contains("widgetList")) widgetList else defaultWidgets
+            return raw.mapNotNull { dev.retrobit.desktop.model.WidgetId.of(it) }
+        }
+
+    fun isWidgetEnabled(id: dev.retrobit.desktop.model.WidgetId): Boolean = widgets.contains(id)
+
+    private fun setWidgets(ids: List<dev.retrobit.desktop.model.WidgetId>) {
+        widgetList = ids.map { it.name }
+    }
+
+    fun addWidget(id: dev.retrobit.desktop.model.WidgetId) {
+        setWidgets(dev.retrobit.desktop.ui.wm.WidgetMath.add(widgets.map { it.name }, id.name)
+            .mapNotNull { dev.retrobit.desktop.model.WidgetId.of(it) })
+    }
+
+    fun removeWidget(id: dev.retrobit.desktop.model.WidgetId) {
+        setWidgets(dev.retrobit.desktop.ui.wm.WidgetMath.remove(widgets.map { it.name }, id.name)
+            .mapNotNull { dev.retrobit.desktop.model.WidgetId.of(it) })
+    }
+
+    fun toggleWidget(id: dev.retrobit.desktop.model.WidgetId) {
+        setWidgets(dev.retrobit.desktop.ui.wm.WidgetMath.toggle(widgets.map { it.name }, id.name)
+            .mapNotNull { dev.retrobit.desktop.model.WidgetId.of(it) })
+    }
+
+    fun moveWidget(id: dev.retrobit.desktop.model.WidgetId, delta: Int) {
+        setWidgets(dev.retrobit.desktop.ui.wm.WidgetMath.move(widgets.map { it.name }, id.name, delta)
+            .mapNotNull { dev.retrobit.desktop.model.WidgetId.of(it) })
+    }
+
+    fun resetWidgetList() {
+        widgetList = emptyList()
+    }
 
     /** Manual widget sizes, encoded "clock=250,140;calendar=280,420". */
     var widgetSizes: String by stringPref("widgetSizes", "")

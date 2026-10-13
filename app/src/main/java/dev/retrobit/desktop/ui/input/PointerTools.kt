@@ -31,18 +31,22 @@ fun PointerType.isPenOrMouse(): Boolean = isPen() || this == PointerType.Mouse
  *
  *  · [source]        last pointer kind that touched the screen (hints, cursor rules)
  *  · [cursor]        pointer position (root coordinates) while a pen or mouse is active
- *  · [penRightClick] when enabled, a pen *double* tap opens the context menu (right click) while a
- *                    single pen tap is a left click — fired after the double-tap window so the
- *                    second tap can still turn it into a right click
+ *  · [penRightClick] when enabled, **holding** the pen opens the context menu (right click) while a
+ *                    tap stays a left click — exactly like a mouse on a desktop. The barrel button
+ *                    keeps working too.
+ *  · [holdMs]        how long the pen has to rest before the press counts as a right click
+ *  · [touchHoldEnabled] holding a finger on an empty surface also opens the menu (launcher habit)
  *  · [showCursor]    draw the e-paper pointer arrow for pen / mouse input
  *
- * Touch is never delayed; only pen taps that have a secondary action wait, exactly like a desktop
- * OS waits to tell a double click from a single click.
+ * Nothing is delayed any more: taps fire immediately and only a hold produces the context menu.
  */
 class PointerRouter(
     val doubleTapWindowMs: Long = 320L,
 ) {
+    /** Hold the pen (or a finger on an empty surface) to open the context menu. */
     var penRightClick by mutableStateOf(true)
+    var holdMs: Long = 380L
+    var touchHoldEnabled by mutableStateOf(true)
     var showCursor by mutableStateOf(true)
     var source by mutableStateOf(InputSource.TOUCH)
     var cursor by mutableStateOf<Offset?>(null)
@@ -73,38 +77,66 @@ val LocalKeyboardRequester = staticCompositionLocalOf { KeyboardRequester() }
  * Desktop click handling for surfaces that also have a context menu:
  *
  *  touch               → primary action immediately
- *  mouse left button   → primary action immediately
+ *  touch held down     → secondary action (context menu), like long-press on a phone
+ *  mouse left button   → primary action
  *  mouse right button  → secondary action (context menu)
  *  pen barrel button   → secondary action (context menu)
- *  pen single tap      → primary action (after the double-tap window)
- *  pen double tap      → secondary action (context menu)
+ *  pen tap             → primary action
+ *  pen **held down**   → secondary action (context menu), the pen's right click
  *
- * [key] restarts the detector when the composable is recycled for another item, which cancels any
- * still pending single-tap action.
+ * Holding the pen is what opens the context menu — the same gesture as right-clicking on a desktop,
+ * and the way into editing widgets and icons. [key] restarts the detector when the composable is
+ * recycled for another item, which cancels a still pending gesture.
  */
 @Composable
 fun Modifier.desktopClick(
     primary: (Offset) -> Unit,
     secondary: ((Offset) -> Unit)? = null,
+    longPressMs: Long? = null,
+    /** Surfaces that already implement a long press (icon tiles) pass false to avoid a double menu. */
+    holdTouch: Boolean = true,
     key: Any? = Unit,
     router: PointerRouter = LocalPointerRouter.current,
 ): Modifier {
     val primaryState = rememberUpdatedState(primary)
     val secondaryState = rememberUpdatedState(secondary)
+    val longPressState = rememberUpdatedState(longPressMs)
+    val holdTouchState = rememberUpdatedState(holdTouch)
     val routerState = rememberUpdatedState(router)
     return this.pointerInput(key) {
         coroutineScope {
-            var pendingJob: Job? = null
-            var pendingAction: (() -> Unit)? = null
             awaitPointerEventScope {
                 while (true) {
                     val down = awaitFirstDown(requireUnconsumed = false)
                     val secondaryDown = currentEvent.buttons.isSecondaryPressed
                     val pen = down.type.isPen()
-                    // follow the gesture until it lifts or somebody else (drag / scroll) takes over
+                    val touch = !down.type.isPenOrMouse()
+                    val secondary = secondaryState.value
+                    val slop = viewConfiguration.touchSlop
+                    val holdFor = longPressState.value ?: routerState.value.holdMs
+
                     var consumed = false
                     var position = down.position
+                    var moved = false
+                    var fired = false
                     var release: PointerInputChange? = null
+                    var latest: PointerInputChange? = down
+
+                    // hold → right click: a timer runs while the pointer rests on the surface
+                    val holdJob = if (secondary != null && !secondaryDown && ((pen && routerState.value.penRightClick) ||
+                            (touch && holdTouchState.value && routerState.value.touchHoldEnabled))) {
+                        launch {
+                            delay(holdFor)
+                            if (!moved && !consumed) {
+                                fired = true
+                                secondary.invoke(position)
+                                // claim the press: a drag detector that is still waiting for its slop
+                                // must not start dragging after the menu opened
+                                latest?.consume()
+                            }
+                        }
+                    } else null
+
                     while (true) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break
@@ -112,37 +144,25 @@ fun Modifier.desktopClick(
                             consumed = true
                             break
                         }
+                        latest = change
                         position = change.position
+                        if (!moved && (change.position - down.position).getDistance() > slop) {
+                            moved = true
+                            holdJob?.cancel()
+                        }
                         if (!change.pressed) {
                             release = change
                             break
                         }
                     }
+                    holdJob?.cancel()
                     if (consumed) continue
-                    // Claim the gesture: without this the surface underneath would treat the same tap
-                    // as its own and, for a pen double tap, open the desktop menu as well.
+                    // Claim the gesture: without this the surface underneath would treat the same press
+                    // as its own and open a second menu.
                     release?.consume()
-                    val secondaryAction = secondaryState.value
                     when {
-                        secondaryDown && secondaryAction != null -> secondaryAction.invoke(position)
-                        pen && secondaryAction != null && routerState.value.penRightClick -> {
-                            if (pendingJob?.isActive == true) {
-                                // second pen tap inside the window → right click
-                                pendingJob?.cancel()
-                                pendingJob = null
-                                pendingAction = null
-                                secondaryAction.invoke(position)
-                            } else {
-                                val action = { primaryState.value(position) }
-                                pendingAction = action
-                                pendingJob = launch {
-                                    delay(routerState.value.doubleTapWindowMs)
-                                    val a = pendingAction
-                                    pendingAction = null
-                                    a?.invoke()
-                                }
-                            }
-                        }
+                        secondaryDown && secondary != null -> secondary.invoke(position)
+                        fired -> Unit                       // already handled by the hold
                         else -> primaryState.value(position)
                     }
                 }

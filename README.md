@@ -52,13 +52,21 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `Soft` (blok besar, kontras rendah). Warna aslinya dibuang — hanya kertas, tinta, dan abu-abu.
 - **Ikon aplikasi dirender ulang**: `Color` (asli), `Mono` (grayscale ke ramp tinta→kertas),
   `1-bit` (halftone Bayer + outline, di-scale nearest-neighbour agar pixelnya tajam).
-- **Ikon mudah dikenali**: bingkai ikon diwarnai **accent palet** (merah di tri-color, hijau di
-  phosphor, kuning di amber), ada **plat huruf pertama** aplikasi di sudut ikon supaya aplikasi
-  dengan ikon mirip tetap bisa dibedakan, dan **chip nama** tercetak di bawah tiap ikon desktop.
-  Ketiganya bisa dimatikan di *Settings - app icon readability*.
+- **Ikon mengikuti palet, dan sekarang benar-benar berubah**: **semua palet punya accent**, jadi
+  bingkai + bingkai band ikon ikut berubah warna di Paper, Sepia, Tri-color, Ink, Phosphor, dan
+  Amber. Ada **plat huruf pertama** aplikasi di sudut ikon supaya aplikasi dengan ikon mirip tetap
+  bisa dibedakan, dan **chip nama** tercetak di bawah tiap ikon desktop. Ketiganya bisa dimatikan di
+  *Settings - app icon readability*.
+- **Bug ikon "tidak berubah" sudah diperbaiki**: `rememberAppIcon` dulu menyimpan bitmap lama saat
+  palet/mode/bentuk/accent berubah (guard `value == null` tidak pernah lolos), jadi ikon terus
+  memakai gambar lama. Sekarang **setiap kunci render selalu digambar ulang**, dan ada tombol
+  `re-ink icons now` plus epoch yang memaksa seluruh desktop menggambar ulang ikonnya.
+- **Pratinjau ikon hidup di Settings**: *Settings - app icon look (live preview)* menampilkan ikon
+  aplikasi kamu sendiri persis seperti di desktop (palet + mode + bentuk + plat huruf), plus
+  perbandingan `Color` / `Mono` / `1-bit` / `invert` dan tombol `re-ink icons now`.
 - **Bentuk bingkai ikon mengikuti tema**: `Auto` (Linux → square flat, macOS → rounded, Windows →
   bevel klasik), atau pilih manual: `Classic`, `Rounded`, `Flat`, `Plain`. Cache ikon otomatis
-  dibuang saat tema/bentuk berubah.
+  dibuang saat tema/bentuk/mode/palet/skala berubah.
 - **Jam menampilkan detik** (opsional, `Settings` atau `seconds on|off`) — jam di panel, taskbar,
   dan widget ikut berubah.
 - Chrome: bevel tebal, bayangan *checker dither*, separator ber-*hatch*, judul jendela bergradien
@@ -85,13 +93,27 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   full screen lagi). Menu konteks ikon aplikasi juga punya **Open (floating window)** dan
   **Open full screen**.
 
-### Kalender & widget desktop
-- **Semua widget lebarnya sama dengan widget kalender** (250 dp) supaya kolomnya rapi, dan
-  **ukurannya bisa diatur manual**: tarik tepi kanan (lebar), tepi bawah (tinggi), atau sudut
-  kanan-bawah (keduanya). Ukuran di-snap ke grid 8 px, minimum 160x56 dp, dan diingat per widget
-  (`Settings - display widgets`, terminal `widgets`, `widget width 300`, `widget size calendar 280 420`,
-  `widget reset`). Tinggi 0 = setinggi isinya; kalau lebih pendek, isi widget bisa di-scroll.
-  Matematikanya murni di `ui/wm/WidgetMath.kt` (9 unit test).
+### Widget desktop: bisa ditambah, dihapus, diatur
+- **Widget bisa ditambah atau dihapus dari homescreen**:
+  - **tekan lama (hold) / klik kanan di desktop kosong** → menu desktop berisi
+    `Add widget: <nama>` / `Remove widget: <nama>` untuk tiap widget, plus `Edit widgets`;
+  - di **mode edit** ada panel `add or remove widgets` di bawah kolom widget, lengkap dengan
+    `reset sizes` dan `reset layout`;
+  - lewat **Settings - display widgets** (daftar `[x] CLOCK`, tombol `add`/`remove`, `^`/`v` untuk
+    mengurutkan) dan lewat terminal: `widget add notes`, `widget remove clock`, `widget layout`.
+- **Semua widget bisa diatur ukurannya dengan hold**: tekan dan tahan widget mana pun — ia langsung
+  masuk mode resize (seluruh badan widget jadi handle) dan tepi/sudut terdekat mengikuti pena atau
+  jari. Tanpa hold pun bisa: tarik tepi kanan (lebar), tepi bawah (tinggi), atau grip sudut
+  kanan-bawah (keduanya). Ukuran di-snap ke grid 8 px, minimum 160x56 dp, diingat per widget.
+- **Mode edit widget** (`Edit widgets`, terminal `widget edit on`): widget dikelilingi bingkai
+  putus-putus, ada chip nama + ukuran hidup (mis. `CALENDAR 280x420`), tombol `^` `v` `fit`
+  `remove` di bawah tiap widget, dan isi widget tidak menerima sentuhan supaya tidak salah tekan.
+- Urutan widget mengikuti urutan di daftar, jadi `^`/`v` menaikkan atau menurunkan widget di kolom.
+  Mau homescreen tanpa widget sama sekali? Hapus semuanya — pilihan itu disimpan.
+- Ukuran bisa diatur dari mana saja: `Settings - display widgets`, terminal `widgets`,
+  `widget width 300`, `widget size calendar 280 420`, `widget reset`. Tinggi 0 = setinggi isinya;
+  kalau lebih pendek, isi widget bisa di-scroll. Matematikanya murni di `ui/wm/WidgetMath.kt`
+  (**15 unit test**).
 - **Widget kalender** di desktop: grid bulan, penanda titik pada hari yang ada acaranya, panel
   agenda hari terpilih, dan tombol `+` untuk menambah entri **langsung dari desktop**.
 - Empat jenis entri: **event**, **task**, **agenda**, dan **birthday** (birthday otomatis berulang
@@ -137,8 +159,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
 - Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
   `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
-  `ui/wm/DockMath.kt` (urutan dock) dan `ui/wm/WidgetMath.kt` (ukuran widget) — **56 test**:
-  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 9 `WidgetMathTest`.
+  `ui/wm/DockMath.kt` (urutan dock) dan `ui/wm/WidgetMath.kt` (ukuran + daftar widget) — **62 test**:
+  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 15 `WidgetMathTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -160,8 +182,9 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   geometry jendela, tombol *place here* / *open full screen* / *bring it back*, plus penjelasan
   status floating window di perangkat itu.
 - **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
-  **keterbacaan ikon**, mode + bentuk ikon, skala UI, **input & devices
-  (pena/mouse/keyboard)**, perilaku, tombol "Set as default launcher".
+  **display widgets** (add/remove/urutkan/reset widget), **app icon look** dengan pratinjau ikon
+  hidup, keterbacaan + bentuk + mode ikon, skala UI, **input & devices** (hold time pena, kursor,
+  keyboard), perilaku, tombol "Set as default launcher".
 - **System monitor** — baterai, RAM, penyimpanan, jaringan, uptime, daftar jendela, grafik tren.
 - **Notes** — catatan teks yang tersimpan otomatis.
 - **Calendar** — bulan, agenda, task, birthday; semua bisa ditambah/edit/hapus dari UI.
@@ -174,7 +197,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 | Tap ikon | jalankan aplikasi |
 | Tap & tahan ikon | menu konteks (open, open in window, pin ke dock/desktop, app info, uninstall) |
 | Tap & tahan lalu geser | drag ikon ke dock / sidebar untuk pin |
-| Tap & tahan desktop | menu sistem (applications, terminal, settings, tiling, close all) |
+| Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, tiling, **add/remove widget**, **edit widgets**, close all) |
+| Tap & tahan widget | masuk **mode edit widget**: resize, `^` `v`, `fit`, `remove` |
 | Tap judul jendela | jendela naik ke depan (click-to-focus) |
 
 ### M-Pencil / stylus sebagai mouse
@@ -183,16 +207,20 @@ Aplikasi ini memperlakukan M-Pencil seperti mouse, jadi tablet bisa dioperasikan
 
 | Aksi pen | Hasil |
 | --- | --- |
-| 1× tap | **klik kiri** — buka aplikasi / tekan tombol / pilih menu |
-| 2× tap (dalam ±320 ms) | **klik kanan** — menu konteks pada ikon, desktop, atau area kosong |
+| 1× tap | **klik kiri** (instan) — buka aplikasi / tekan tombol / pilih menu |
+| **tahan (hold)** | **klik kanan** — menu konteks pada ikon, widget, jendela, atau desktop |
 | tombol barrel pada pena | klik kanan (dibaca sebagai tombol sekunder) |
 | sentuh & geser dengan pena | drag langsung: pindahkan ikon, taruh di dock, geser/resize jendela |
 
-- Tap pen tunggu ±320 ms sebelum "klik kiri" dijalankan — itu jeda standar desktop untuk membedakan
-  klik tunggal dari klik ganda; tap jari tetap instan.
+- **Hold = klik kanan**, persis seperti mouse desktop: istirahatkan pena di atas sesuatu selama
+  ±380 ms, menu konteks muncul di titik itu. Aturan lama *dobel-tap* sudah dihapus, jadi tidak ada
+  lagi jeda 320 ms pada tap — tap langsung jalan.
+- **Hold adalah jalan masuk ke pengeditan**: hold pada widget → mode edit + resize; hold pada ikon →
+  menu ikon; hold pada desktop kosong → menu desktop (`Add widget`, `Remove widget`, `Edit widgets`).
+- Lama hold bisa dipilih: *Settings → Input & devices → hold time* (**250 / 380 / 500 / 700 ms**);
+  bisa dimatikan, dan menahan **jari** di desktop juga membuka menu (kebiasaan launcher Android).
 - Ada **kursor pointer e-paper** (panah 1-bit dengan halo) yang mengikuti posisi pena/mouse,
   membalik warna saat ditekan. Bisa dimatikan di Settings.
-- Pen double-tap bisa dimatikan lewat *Settings → Input & devices → Pen double-tap = right click*.
 
 ### Mouse & keyboard
 
@@ -248,7 +276,7 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 Setiap push menjalankan workflow [`.github/workflows/android.yml`](.github/workflows/android.yml):
 
-1. **job `test`** — `./gradlew :app:testDebugUnitTest` (14 unit test untuk matematika tiling &
+1. **job `test`** — `./gradlew :app:testDebugUnitTest` (62 unit test untuk matematika tiling &
    edge-snapping); jumlah test/failure muncul di job summary dan sebagai check annotation
 2. **job `build`** — checkout → JDK 17 → Android SDK (platform 35, build-tools 35.0.0) → Gradle (cache),
    lalu `./gradlew :app:assembleDebug :app:assembleRelease`
@@ -285,7 +313,7 @@ app/src/main/java/dev/retrobit/desktop/
 ├─ ui/desktop/                # ShellLinux, ShellMacos, ShellWindows, widget, Spotlight, wallpaper
 └─ ui/boot/BootScreen.kt      # animasi boot
 
-app/src/test/java/dev/retrobit/desktop/ui/wm/LayoutMathTest.kt   # 14 unit test (CI: job "Unit tests")
+app/src/test/java/dev/retrobit/desktop/ui/wm/LayoutMathTest.kt   # 23 unit test (CI: job "Unit tests")
 ```
 
 ## Font & lisensi

@@ -45,6 +45,17 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     var spotlight by mutableStateOf(false)
     var startMenu by mutableStateOf(false)
     var launchpad by mutableStateOf(false)
+    /** Bumped on demand so every icon is rendered again (see IconCache.clear / "re-ink icons"). */
+    var iconEpoch by mutableStateOf(0)
+
+    /** Drops every cached icon bitmap and makes the whole desktop draw its icons again. */
+    fun reinkIcons() {
+        dev.retrobit.desktop.data.IconCache.clear()
+        iconEpoch++
+    }
+
+    /** True while the home screen is in widget-editing mode (dashed frames, sizing, add/remove). */
+    var widgetEdit by mutableStateOf(false)
     var booting by mutableStateOf(false)
     var bootDone by mutableStateOf(false)
     val bootLines = mutableStateListOf<String>()
@@ -357,6 +368,24 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     ),
                     MenuItem("Desktops / workspaces…", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
                         workspaceMenu(Offset(150f, 220f))
+                    }),
+                    MenuItem(
+                        if (widgetEdit) "Done editing widgets" else "Edit widgets (hold a widget)",
+                        dev.retrobit.desktop.ui.components.Glyph.GRID,
+                        onSelect = { widgetEdit = !widgetEdit },
+                    ),
+                    // widget management: add, remove, or size them by hand right on the desktop
+                    *dev.retrobit.desktop.model.WidgetId.entries.map { id ->
+                        val on = settings.isWidgetEnabled(id)
+                        MenuItem(
+                            if (on) "Remove widget: ${id.label}" else "Add widget: ${id.label}",
+                            null,
+                            onSelect = { if (on) settings.removeWidget(id) else settings.addWidget(id) },
+                        )
+                    }.toTypedArray(),
+                    MenuItem("Reset widget sizes", null, onSelect = {
+                        settings.resetWidgets()
+                        shell.print("widget sizes reset to ${settings.widgetWidth}dp wide")
                     }),
                     MenuItem("Auto arrange icons", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
                         settings.clearIconCells()

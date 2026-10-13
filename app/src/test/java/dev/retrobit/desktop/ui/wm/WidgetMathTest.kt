@@ -55,4 +55,42 @@ class WidgetMathTest {
     fun `the middle of a widget has no handle`() {
         assertNull(WidgetMath.handleAt(120f, 60f, 280f, 200f, 14f))
     }
+
+    // ── adding / removing widgets on the home screen ─────────────────────────────
+
+    @Test
+    fun `adding a widget appends it and never duplicates`() {
+        assertEquals(listOf("a", "b"), WidgetMath.add(listOf("a"), "b"))
+        assertEquals(listOf("a"), WidgetMath.add(listOf("a"), "a"))
+    }
+
+    @Test
+    fun `the home screen holds at most six widgets`() {
+        val full = listOf("1", "2", "3", "4", "5", "6")
+        assertEquals(full, WidgetMath.add(full, "7"))
+    }
+
+    @Test
+    fun `removing a widget leaves the rest in place`() {
+        assertEquals(listOf("a", "c"), WidgetMath.remove(listOf("a", "b", "c"), "b"))
+        assertEquals(emptyList<String>(), WidgetMath.remove(listOf("a"), "a"))
+    }
+
+    @Test
+    fun `moving a widget swaps it with its neighbour`() {
+        assertEquals(listOf("b", "a", "c"), WidgetMath.move(listOf("a", "b", "c"), "a", 1))
+        assertEquals(listOf("b", "a", "c"), WidgetMath.move(listOf("b", "a", "c"), "c", -1))
+    }
+
+    @Test
+    fun `moving past the ends is clamped`() {
+        assertEquals(listOf("a", "b"), WidgetMath.move(listOf("a", "b"), "a", -1))
+        assertEquals(listOf("a", "b"), WidgetMath.move(listOf("a", "b"), "b", 5))
+    }
+
+    @Test
+    fun `toggling turns a widget on and off`() {
+        assertEquals(listOf("a", "b"), WidgetMath.toggle(listOf("a"), "b"))
+        assertEquals(listOf("a"), WidgetMath.toggle(listOf("a", "b"), "b"))
+    }
 }

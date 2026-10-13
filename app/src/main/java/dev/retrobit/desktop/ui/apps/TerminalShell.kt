@@ -138,7 +138,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
             floating on|off        apps open in floating desktop windows
-            widgets                widget sizes (widget width <dp> | widget size <name> <w> <h> | widget reset)
+            widgets                widgets (widget add|remove <name> | widget width <dp> | widget size <name> <w> <h> |
+                                   widget reset | widget edit on|off | widget layout)
             workspace 1..4         switch virtual desktop (also: ws)
             wsmove 1..4            send the focused window to a desktop
             wmctrl list|close|tile | invert | boot
@@ -325,6 +326,13 @@ class TerminalShell(private val vm: LauncherViewModel) {
         if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(vm.appContext)) " (this device supports floating windows)"
         else " (this device has no floating-window support: apps open full screen)"
 
+    private fun widgetNames() = dev.retrobit.desktop.model.WidgetId.entries.joinToString("|") { it.label }
+
+    private fun widgetLine(): String {
+        val list = vm.settings.widgets
+        return if (list.isEmpty()) "none" else list.joinToString(", ") { it.label }
+    }
+
     private fun widgets(args: List<String>) {
         val s = vm.settings
         when (args.firstOrNull()?.lowercase()) {
@@ -352,12 +360,38 @@ class TerminalShell(private val vm: LauncherViewModel) {
                 if (id == null) { s.resetWidgets(); print("all widgets back to ${s.widgetWidth}dp wide") }
                 else { s.resetWidgetSize(id); print("${id.label} -> defaults") }
             }
+            "add" -> {
+                val id = dev.retrobit.desktop.model.WidgetId.of(args.getOrNull(1))
+                if (id == null) print("usage: widget add <${widgetNames()}>", Kind.ERR)
+                else {
+                    s.addWidget(id)
+                    print("${id.label} added to the desktop: ${widgetLine()}")
+                }
+            }
+            "remove", "rm" -> {
+                val id = dev.retrobit.desktop.model.WidgetId.of(args.getOrNull(1))
+                if (id == null) print("usage: widget remove <${widgetNames()}>", Kind.ERR)
+                else {
+                    s.removeWidget(id)
+                    print("${id.label} removed: ${widgetLine()}")
+                }
+            }
+            "edit" -> {
+                vm.widgetEdit = args.getOrNull(1)?.let { it.equals("on", true) || it == "1" } ?: !vm.widgetEdit
+                print("widget editing -> ${if (vm.widgetEdit) "on (hold or drag a widget to resize)" else "off"}")
+            }
+            "reset-layout", "layout" -> {
+                s.resetWidgetList()
+                print("widget layout reset to defaults: ${widgetLine()}")
+            }
             else -> {
-                print("desktop widgets (drag the corner on screen to resize)", Kind.HEAD)
+                print("desktop widgets (hold one on screen to edit or resize it)", Kind.HEAD)
                 dev.retrobit.desktop.model.WidgetId.entries.forEach { id ->
                     val h = s.widgetHeight(id).takeIf { it > 0 } ?: 0
-                    print("  ${id.label.padEnd(10)} ${s.widgetWidth(id)} x $h dp")
+                    val mark = if (s.isWidgetEnabled(id)) "[x]" else "[ ]"
+                    print("  $mark ${id.label.padEnd(10)} ${s.widgetWidth(id)} x $h dp")
                 }
+                print("  on the desktop: ${widgetLine()}")
             }
         }
     }

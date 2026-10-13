@@ -44,21 +44,30 @@ import kotlinx.coroutines.withContext
 import kotlin.math.abs
 import kotlin.math.sqrt
 
+/**
+ * The icon bitmap of [app] in the current palette, mode, shape and accent.
+ *
+ * Every input that changes the picture is part of the render key **and** the producer always
+ * resolves that key: a cached bitmap is only ever used for the exact same key. The previous version
+ * kept the old bitmap alive when the palette or mode changed (produceState does not reset its value
+ * for a new key), which is why icons used to look "unchanged" after switching a palette.
+ */
 @Composable
 fun rememberAppIcon(app: AppEntry, inverted: Boolean = false): ImageBitmap? {
     val p = LocalPalette.current
     val mode = LocalIconMode.current
     val theme = LocalIconTheme.current
     val options = dev.retrobit.desktop.ui.theme.LocalIconOptions.current
+    val epoch = dev.retrobit.desktop.ui.theme.LocalIconEpoch.current
     val ink = if (inverted) p.paper else p.ink
     val paper = if (inverted) p.ink else p.paper
     val accent = if (inverted) null else options.accent
-    val cached = IconCache.peek(app, mode, theme, ink, paper, accent, options.monogram)
-    val state by produceState(cached, app.key, mode, theme, ink, paper, accent, options.monogram) {
-        if (value == null) {
-            value = withContext(Dispatchers.Default) {
-                IconCache.get(app, mode, theme, ink, paper, accent, options.monogram, app.label)
-            }
+    val label = app.label
+    val keys = arrayOf<Any?>(app.key, mode, theme, ink, paper, accent, options.monogram, epoch)
+    val state by produceState(IconCache.peek(app, mode, theme, ink, paper, accent, options.monogram), *keys) {
+        // resolve for *this* key, whether or not a bitmap from another key is already in `value`
+        value = withContext(Dispatchers.Default) {
+            IconCache.get(app, mode, theme, ink, paper, accent, options.monogram, label)
         }
     }
     return state
@@ -127,6 +136,7 @@ fun AppIconTile(
             key = app.key,
             primary = { onOpen(app) },
             secondary = { pos -> onContextMenu?.invoke(app, origin + pos) },
+            holdTouch = false,   // the tile already turns a long press into a context menu
         )
         .padding(vertical = dp(5f), horizontal = dp(2f))
 
@@ -224,6 +234,7 @@ fun AppIconRow(
                 key = app.key,
                 primary = { onOpen(app) },
                 secondary = { pos -> onContextMenu?.invoke(app, origin + pos) },
+                holdTouch = false,
             ),
         contentAlignment = Alignment.Center,
     ) {

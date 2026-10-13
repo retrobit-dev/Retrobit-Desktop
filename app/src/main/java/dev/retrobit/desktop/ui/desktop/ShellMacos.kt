@@ -99,14 +99,7 @@ fun MacosShell(vm: LauncherViewModel) {
         Box(Modifier.fillMaxSize().padding(top = dp(26f), bottom = dp(86f))) {
             DesktopIcons(vm, Modifier.fillMaxSize(), mirrorRight = true)
             if (vm.settings.showWidgets) {
-                Column(
-                    Modifier.align(Alignment.TopStart).padding(dp(12f)).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(dp(10f)),
-                ) {
-                    WidgetSlot(vm, WidgetId.CLOCK) { w, h -> ClockWidget(vm, width = w.dp, height = h.dpOrNull) }
-                    WidgetSlot(vm, WidgetId.CALENDAR) { w, h -> CalendarWidget(vm, width = w.dp, height = h.dpOrNull) }
-                    WidgetSlot(vm, WidgetId.NOTES) { w, h -> NotesWidget(vm, width = w.dp, height = h.dpOrNull) }
-                }
+                DesktopWidgets(vm, Modifier.align(Alignment.TopStart).padding(dp(12f)))
             }
         }
 

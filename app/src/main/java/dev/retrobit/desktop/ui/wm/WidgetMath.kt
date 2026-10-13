@@ -64,4 +64,29 @@ object WidgetMath {
     }
 
     enum class WidgetHandle { RIGHT, BOTTOM, CORNER }
+
+    // ── which widgets live on the home screen ───────────────────────────────────
+
+    /** Adds [id] at the end if it is not there yet (used by "add widget"). */
+    fun add(current: List<String>, id: String, capacity: Int = 6): List<String> =
+        if (current.contains(id) || current.size >= capacity) current else current + id
+
+    /** Removes [id]; removing is always allowed, the home screen can be empty. */
+    fun remove(current: List<String>, id: String): List<String> = current.filterNot { it == id }
+
+    /** Moves [id] one slot up (delta = -1) or down (delta = +1), clamped to the list. */
+    fun move(current: List<String>, id: String, delta: Int): List<String> {
+        val from = current.indexOf(id)
+        if (from < 0) return current
+        val to = (from + delta).coerceIn(0, current.size - 1)
+        if (to == from) return current
+        val list = current.toMutableList()
+        list.removeAt(from)
+        list.add(to, id)
+        return list
+    }
+
+    /** Toggles a widget on or off, keeping the existing order. */
+    fun toggle(current: List<String>, id: String): List<String> =
+        if (current.contains(id)) remove(current, id) else add(current, id)
 }

@@ -68,7 +68,7 @@ object IconCache {
         val bmp = when (mode) {
             IconMode.COLOR -> render(drawable, 128)
             IconMode.MONO -> mono(render(drawable, 128), ink.toArgb(), paper.toArgb())
-            IconMode.DITHER -> dither(render(drawable, 40), ink.toArgb(), paper.toArgb())
+            IconMode.DITHER -> dither(render(drawable, 64), ink.toArgb(), paper.toArgb())
         }
         val framed = frame(bmp, theme, ink.toArgb(), paper.toArgb(), accent?.toArgb() ?: 0)
         if (monogram) stamp(framed, label ?: app.label, ink.toArgb(), paper.toArgb(), theme)
@@ -78,8 +78,9 @@ object IconCache {
     }
 
     /**
-     * Desktop-theme icon shapes: the app icon is masked/framed so a mixed set of third-party icons
-     * still looks like it belongs to the active desktop.
+     * Desktop-theme icon framing. Every icon is printed like a tile on paper: a plate in the palette
+     * paper, the artwork masked to the shape, an ink outline and — when the palette has one — an
+     * accent band, so a mixed set of third-party icons still looks like the active desktop theme.
      */
     private fun frame(src: Bitmap, theme: IconTheme, ink: Int, paper: Int, accent: Int = 0): Bitmap {
         if (theme == IconTheme.PLAIN) return src
@@ -94,32 +95,56 @@ object IconCache {
             else -> 0f
         }
         val inset = when (theme) {
-            IconTheme.CLASSIC -> size * 0.05f
-            IconTheme.ROUNDED -> size * 0.04f
-            else -> 0f
+            IconTheme.CLASSIC -> size * 0.06f
+            IconTheme.ROUNDED -> size * 0.05f
+            else -> size * 0.03f
         }
         val body = Rect(inset.toInt(), inset.toInt(), size - inset.toInt(), size - inset.toInt())
-        val path = android.graphics.Path().apply { addRoundRect(android.graphics.RectF(body), radius, radius, android.graphics.Path.Direction.CW) }
+        val path = android.graphics.Path().apply {
+            addRoundRect(android.graphics.RectF(body), radius, radius, android.graphics.Path.Direction.CW)
+        }
+        // paper plate first: the artwork sits on paper instead of a transparent hole
+        paint.style = Paint.Style.FILL
+        paint.color = paper
+        canvas.drawPath(path, paint)
+        // the artwork itself
+        paint.style = Paint.Style.FILL
         canvas.save()
         canvas.clipPath(path)
         canvas.drawBitmap(src, null, body, paint)
         canvas.restore()
-        // 1-bit style outline so the icon sits on the paper like a print
-        // the outline follows the palette: plain ink on paper, the accent colour when one exists
+        // ink outline (thicker than before: it has to read at a glance on e-paper)
         val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = size * 0.05f
+            strokeWidth = size * 0.06f
+            color = ink
+        }
+        val accented = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.STROKE
+            strokeWidth = size * 0.045f
             color = if (accent != 0) accent else ink
         }
         when (theme) {
             IconTheme.CLASSIC -> {
                 canvas.drawRect(body, stroke)
                 // bevel highlight along the top/left, shadow along the bottom/right
-                val hi = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = paper; strokeWidth = size * 0.02f }
+                val hi = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = paper; strokeWidth = size * 0.025f }
                 canvas.drawLine(body.left + 1f, body.top + 1f, body.right - 1f, body.top + 1f, hi)
                 canvas.drawLine(body.left + 1f, body.top + 1f, body.left + 1f, body.bottom - 1f, hi)
+                // accent band along the bottom edge, the way a printed card is trimmed
+                val band = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.FILL
+                    color = if (accent != 0) accent else ink
+                }
+                canvas.drawRect(
+                    body.left + size * 0.06f, body.bottom - size * 0.11f,
+                    body.right - size * 0.06f, body.bottom - size * 0.045f, band,
+                )
             }
-            IconTheme.ROUNDED, IconTheme.FLAT -> canvas.drawPath(path, stroke)
+            IconTheme.ROUNDED, IconTheme.FLAT -> {
+                canvas.drawPath(path, stroke)
+                canvas.drawPath(path, accented)
+            }
             else -> Unit
         }
         return out
@@ -134,7 +159,7 @@ object IconCache {
         if (!letter.isLetterOrDigit()) return
         val size = bmp.width
         val canvas = Canvas(bmp)
-        val plate = size * 0.42f
+        val plate = size * 0.46f
         val left = size * 0.03f
         val top = size - plate - size * 0.03f
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)

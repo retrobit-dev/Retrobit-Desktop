@@ -100,14 +100,7 @@ fun WindowsShell(vm: LauncherViewModel) {
         Box(Modifier.fillMaxSize().padding(bottom = dp(44f))) {
             DesktopIcons(vm, Modifier.fillMaxSize())
             if (vm.settings.showWidgets) {
-                Column(
-                    Modifier.align(Alignment.TopEnd).padding(dp(12f)).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(dp(10f)),
-                ) {
-                    WidgetSlot(vm, WidgetId.CLOCK) { w, h -> ClockWidget(vm, width = w.dp, height = h.dpOrNull) }
-                    WidgetSlot(vm, WidgetId.CALENDAR) { w, h -> CalendarWidget(vm, width = w.dp, height = h.dpOrNull) }
-                    WidgetSlot(vm, WidgetId.SYSTEM) { w, h -> SystemWidget(vm, width = w.dp, height = h.dpOrNull) }
-                }
+                DesktopWidgets(vm, Modifier.align(Alignment.TopEnd).padding(dp(12f)))
             }
         }
 

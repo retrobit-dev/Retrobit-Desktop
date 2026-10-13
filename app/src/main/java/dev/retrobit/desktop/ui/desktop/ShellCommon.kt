@@ -114,7 +114,8 @@ fun DesktopIcons(
                 drag.desktopBounds = it.boundsInRoot()
                 rootOffset = it.positionInRoot()
             }
-            // empty desktop: right click (mouse / pen barrel) or a pen double tap opens the menu
+            // empty desktop: right click, a held pen, or a held finger opens the desktop menu —
+            // this is the way into widget editing and adding widgets
             .desktopClick(
                 primary = { },
                 secondary = { pos -> vm.desktopMenu(rootOffset + pos) },

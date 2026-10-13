@@ -30,13 +30,18 @@ data class Palette(
 }
 
 object Palettes {
+    /**
+     * Every palette carries an accent colour. App icon frames, the letter plate on icons and the
+     * selection marks are printed in it, so switching the palette visibly re-inks the whole desktop
+     * — on the monochrome palettes the accent is the palette's own ink tone.
+     */
     val all: Map<PaletteId, Palette> = mapOf(
-        PaletteId.PAPER to Palette(PaletteId.PAPER, Color(0xFFE8E5DA), Color(0xFF1B1B1B)),
-        PaletteId.SEPIA to Palette(PaletteId.SEPIA, Color(0xFFEADFC6), Color(0xFF2E2418)),
+        PaletteId.PAPER to Palette(PaletteId.PAPER, Color(0xFFE8E5DA), Color(0xFF1B1B1B), Color(0xFF3F3F3F)),
+        PaletteId.SEPIA to Palette(PaletteId.SEPIA, Color(0xFFEADFC6), Color(0xFF2E2418), Color(0xFF8C6B3F)),
         PaletteId.BWR to Palette(PaletteId.BWR, Color(0xFFEDEBE4), Color(0xFF161616), Color(0xFFB1281F)),
-        PaletteId.INK to Palette(PaletteId.INK, Color(0xFF171717), Color(0xFFDAD6CA)),
-        PaletteId.PHOSPHOR to Palette(PaletteId.PHOSPHOR, Color(0xFF0B110B), Color(0xFF9CF08A)),
-        PaletteId.AMBER to Palette(PaletteId.AMBER, Color(0xFF130D05), Color(0xFFFFB542)),
+        PaletteId.INK to Palette(PaletteId.INK, Color(0xFF171717), Color(0xFFDAD6CA), Color(0xFF8C8878)),
+        PaletteId.PHOSPHOR to Palette(PaletteId.PHOSPHOR, Color(0xFF0B110B), Color(0xFF9CF08A), Color(0xFF4FB93F)),
+        PaletteId.AMBER to Palette(PaletteId.AMBER, Color(0xFF130D05), Color(0xFFFFB542), Color(0xFFE07A16)),
     )
 
     fun of(id: PaletteId): Palette = all.getValue(id)
@@ -58,6 +63,8 @@ val LocalIconOptions = staticCompositionLocalOf { IconOptions() }
 val LocalIconMode = staticCompositionLocalOf { IconMode.MONO }
 val LocalDesktopStyle = staticCompositionLocalOf { DesktopStyle.LINUX }
 val LocalIconTheme = staticCompositionLocalOf { IconTheme.FLAT }
+/** Bumped when the user asks for a full icon re-ink; it is part of every icon's render key. */
+val LocalIconEpoch = staticCompositionLocalOf { 0 }
 
 /**
  * PixelDisplay Operator (CC0 1.0, Jayvee Enaguas / HarvettFox96) — the proportional cut, used for
