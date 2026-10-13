@@ -9,7 +9,6 @@
 
 ## Yang baru di {{TAG}}
 
-
 ### Terminal: tombol cepat jadi ikon
 - Empat tombol cepat di bawah terminal (`help`, `previous`, `next`, `clear`) sekarang **hanya ikon**,
   bukan kata: tanda tanya, panah atas, panah bawah, dan tanda silang. Tidak ada lagi label teks yang
