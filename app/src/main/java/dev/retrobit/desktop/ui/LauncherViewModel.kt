@@ -178,6 +178,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     private var seeded = false
 
     init {
+        // every move, resize, maximize or re-layout of a frame ends up here: that is the single
+        // place where the app inside the frame has to follow (see onAppFrameSettled)
+        wm.onGeometrySettled = { win -> onAppFrameSettled(win) }
         repo.registerChanges { viewModelScope.launch { repo.reload() } }
         viewModelScope.launch { repo.reload(); seedDefaults() }
         viewModelScope.launch {
@@ -213,17 +216,15 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── launching ────────────────────────────────────────────────────────────────
     /**
-     * Opens an app. With "floating apps" on (the default) the app gets a desktop window: the window
-     * is placed on this workspace and the app is sent to exactly those bounds, so on freeform-capable
-     * tablets it really floats above the desktop. With the setting off the app opens full screen.
+     * Opens an app **wrapped in its own desktop window** — the same way Settings, Terminal, Notes and
+     * the calendar open: a frame with a title bar that can be moved, resized, minimized, maximized
+     * and restored. The app is sent to the frame's content rectangle, so on a tablet that can float
+     * windows it really sits inside the box. With "float apps inside their frame" turned off the app
+     * itself opens full screen while the frame stays its entry in the taskbar and the workspaces.
      */
     fun launch(app: AppEntry) {
         selectedApp = null
-        if (settings.floatingApps) {
-            openAppWindow(app)
-        } else {
-            launchFullScreen(app)
-        }
+        openAppWindow(app)
         startMenu = false
         launchpad = false
         spotlight = false
@@ -232,12 +233,36 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** The application context, used by the windowed-launch helpers. */
     val appContext: android.content.Context get() = getApplication()
 
-    /** Opens the wrapper window for [app] and sends the app to that rectangle when possible. */
+    /**
+     * Opens the wrapper window for [app] and sends the app to that rectangle when possible. An app
+     * that already has a window is brought back to the front instead of opening a second twin.
+     */
     fun openAppWindow(app: AppEntry) {
+        // the launch counts drive the drawer order: most used first, then A-Z
+        settings.noteLaunch(app.pkg)
+        val existing = wm.windows.firstOrNull {
+            it.kind == WinKind.APPWINDOW && it.app?.pkg == app.pkg && it.desktop == wm.desktop
+        }
+        if (existing != null) {
+            wm.focus(existing.id)
+            appWindows.markLaunched(existing.id)
+            sendAppToWindow(app, existing)
+            return
+        }
         val win = wm.openAppWindow(app) ?: return
         appWindows.markLaunched(win.id)
         sendAppToWindow(app, win)
     }
+
+    /** The drawer order: the apps launched most often first, the rest alphabetical (see AppUsage). */
+    fun appsByUsage(): List<AppEntry> =
+        dev.retrobit.desktop.data.AppUsage.order(apps, usageCounts()) { it.pkg } { it.label }
+
+    /** How often [pkg] has been opened from this launcher. */
+    fun usageOf(pkg: String): Int = usageCounts()[pkg] ?: 0
+
+    /** Launch counts per package, parsed once per read (the preference is a single string). */
+    fun usageCounts(): Map<String, Int> = dev.retrobit.desktop.data.AppUsage.parse(settings.appUsage)
 
     /**
      * "Place here": asks the system to put the app of [win] inside the frame's content area.
@@ -249,7 +274,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         val app = win.app ?: return
         appWindows.markLaunched(win.id)
         placedRect = null
-        sendAppToWindow(app, win, force = force, quiet = false)
+        // an explicit press of "place here" always asks for the floating rectangle
+        sendAppToWindow(app, win, force = force, quiet = false, float = true)
     }
 
     /** Brings the app of an app window back to the front, inside its frame when possible. */
@@ -295,7 +321,15 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         win: dev.retrobit.desktop.ui.wm.WinState,
         force: Boolean = false,
         quiet: Boolean = false,
+        float: Boolean = settings.floatingApps,
     ) {
+        if (!float) {
+            // the frame is there either way; with floating off the app itself opens full screen
+            repo.launch(app)
+            placedRect = null
+            if (!quiet) shell.print("${app.label}: opened full screen (floating windows are off)")
+            return
+        }
         val placement = placementFor(win)
         val options = dev.retrobit.desktop.data.WindowedLaunch.activityOptionsFor(placement)
         placedRect = placement
@@ -330,6 +364,8 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Runs the debounced re-placement after a frame drag / resize (see [onAppFrameSettled]). */
     fun refitAppWindows() {
+        // nothing to place when the tablet is not asked to float apps inside their frames
+        if (!settings.floatingApps) return
         wm.windows
             .filter {
                 it.kind == dev.retrobit.desktop.model.WinKind.APPWINDOW &&
@@ -441,7 +477,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 subtitle = app.pkg + if (app.isWorkProfile) "  [work profile]" else "",
                 anchors = anchor,
                 items = listOf(
-                    MenuItem("Open (floating window)", GlyphOpen(), onSelect = { launch(app) }),
+                    MenuItem("Open in its window", GlyphOpen(), onSelect = { launch(app) }),
                     MenuItem("Open full screen", GlyphOpen(), onSelect = { launchFullScreen(app) }),
                     MenuItem("Show in app drawer", null, onSelect = { openAppDrawerWindow(app) }),
                     MenuItem(if (inDock) "Remove from dock" else "Add to dock", GlyphPin(), onSelect = { toggleDockPin(app) }),

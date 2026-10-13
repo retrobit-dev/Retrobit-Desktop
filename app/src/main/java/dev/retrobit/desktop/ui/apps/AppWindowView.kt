@@ -74,9 +74,9 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
                 RetroText(app?.pkg ?: "android", size = 10f, color = p.mid, maxLines = 1)
                 RetroText(
                     when {
-                        !vm.settings.floatingApps -> "full screen mode"
+                        !vm.settings.floatingApps -> "floating is off - the app opens full screen, this frame keeps its place in the taskbar"
                         live -> "placed in this frame - the app runs in its own floating window"
-                        else -> "floating app window - tap place here to put the app inside"
+                        else -> "app window - tap place here to put the app inside the frame"
                     },
                     size = 10f, color = p.mid, maxLines = 2,
                 )
@@ -168,6 +168,11 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
                     "to maximize. The buttons at the top right minimize, maximize and close this window; " +
                     "the two-squares button floats it above the tiling layout.",
                 size = 10f, color = p.mid, maxLines = 6,
+            )
+            RetroText(
+                "maximize fills the whole desktop with this frame (and the app follows it); pressing " +
+                    "maximize again restores the exact size and position the window had before.",
+                size = 10f, color = p.mid, maxLines = 3,
             )
         }
 

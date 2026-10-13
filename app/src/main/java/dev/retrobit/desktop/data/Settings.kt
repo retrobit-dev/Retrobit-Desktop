@@ -62,6 +62,17 @@ class Settings(context: Context) {
     var doubleClickOpen: Boolean by boolPref("doubleClickOpen", true)
 
     /**
+     * How often each app was opened, as `pkg=count|pkg=count`. This is what orders the app drawer:
+     * the apps used most come first, the rest follow A-Z. `usage clear` in the terminal forgets it.
+     */
+    var appUsage: String by stringPref("appUsage", "")
+
+    /** Counts one more launch of [pkg] (see [dev.retrobit.desktop.data.AppUsage]). */
+    fun noteLaunch(pkg: String) {
+        appUsage = dev.retrobit.desktop.data.AppUsage.bump(appUsage, pkg)
+    }
+
+    /**
      * Move a floating app with its desktop window: after a frame is dragged or resized, the app is
      * sent to the new rectangle again. Off means the frame and the app move independently (then use
      * "place here" in the window by hand).
@@ -75,9 +86,11 @@ class Settings(context: Context) {
     /** Virtual desktops (workspaces), 1..4. */
     var workspaceCount: Int by intPref("workspaceCount", 3)
     /**
-     * Apps opened from the launcher get their own desktop window (movable, resizable, minimizable)
-     * and, on tablets that support it, are launched into a floating system window with the same
-     * bounds. Off = apps always open full screen.
+     * Every app opened from the launcher is wrapped in its own desktop window — movable, resizable,
+     * minimizable, maximizable (and restorable) — exactly like Settings or Terminal. On: the app is
+     * also asked to float inside that frame, i.e. the frame's content rectangle is sent to the system
+     * with the launch. Off: the app itself opens full screen while the frame stays its entry in the
+     * taskbar and the workspaces (a fallback for tablets that mishandle floating windows).
      */
     var floatingApps: Boolean by boolPref("floatingApps", true)
     /** Keep the desktop chrome clear of the punch-hole camera and the rounded display corners. */

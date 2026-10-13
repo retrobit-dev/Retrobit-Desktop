@@ -14,6 +14,7 @@ import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.WinKind
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.roundToInt
 
 class WinState(
     val id: Int,
@@ -28,6 +29,12 @@ class WinState(
     var height by mutableStateOf(420f)
     var maximized by mutableStateOf(false)
     var minimized by mutableStateOf(false)
+
+    /**
+     * Geometry the window had before it was maximized. "Restore" is not a fresh guess: it puts the
+     * frame back to this rectangle (clamped into the desktop when the screen changed).
+     */
+    var restoreRect by mutableStateOf<Rect?>(null)
 
     /**
      * Floating windows stay out of the tiling layout and keep the size the user gave them, which is
@@ -58,6 +65,12 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
     val windows = mutableStateListOf<WinState>()
     var focusedId by mutableStateOf<Int?>(null)
         private set
+
+    /**
+     * Fired after a gesture or a command has moved / resized / maximized / re-laid-out a window, so
+     * the app inside it can follow. Wired to the view model (which owns the app windows).
+     */
+    var onGeometrySettled: ((WinState) -> Unit)? = null
 
     /** Active virtual desktop (workspace), 0-based. */
     var desktop by mutableStateOf(0)
@@ -112,6 +125,8 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         if (!areaChanged && !tiling) cascadeIndex = onScreen.size
         this.style = style
         if (desktop > desktopCount - 1) desktop = (desktopCount - 1).coerceAtLeast(0)
+        // the desktop changed shape (rotation, safe area, dock): every frame has to be re-placed
+        if (areaChanged) notifySettled()
     }
 
     // ── virtual desktops ────────────────────────────────────────────────────────
@@ -158,14 +173,16 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         val area = base
         val seed = cascadeIndex++
         val w = when (kind) {
-            WinKind.APPS -> max(metrics.minW, area.width - metrics.margin * 2)
+            // the app drawer is a list window, not a full-screen sheet: it must be scrollable and
+            // leave the desktop visible around it
+            WinKind.APPS -> max(metrics.minW, area.width * 0.5f)
             WinKind.TERMINAL -> max(metrics.minW, area.width * 0.62f)
             WinKind.CALENDAR -> max(metrics.minW, area.width * 0.66f)
             WinKind.APPWINDOW -> max(metrics.minW, area.width * 0.58f)
             else -> max(metrics.minW, area.width * 0.55f)
         }
         val h = when (kind) {
-            WinKind.APPS -> max(metrics.minH, area.height - metrics.margin * 2)
+            WinKind.APPS -> max(metrics.minH, area.height * 0.72f)
             WinKind.TERMINAL -> max(metrics.minH, area.height * 0.6f)
             WinKind.APPWINDOW -> max(metrics.minH, area.height * 0.55f)
             else -> max(metrics.minH, area.height * 0.5f)
@@ -225,20 +242,54 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         focusedId = id
     }
 
+    /**
+     * Maximize: the frame becomes as large as the desktop area (so does the app inside it). Pressing
+     * it again restores the exact rectangle the window had before.
+     */
     fun toggleMaximize(id: Int) {
         val w = windows.firstOrNull { it.id == id } ?: return
         focus(id)
-        w.maximized = !w.maximized
-        val area = base
         if (w.maximized) {
-            w.x = area.left; w.y = area.top; w.width = area.width; w.height = area.height
+            w.maximized = false
+            restoreFrame(w)
         } else {
-            w.width = min(w.width, max(metrics.minW, area.width - metrics.margin * 2))
-            w.height = min(w.height, max(metrics.minH, area.height - metrics.margin * 2))
-            w.x = area.left + metrics.margin + metrics.cascade
-            w.y = area.top + metrics.margin + metrics.cascade
+            w.restoreRect = w.rect
+            w.maximized = true
+            maximizeFrame(w)
         }
         if (tiling) retile(true)
+        onGeometrySettled?.invoke(w)
+    }
+
+    /** Fills the usable desktop with [w] (the shell keeps its panel and dock visible). */
+    private fun maximizeFrame(w: WinState) {
+        val r = MaximizeMath.maximized(placementOf(base))
+        w.x = r.left.toFloat(); w.y = r.top.toFloat()
+        w.width = r.width.toFloat(); w.height = r.height.toFloat()
+    }
+
+    /** Puts [w] back to the rectangle it had before it was maximized. */
+    private fun restoreFrame(w: WinState) {
+        val r = MaximizeMath.restore(
+            saved = w.restoreRect?.let { placementOf(it) },
+            area = placementOf(base),
+            margin = metrics.margin,
+            cascade = metrics.cascade,
+            minW = metrics.minW,
+            minH = metrics.minH,
+        )
+        w.x = r.left.toFloat(); w.y = r.top.toFloat()
+        w.width = r.width.toFloat(); w.height = r.height.toFloat()
+        w.restoreRect = null
+    }
+
+    private fun placementOf(r: Rect): Placement =
+        Placement(r.left.roundToInt(), r.top.roundToInt(), r.right.roundToInt(), r.bottom.roundToInt())
+
+    /** Notifies the listener about every window: the desktop itself changed shape. */
+    private fun notifySettled() {
+        val cb = onGeometrySettled ?: return
+        windows.forEach { cb(it) }
     }
 
     // ── moving / resizing / snapping ────────────────────────────────────────────
@@ -267,20 +318,26 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         val zone = pendingSnap
         pendingSnap = null
         snapPreview = null
-        if (zone == null || !applySnap) return
         val w = windows.firstOrNull { it.id == id } ?: return
-        if (w.maximized && zone != SnapZone.MAXIMIZE) w.maximized = false
-        when (zone) {
-            SnapZone.MAXIMIZE -> {
-                w.maximized = true
-                w.x = base.left; w.y = base.top; w.width = base.width; w.height = base.height
-            }
-            SnapZone.LEFT, SnapZone.RIGHT -> {
-                val r = LayoutMath.rectFor(base, zone)
-                w.maximized = false
-                w.x = r.left; w.y = r.top; w.width = r.width; w.height = r.height
+        if (zone != null && applySnap) {
+            if (w.maximized && zone != SnapZone.MAXIMIZE) w.maximized = false
+            when (zone) {
+                SnapZone.MAXIMIZE -> {
+                    // dragged against the top edge: the same as pressing maximize
+                    if (!w.maximized) w.restoreRect = w.rect
+                    w.maximized = true
+                    maximizeFrame(w)
+                }
+                SnapZone.LEFT, SnapZone.RIGHT -> {
+                    val r = LayoutMath.rectFor(base, zone)
+                    w.maximized = false
+                    w.restoreRect = null
+                    w.x = r.left; w.y = r.top; w.width = r.width; w.height = r.height
+                }
             }
         }
+        // a drag that did not end in a snap zone still moved the window: the app has to follow
+        onGeometrySettled?.invoke(w)
     }
 
     fun cancelDrag() {
@@ -314,12 +371,9 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         val edge = resizeEdge ?: return
         val area = base
         if (w.maximized) {
-            // dragging a handle of a maximized window restores it to a floating size first
+            // dragging a handle of a maximized window restores it to its remembered size first
             w.maximized = false
-            w.width = (area.width * 0.6f).coerceAtLeast(metrics.minW)
-            w.height = (area.height * 0.6f).coerceAtLeast(metrics.minH)
-            w.x = area.left + metrics.margin
-            w.y = area.top + metrics.margin
+            restoreFrame(w)
         }
         val next = LayoutMath.resize(w.rect, edge, dx, dy, metrics.minW, metrics.minH, area)
         w.x = next.left
@@ -333,6 +387,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
         resizingId = null
         resizeEdge = null
         if (id != null && tiling) retile(true)
+        id?.let { wid -> windows.firstOrNull { it.id == wid } }?.let { onGeometrySettled?.invoke(it) }
     }
 
     /** Floats or tiles a single window (the title-bar "float" toggle). */
@@ -380,6 +435,7 @@ class WindowManager(private val repo: AppRepository, private val settings: Setti
             w.maximized = false
             w.x = r.left; w.y = r.top; w.width = r.width; w.height = r.height
         }
+        notifySettled()
     }
 
     fun size(): Size = Size(base.width, base.height)

@@ -96,6 +96,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "invert" -> vm.invertTheme()
             "app" -> appCmd(args)
             "appframe", "appframes" -> appFrameCmd(args)
+            "usage" -> usageCmd(args)
             "doubleclick", "dblclick" -> {
                 val arg = args.firstOrNull()?.lowercase()
                 vm.settings.doubleClickOpen = when (arg) {
@@ -148,7 +149,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             arrange                auto arrange desktop icons
             safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
-            floating on|off        apps open in floating desktop windows
+            floating on|off        ask the system to float an app inside its window frame
+            usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
             doubleclick on|off     apps open with a double click (tap selects) or a single tap
             appframe follow on|off  re-place a floating app after its desktop window moved
@@ -328,11 +330,11 @@ class TerminalShell(private val vm: LauncherViewModel) {
 
     private fun floating(arg: String?) {
         when (arg?.lowercase()) {
-            "on", "1", "true" -> { vm.settings.floatingApps = true; print("floating apps -> on${freeformNote()}") }
-            "off", "0", "false" -> { vm.settings.floatingApps = false; print("floating apps -> off (every app opens full screen)") }
+            "on", "1", "true" -> { vm.settings.floatingApps = true; print("float inside the frame -> on${freeformNote()}") }
+            "off", "0", "false" -> { vm.settings.floatingApps = false; print("float inside the frame -> off (apps open full screen, their frame stays in the taskbar)") }
             else -> {
                 vm.settings.floatingApps = !vm.settings.floatingApps
-                print("floating apps -> ${if (vm.settings.floatingApps) "on" else "off"}${freeformNote()}")
+                print("float inside the frame -> ${if (vm.settings.floatingApps) "on" else "off"}${freeformNote()}")
             }
         }
     }
@@ -340,6 +342,33 @@ class TerminalShell(private val vm: LauncherViewModel) {
     private fun freeformNote(): String =
         if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(vm.appContext)) " (this device supports floating windows)"
         else " (this device has no floating-window support: apps open full screen)"
+
+    /**
+     * `usage` — how often each app was opened (that order drives the app drawer).
+     * `usage clear` forgets the counts and puts the drawer back to plain A-Z.
+     */
+    private fun usageCmd(args: List<String>) {
+        val map = vm.usageCounts()
+        when (args.getOrNull(0)?.lowercase()) {
+            "clear", "reset" -> {
+                vm.settings.appUsage = ""
+                print("launch counts cleared: the app drawer is back to a-z")
+            }
+            null, "top", "list" -> {
+                if (map.isEmpty()) {
+                    print("no app has been opened yet: the drawer lists everything a-z")
+                    return
+                }
+                print("most used first (this is the drawer order):", Kind.HEAD)
+                map.entries.sortedByDescending { it.value }.take(10).forEach { (pkg, n) ->
+                    val label = vm.appByPackage(pkg)?.label ?: pkg
+                    print("  ${n.toString().padStart(3)}  $label")
+                }
+                print("usage clear   forget these counts", Kind.DIM)
+            }
+            else -> print("usage: usage | usage top | usage clear", Kind.ERR)
+        }
+    }
 
     /**
      * `appframe follow on|off` — whether a floating app is re-placed after its desktop window moved.

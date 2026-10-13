@@ -9,29 +9,38 @@
 
 ## Yang baru di {{TAG}}
 
-- **"Place here" benar-benar bekerja sekarang.** Tiga sebab kenapa dulu tidak jalan:
-  1. rect yang dikirim adalah **seluruh bingkai jendela**, bukan daerah isinya — jadi aplikasi
-     menutupi title bar dan terlihat "tidak berada di dalam kotak";
-  2. rect dikirim dalam **koordinat desktop**, tanpa **safe area** (kamera + sudut melengkung) dan
-     tanpa konversi ke **piksel layar**, padahal `ActivityOptions.setLaunchBounds` meminta piksel
-     layar;
-  3. ditambah lagi, rect hanya dikirim kalau perangkat melaporkan fitur freeform; di tablet yang
-     bisa mengapung lewat PiP/PC mode, permintaannya tidak pernah dikirim sama sekali.
-- Sekarang rect = **daerah isi jendela di bawah title bar, di dalam border, ditambah safe area,
-  dalam piksel layar**, dan selalu dikirim. Matematikanya ada di `ui/wm/AppWindowMath.kt`
-  (**9 unit test**: title bar, border, safe area, jendela keluar layar, jendela lebih besar dari
-  layar, bingkai terlalu kecil, skala UI).
-- **Tiga tombol baru di jendela aplikasi**: `place here` (letakkan di rect sekarang),
-  `restart into frame` (jalankan ulang aplikasi sehingga pasti mendarat di rect baru — satu-satunya
-  cara publik karena Android tidak mengizinkan launcher memindahkan task aplikasi lain), dan
-  `bring it back`. Jendela juga menampilkan **rect frame**, **rect yang dikirim ke sistem**, safe
-  area, skala UI, dan density, jadi kalau ada selisih kita bisa lihat angkanya.
-- **Aplikasi mengikuti jendelanya**: geser title bar atau resize tepi → setelah 420 ms rect dikirim
-  ulang otomatis. Matikan lewat *Settings - apps & windows → Apps follow their window* atau terminal
-  `appframe follow on|off`; paksa sekali lewat terminal `appframe place <app>`.
+- **Semua aplikasi sekarang selalu terbungkus kotak jendela.** Membuka aplikasi dari mana saja
+  (desktop, app drawer, dock, sidebar, taskbar, Spotlight) membuka **jendela desktop**-nya dulu —
+  persis seperti jendela Settings / Terminal: title bar, minimize, maximize, close, geser, resize 8
+  arah, snap ke tepi, pindah workspace, muncul di taskbar. Tidak ada lagi aplikasi yang muncul
+  begitu saja tanpa bingkai.
+- **Maximize = kotak jendela sebesar desktop, dan bisa di-restore ke ukuran semula.** Tekan maximize
+  (atau dobel tap title bar, `Ctrl+Alt+↑`, geser ke tengah-atas) → bingkai memenuhi seluruh area
+  desktop dan aplikasi di dalamnya ikut memenuhi kotak itu. Tekan lagi → jendela kembali **persis**
+  ke ukuran dan posisi terakhir sebelum maximize. Matematikanya dipisah ke `ui/wm/MaximizeMath.kt`
+  dengan 9 unit test, jadi maximize → restore → maximize tidak pernah membuat jendela mengecil
+  sendiri atau melompat ke tengah layar.
+  Catatan: panel dan dock launcher tetap terlihat (maximize memenuhi area desktop, bukan menutupi
+  panel), seperti maximize di Linux/macOS/Windows.
+- **App drawer bukan lagi layar penuh.** *Applications* sekarang jendela biasa berisi **daftar yang
+  bisa digulir** — satu baris per aplikasi: ikon, nama, nama paket, dan berapa kali dibuka (`x12`).
+- **Urutan app drawer: paling sering dipakai dulu, baru A–Z.** Setiap pembukaan aplikasi dicatat,
+  lalu daftar dibagi dua bagian dengan pemisah **most used** dan **all apps, a-z**. Aplikasi yang
+  kamu pakai sehari-hari selalu di atas, tanpa perlu mengatur apa pun. Terminal: `usage` (10
+  teratas) / `usage clear` (lupakan hitungan, kembali A–Z).
+- **Panel launchpad gaya macOS juga tidak lagi menutupi seluruh layar**: sekarang panel ± 62% × 76%
+  layar dengan kolom pencarian dan daftar yang sama; tap di desktop yang digelapkan untuk menutup.
+- Urutan yang sama dipakai Spotlight (6 aplikasi teratas) dan daftar aplikasi di start menu Windows.
+- *Settings - apps & windows* diperbarui: **Float apps inside their window frame** (on = aplikasi
+  diminta mengapung di dalam kotak jendelanya; off = aplikasi membuka full screen sementara kotak
+  jendelanya tetap jadi entri taskbar), plus penjelasan maksud maximize/restore.
 
 ### Fitur dari v1.9.x (kalau kamu melompat dari v1.8.x)
 
+- **"Place here" sudah benar**: rect yang dikirim ke sistem adalah daerah isi jendela (di bawah title
+  bar, di dalam border) + safe area, dalam piksel layar; aplikasi juga mengikuti jendelanya saat
+  digeser/di-resize (bisa dimatikan), dan tombol `restart into frame` memindahkan aplikasi yang
+  sudah berjalan.
 - Tap = pilih, dobel klik/tap = buka, hold = menu; app drawer bisa digulir tanpa membuka aplikasi.
 - Panel `add to desktop` untuk menambah app maupun widget ke homescreen.
 - Desktop bersih tanpa teks bantuan, detik jam sejajar dengan menit, kalender ringkas, delapan widget.

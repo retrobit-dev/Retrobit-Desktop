@@ -9,14 +9,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -42,6 +40,7 @@ import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.MenuItem
 import dev.retrobit.desktop.ui.components.RetroText
+import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.input.KeyboardTrayButton
@@ -225,46 +224,68 @@ fun MacosShell(vm: LauncherViewModel) {
             }
         }
 
-        // ── launchpad overlay ─────────────────────────────────────────────────────
+        // ── launchpad: a panel, never a full-screen sheet ───────────────────────────
+        // it shows the same scrollable, usage-sorted list as the Applications window, so the drawer
+        // stays out of the way and the desktop keeps working behind it
         if (vm.launchpad) {
+            var query by remember(vm.launchpad) { mutableStateOf("") }
+            // clicking the dimmed desktop closes the panel
             Box(
-                Modifier.fillMaxSize().background(p.paper).padding(top = dp(40f), start = dp(30f), end = dp(30f), bottom = dp(30f)),
+                Modifier
+                    .fillMaxSize()
+                    .background(p.ink.copy(alpha = 0.22f))
+                    .desktopClick(primary = { vm.launchpad = false }, secondary = { pos -> vm.desktopMenu(pos) }),
+            )
+            Column(
+                Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(0.62f)
+                    .fillMaxHeight(0.76f)
+                    .background(p.paper)
+                    .border(dp(2.2f), p.ink)
+                    // taps on the panel's own background stay in the panel (only the desktop closes it)
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
+                    .padding(dp(2f)),
             ) {
-                Column(Modifier.fillMaxSize()) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(10f))) {
-                        GlyphIcon(Glyph.GRID, dp(20f))
-                        RetroText("LAUNCHPAD", size = 18f, display = true, weight = FontWeight.Bold)
-                        Spacer(Modifier.weight(1f))
-                        RetroText("${vm.apps.size} apps", size = 11f, color = p.mid)
-                    }
-                    Box(Modifier.fillMaxWidth().height(dp(1.6f)).background(p.ink))
-                    LazyVerticalGrid(
-                        columns = GridCells.Adaptive(dp(104f)),
-                        modifier = Modifier.fillMaxSize().padding(dp(10f)),
-                        verticalArrangement = Arrangement.spacedBy(dp(6f)),
+                Row(
+                    Modifier.fillMaxWidth().padding(horizontal = dp(7f), vertical = dp(5f)),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(dp(8f)),
+                ) {
+                    GlyphIcon(Glyph.GRID, dp(16f))
+                    RetroText("LAUNCHPAD", size = 13f, display = true, weight = FontWeight.Bold)
+                    Spacer(Modifier.weight(1f))
+                    RetroText("${vm.apps.size} apps", size = 10.5f, color = p.mid)
+                    Box(
+                        Modifier
+                            .border(dp(1.3f), p.ink)
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.launchpad = false }
+                            .padding(horizontal = dp(7f), vertical = dp(2f)),
                     ) {
-                        items(vm.apps, key = { it.key }) { app ->
-                            AppIconTile(
-                                app = app,
-                                iconSize = dp(46f),
-                                selected = vm.selectedApp?.key == app.key,
-                                openOnDoubleClick = vm.settings.doubleClickOpen,
-                                onOpen = { vm.launch(it) },
-                                onSelect = { vm.selectIcon(it) },
-                                onContextMenu = { a, pos -> vm.appMenu(a, pos) },
-                                onDrop = { a, _ -> vm.toggleDockPin(a) },
-                            )
-                        }
+                        RetroText("close", size = 10.5f, color = p.ink)
                     }
                 }
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .desktopClick(
-                            primary = { vm.launchpad = false },
-                            secondary = { pos -> vm.desktopMenu(pos) },
-                        ),
+                Box(Modifier.fillMaxWidth().height(dp(1.6f)).background(p.ink))
+                Row(Modifier.fillMaxWidth().padding(dp(7f)), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) {
+                        RetroTextField(
+                            value = query,
+                            onValueChange = { query = it },
+                            placeholder = "search applications…",
+                        )
+                    }
+                }
+                dev.retrobit.desktop.ui.apps.AppDrawerList(
+                    vm = vm,
+                    query = query,
+                    modifier = Modifier.fillMaxWidth().weight(1f),
                 )
+                Row(
+                    Modifier.fillMaxWidth().background(p.soft).padding(dp(6f)),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RetroText("most used first, then a-z · hold an app for options", size = 10f, color = p.mid, maxLines = 1)
+                }
             }
         }
     }

@@ -65,7 +65,8 @@ fun Spotlight(vm: LauncherViewModel) {
         Triple("About", WinKind.ABOUT, Glyph.ABOUT),
     )
     val q = query.trim().lowercase()
-    val appHits: List<AppEntry> = if (q.isEmpty()) vm.apps.take(6)
+    // the same order as the app drawer: the apps you use most come first
+    val appHits: List<AppEntry> = if (q.isEmpty()) vm.appsByUsage().take(6)
     else vm.apps.filter { it.label.lowercase().contains(q) || it.pkg.contains(q) }.take(8)
     val builtinHits = builtins.filter { q.isEmpty() || it.first.lowercase().contains(q) }
 

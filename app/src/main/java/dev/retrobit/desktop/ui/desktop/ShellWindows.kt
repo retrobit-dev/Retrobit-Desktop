@@ -126,7 +126,8 @@ fun WindowsShell(vm: LauncherViewModel) {
                         Column(Modifier.weight(1.2f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(dp(8f)), verticalArrangement = Arrangement.spacedBy(dp(6f))) {
                             RetroText("Applications", size = 11f, color = p.mid, weight = FontWeight.Bold)
                             LazyVerticalGrid(columns = GridCells.Adaptive(dp(96f)), modifier = Modifier.height(dp(220f))) {
-                                items(vm.apps.take(24), key = { it.key }) { app ->
+                                // same order as the app drawer: most used first, then A-Z
+                                items(vm.appsByUsage().take(24), key = { it.key }) { app ->
                                     AppIconTile(
                                         app = app,
                                         openOnDoubleClick = false,   // start menu / taskbar list

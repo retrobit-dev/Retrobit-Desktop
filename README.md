@@ -74,9 +74,16 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Semua ikon UI digambar sebagai **pixel-art 16×16** (glyph didefinisikan di dalam kode).
 
 ### Aplikasi terbuka di dalam jendela (floating apps)
-- **Setiap aplikasi yang dibuka dari launcher mendapat jendela desktop**: punya title bar dengan
-  nama + ikon aplikasi, tombol minimize / maximize / close, bisa digeser, di-resize dari 8 arah,
-  di-snap ke tepi, dipindah antar-workspace, dan muncul di taskbar / task list / `ps`.
+- **Setiap aplikasi yang dibuka selalu terbungkus kotak jendela**, persis seperti jendela Settings /
+  Terminal / Notes: title bar dengan nama + ikon aplikasi, tombol minimize / maximize / close, bisa
+  digeser, di-resize dari 8 arah, di-snap ke tepi, dipindah antar-workspace, dan muncul di taskbar /
+  task list / `ps`. Tidak ada lagi aplikasi yang "lepas" tanpa bingkai — membuka app = membuka
+  jendelanya, dan aplikasi kedua membuka jendela kedua.
+- **Maximize = kotak jendela sebesar desktop, dan restore mengembalikan ukuran semula**: tombol
+  maximize (atau dobel tap title bar, atau `Ctrl+Alt+↑`, atau geser ke tengah-atas) membuat bingkai
+  memenuhi seluruh area desktop; menekannya lagi mengembalikan **persis** ukuran dan posisi
+  sebelumnya — bukan tebakan baru di tengah layar. Matematikanya di `ui/wm/MaximizeMath.kt`
+  (9 unit test), jadi maximize → restore → maximize tidak pernah "menyusut".
 - **Aplikasi diletakkan di dalam kotak jendela** dengan `ActivityOptions.setLaunchBounds` (via
   `LauncherApps.startMainActivity`). Rect yang dikirim adalah **daerah isi jendela**, bukan seluruh
   bingkai: di bawah title bar, di dalam border, dan **ditambah safe area** (kamera + sudut
@@ -94,16 +101,34 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   window*, atau terminal `appframe follow on|off`. Cek rect yang dikirim dari terminal:
   `appframe place <app>`.
 - **Kalau perangkat tidak mendukung floating**: aplikasi terbuka penuh (seperti launcher biasa),
-  sementara jendela tetap menjadi "wakil"-nya di taskbar, daftar jendela dan workspace. Rect tetap
-  dikirim (tidak berbahaya), dan status perangkat ditampilkan di *Settings - apps & windows*.
+  sementara kotak jendelanya tetap ada sebagai "wakil"-nya di taskbar, daftar jendela dan workspace
+  (minimize/Home untuk melihatnya). Rect tetap dikirim (tidak berbahaya), dan status perangkat
+  ditampilkan di *Settings - apps & windows*.
   Cara mengaktifkan floating window: *developer options* → *force activities to be resizable*, atau
   `adb shell settings put global enable_freeform_support 1`.
 - Android sendiri **tidak mengizinkan** satu aplikasi menggambar UI aplikasi lain di dalam view-nya
   (`android.app.ActivityView` sudah dihapus dari SDK setelah API 29 dan bukan API publik), jadi
   inilah jalur yang benar: chrome milik kita + jendela sistem milik aplikasi.
-- Matikan lewat *Settings - apps & windows* atau terminal: `floating off` (semua aplikasi jadi
-  full screen lagi). Menu konteks ikon aplikasi juga punya **Open (floating window)** dan
-  **Open full screen**.
+- *Settings - apps & windows → **Float apps inside their window frame*** (atau terminal
+  `floating on|off`): **on** berarti aplikasi diminta mengapung di dalam kotak jendelanya, **off**
+  berarti aplikasi membuka full screen sementara kotak jendelanya tetap jadi entri taskbar
+  (cadangan untuk tablet yang rewel soal floating). Menu konteks ikon aplikasi juga punya
+  **Open in its window** dan **Open full screen**.
+
+### App drawer: daftar yang bisa digulir, yang paling sering dipakai di atas
+- **Bukan fullscreen, dan bukan grid ikon**: *Applications* adalah jendela biasa (bisa digeser,
+  di-resize, di-maximize seperti jendela lain) berisi **daftar** satu baris per aplikasi yang bisa
+  digulir — ikon, nama, nama paket, dan berapa kali aplikasi itu dibuka (`x12`).
+- **Urutannya: paling sering dipakai dulu, baru A–Z**. Setiap pembukaan app dicatat (disimpan di
+  preferensi sebagai `pkg=count`), lalu daftar dibagi dua bagian dengan label pemisah:
+  **most used** dan **all apps, a-z**. Jadi aplikasi yang kamu pakai tiap hari selalu di paling atas,
+  tanpa perlu menyusun atau menyematkan apa pun. Terminal: `usage` (10 teratas) dan `usage clear`
+  (lupakan hitungan, kembali A–Z).
+- **Panel launchpad (gaya macOS) sekarang panel, bukan layar penuh**: ukurannya ± 62% × 76% layar,
+  punya kolom pencarian dan daftar yang sama. Tap di desktop yang digelapkan untuk menutupnya.
+- Urutan yang sama juga dipakai **Spotlight** (6 aplikasi teratas saat pencarian kosong) dan
+  daftar aplikasi di **start menu** gaya Windows. Kotak pencarian tetap memfilter dalam urutan itu,
+  jadi `spo` langsung memunculkan Spotify kalau memang itu yang paling sering kamu buka.
 
 ### Widget desktop: bisa ditambah, dihapus, diatur
 - **Delapan widget siap pakai** (`Add widget:` di menu desktop, panel mode edit, Settings, terminal):
@@ -184,7 +209,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Semua sisi jendela bisa di-resize manual**: delapan handle (kiri, kanan, atas, bawah, dan empat
   sudut) yang bisa ditarik pakai jari, M-Pencil maupun mouse. Ukuran minimum dijaga, jendela tidak
   bisa keluar dari desktop, dan ukuran hidup (`820x640`) tampil di title bar saat ditarik.
-  Double-tap title bar = maximize/restore.
+  Double-tap title bar = maximize/restore, dan maximize selalu bisa dibatalkan ke ukuran semula
+  (`ui/wm/MaximizeMath.kt`).
 - **Floating windows**: setiap jendela mengambang dan punya tombol dua-kotak di title bar untuk
   keluar-masuk dari layout tiling. Jendela mengambang mempertahankan ukuran yang kamu beri, jendela
   lain mengikuti tiling master-stack.
@@ -197,10 +223,11 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
 - Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
   `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
-  `ui/wm/DockMath.kt` (urutan dock), `ui/wm/WidgetMath.kt` (ukuran + daftar widget) dan
-  `ui/wm/AppWindowMath.kt` (penempatan aplikasi di kotak jendela) — **72 test**:
+  `ui/wm/DockMath.kt` (urutan dock), `ui/wm/WidgetMath.kt` (ukuran + daftar widget),
+  `ui/wm/AppWindowMath.kt` (penempatan aplikasi di kotak jendela), `ui/wm/MaximizeMath.kt`
+  (maximize + restore) dan `data/AppUsage.kt` (urutan app drawer) — **91 test**:
   23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 16 `WidgetMathTest` +
-  9 `AppWindowMathTest`.
+  9 `AppWindowMathTest` + 9 `MaximizeMathTest` + 10 `AppUsageTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -214,7 +241,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
   `workspace 1..4` (`ws`), `wsmove 1..4`, `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
-  `floating on|off`, `widgets` / `widget width <dp>` / `widget size <name> <w> <h>` / `widget reset`,
+  `floating on|off`, `usage [top|clear]`, `widgets` / `widget width <dp>` /
+  `widget size <name> <w> <h>` / `widget reset`,
   `invert`, `wmctrl`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
@@ -243,6 +271,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 | Tap di desktop kosong | lepas pilihan ikon + keluar dari mode edit widget |
 | Tap & tahan desktop (atau klik kanan / hold pena) | menu sistem (applications, terminal, settings, tiling, **add app/widget**, **add/remove widget**, **edit widgets**, close all) |
 | Tap ikon di dock / sidebar / taskbar / widget launcher | langsung membuka aplikasi (satu klik, seperti taskbar Windows/macOS) |
+| Tap baris di app drawer | memilih baris itu (dobel tap / dobel klik membuka); tap & tahan = menu aplikasi |
+| Tap di luar panel launchpad | menutup panel (tidak menutupi desktop seperti dulu) |
 
 - **Membuka app butuh dobel klik** di desktop, app drawer, dan launchpad; satu tap hanya memilih
   (ikon jadi terbalik + nama tercetak) supaya tidak salah buka saat menggulir atau menggeser.
