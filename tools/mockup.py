@@ -393,7 +393,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · m-pencil acts as a mouse (1 tap = left click, 2 taps = right click) · internal keyboard on demand",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · m-pencil acts as a mouse (1 tap = left click, 2 taps = right click)",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

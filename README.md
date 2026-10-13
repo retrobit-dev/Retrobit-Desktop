@@ -184,5 +184,24 @@ app/src/main/java/dev/retrobit/desktop/
 
 ## Font & lisensi
 
-Font disertakan dari Google Fonts (SIL Open Font License 1.1, lihat `licenses/`):
-VT323 dan IBM Plex Mono. Sisanya buatan sendiri untuk proyek ini.
+Seluruh antarmuka memakai **Pixel Operator** dan **Pixel Operator Mono** karya Jayvee Enaguas
+(HarvettFox96), dilisensikan **CC0 1.0** (public domain) — teks lisensinya ada di
+`licenses/PixelOperator-CC0.txt`. Font di-bundle di `app/src/main/res/font/`:
+
+| File | Dipakai untuk |
+| --- | --- |
+| `pixel_operator.ttf` / `_bold` | judul, jam, judul jendela (`PixelDisplay`) |
+| `pixel_operator_mono.ttf` / `_mono_bold` / `_mono_hb` | seluruh teks isi, terminal, tabel, progress bar (`PixelMono`) |
+
+Dua catatan teknis penting:
+
+1. **Ukuran teks dibulatkan ke grid 16 px.** Pixel Operator digambar pada em 16 px, jadi satu piksel
+   glyph = satu piksel layar hanya kalau ukuran font yang dirender kelipatan 16 (16/32/48 px).
+   Helper `pixelSp()` di `ui/components/Chrome.kt` membulatkan setiap permintaan ukuran teks ke grid
+   itu — di tablet xxhdpi, 13sp menjadi 32 px. Ini yang membuat teks tetap tajam, bukan buram.
+2. **String UI memakai ASCII.** Font ini tidak punya glyph box-drawing (─│┌┐), blok (█▓▒), panah
+   (←→↑↓), atau simbol (◆⌘⌨). Semua teks aplikasi sudah diaudit dan diganti ke ASCII
+   (`+---+`, `up/down/left/right`) supaya tidak jatuh ke font fallback dan merusak perataan tabel
+   terminal. Skrip auditnya mudah diulang: baca cmap font lalu cek tiap literal string di `*.kt`.
+
+Sisanya (ikon, glyph pixel-art 16×16, pola dither) digambar sendiri di dalam kode.
