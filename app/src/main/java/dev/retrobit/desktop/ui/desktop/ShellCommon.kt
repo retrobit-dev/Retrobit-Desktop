@@ -169,7 +169,7 @@ fun TrayStatus(vm: LauncherViewModel, modifier: Modifier = Modifier, showText: B
 }
 
 @Composable
-fun TrayButton(glyph: Glyph, onClick: () -> Unit, active: Boolean = false) {
+fun TrayButton(glyph: Glyph, active: Boolean = false, onClick: () -> Unit) {
     val p = LocalPalette.current
     Box(
         Modifier

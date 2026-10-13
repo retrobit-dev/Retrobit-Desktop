@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
@@ -119,7 +120,7 @@ private fun Modifier.retroShadowOffset(offset: androidx.compose.ui.unit.Dp): Mod
 }
 
 private fun Modifier.drawBehindBrush(brush: androidx.compose.ui.graphics.Brush, offset: androidx.compose.ui.unit.Dp): Modifier =
-    androidx.compose.ui.draw.drawBehind {
+    this.drawBehind {
         val o = offset.toPx()
         drawRect(brush, topLeft = Offset(o, o), size = Size(size.width, size.height))
     }
