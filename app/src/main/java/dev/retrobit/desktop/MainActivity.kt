@@ -23,8 +23,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.displayCutout
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.LocalViewModel

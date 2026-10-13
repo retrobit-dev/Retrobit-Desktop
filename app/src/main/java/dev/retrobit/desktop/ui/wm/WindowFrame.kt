@@ -117,7 +117,7 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
     val titleH = dp(24f + 6f)
 
     // the outer box is the window plus a grab margin, so every edge can be dragged from outside
-    val grab = with(density) { HandleGrab.toPx() }
+    val grab = rawPx(HandleGrabDp, density)
     Box(
         Modifier
             .offset { IntOffset((win.x - grab).roundToInt(), (win.y - grab).roundToInt()) }
@@ -253,10 +253,14 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
 }
 
 /** Grab width of every resize handle, in dp. */
-private val HandleGrab = dp(16f)
+private const val HandleGrabDp = 16f
 
 /** Corner size of the resize handles, in dp. */
-private val HandleCorner = dp(20f)
+private const val HandleCornerDp = 20f
+
+/** dp -> px without the scaled composable helper, so it can be used in plain functions. */
+private fun rawPx(value: Float, density: androidx.compose.ui.unit.Density): Float =
+    with(density) { androidx.compose.ui.unit.Dp(value).toPx() }
 
 /**
  * Manual window sizing: eight invisible handles (four edges, four corners) that resize the window
@@ -266,7 +270,7 @@ private val HandleCorner = dp(20f)
 private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float) {
     val p = LocalPalette.current
     val density = LocalDensity.current
-    val corner = with(density) { HandleCorner.toPx() }
+    val corner = rawPx(HandleCornerDp, density)
     val w = win.width
     val h = win.height
 
