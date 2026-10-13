@@ -196,6 +196,10 @@ class RailView(
         // readouts, right to left: the live clock, the battery gauge, the signal bars and transport
         val baseline = y0 + h / 2f + small.textSize * 0.34f
         val cy = y0 + h / 2f
+        // On a narrow screen (portrait, or a large UI scale) the keys and the readouts alone can
+        // fill the rail: keep a strip for the app title and drop readouts that would eat into it.
+        val titleStart = maxOf(notchLeft.toFloat(), 0f) + hPad
+        val titleGuard = titleStart + dp(140f)
         small.color = state.ink.ink
         if (clock.isNotBlank()) {
             small.textAlign = Paint.Align.RIGHT
@@ -203,7 +207,7 @@ class RailView(
             right -= small.measureText(clock) + dp(12f)
         }
         small.textAlign = Paint.Align.LEFT
-        if (net.isNotBlank()) {
+        if (net.isNotBlank() && right - small.measureText(net) - dp(35f) > titleGuard) {
             small.textAlign = Paint.Align.RIGHT
             canvas.drawText(net, right, baseline, small)
             right -= small.measureText(net) + dp(6f)
@@ -211,8 +215,13 @@ class RailView(
             val barsW = dp(15f)
             drawSignal(canvas, right - barsW, cy, net)
             right -= barsW + dp(14f)
+        } else if (net.isNotBlank() && right - dp(33f) > titleGuard) {
+            // no room for the transport label: the bars alone still say how good the link is
+            val barsW = dp(15f)
+            drawSignal(canvas, right - barsW, cy, net)
+            right -= barsW + dp(14f)
         }
-        if (batteryPercent >= 0) {
+        if (batteryPercent >= 0 && right - dp(38f) > titleGuard) {
             val batW = dp(26f)
             drawBattery(canvas, right - batW, cy, batteryPercent, charging)
             right -= batW + dp(12f)

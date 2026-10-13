@@ -51,6 +51,14 @@ atas aplikasi yang sedang jalan - tidak perlu pulang ke desktop:
 - **Tombol keyboard** di rail dan di dock: memunculkan / menyembunyikan keyboard layar untuk
   aplikasi yang sedang di depan (rail tidak pernah merebut fokus sendiri, jadi keyboardnya tetap
   milik app itu).
+- **Jam di panel**: header quick panel ikut menampilkan jam yang sama, jadi kamu tahu waktu tanpa
+  menutup app.
+- **Detik yang benar-benar sejajar**: widget *chrono* di desktop dan jam rail sekarang memakai tick
+  yang diselaraskan ke batas detik jam dinding, jadi angka detiknya berganti tepat waktu - bukan
+  "kira-kira satu detik" yang perlahan melenceng.
+- **Rail tetap terbaca di layar sempit**: kalau kunci + readout sudah memakan hampir seluruh rail
+  (portrait, atau skala UI besar), rail menahan diri: label jaringan dilepas lebih dulu, lalu gauge
+  baterai, sehingga judul aplikasi tidak pernah tertimpa.
 
 ### UX pass
 - **Bingkai hitam bisa ditekan**: tap pada rail kosong = sembunyikan rail (atau munculkan lagi kalau

@@ -146,8 +146,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   pin/unpin (chip yang dipin diberi tanda), dengan konfirmasi singkat di rail (`pins`).
 - **Per-app rules**: aplikasi tertentu bisa dikecualikan dari bingkai; kalau app itu di depan, rail
   muncul 4 detik dengan alasannya + cara mengembalikannya.
-- Status hidup: jam `HH:mm:ss` (detik tepat di batas detik), gauge baterai + bar sinyal yang
-  digambar, dan tombol **keyboard** di rail & dock untuk memunculkan keyboard layar aplikasi depan.
+- Status hidup: jam `HH:mm:ss` (detik tepat di batas detik, juga di widget chrono dan header
+  quick panel), gauge baterai + bar sinyal yang digambar, dan tombol **keyboard** di rail & dock
+  untuk memunculkan keyboard layar aplikasi depan. Di layar sempit rail melepas readout lebih dulu
+  supaya judul aplikasi tidak tertimpa.
 - UX: tap pada rail kosong atau handle = sembunyikan/munculkan rail, area sentuh tombol diperbesar,
   tombol `eye` menyembunyikan rail hanya untuk app itu, dan setiap aksi mengeluarkan konfirmasi.
 - Selain itu, permintaan freeform sekarang dikirim lebih tegas: selain rect, launcher juga memanggil

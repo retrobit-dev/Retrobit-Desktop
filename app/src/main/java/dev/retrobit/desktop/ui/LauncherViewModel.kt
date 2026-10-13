@@ -488,6 +488,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         private set
 
     /** Fills the panel state from the settings; the panel repaints when this changes. */
+    /** Same shape as the rail clock: the panel ticks while it is open. */
+    private val panelClock = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+
     fun syncPanel() {
         val palette = dev.retrobit.desktop.ui.theme.Palettes.of(settings.palette)
         panelOpen = dev.retrobit.desktop.shell.PanelChrome.visible
@@ -512,6 +515,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             autoHideSecs = settings.chromeAutoHideSecs.coerceIn(3, 60),
             apps = refs,
             noChrome = settings.chromeNoApps,
+            clock = panelClock.format(java.util.Date(now)),
         )
     }
 
@@ -689,7 +693,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     if (ticks % 5 == 0) snapshot = SystemInfo.snapshot(getApplication())
                     ticks++
                 }
-                delay(1000)
+                // Sleep to the next second boundary instead of a flat second: the chrono widget
+                // then flips its seconds exactly with the wall clock, and the loop cannot drift
+                // (a flat delay slowly accumulates the time Compose needs to draw each tick).
+                delay(1_000L - System.currentTimeMillis() % 1_000L)
             }
         }
     }

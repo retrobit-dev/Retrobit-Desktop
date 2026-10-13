@@ -84,6 +84,12 @@ class PanelView(context: Context) : View(context) {
             x + head.measureText("QUICK PANEL") + dp(14f), y + head.textSize * 0.82f, text,
         )
         key(canvas, right - snap8(dp(34f)), y, snap8(dp(34f)), "close", glyph = Glyph.CLOSE)
+        if (state.clock.isNotBlank()) {
+            // live clock, right-aligned in front of the close key: the panel is the cyberdeck HUD
+            text.textAlign = Paint.Align.RIGHT
+            canvas.drawText(state.clock, right - snap8(dp(34f)) - dp(12f), y + head.textSize * 0.82f, text)
+            text.textAlign = Paint.Align.LEFT
+        }
         y += dp(34f) + dp(6f)
         rule(canvas, x, right, y)
         y += dp(10f)

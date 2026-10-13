@@ -51,6 +51,18 @@ class PanelService : Service() {
     private var sizeW = 0
     private var sizeH = 0
 
+    /**
+     * The panel prints a live clock, so it repaints once a second while it is up. Aligned to the
+     * second boundary, like the rail tick, so both clocks flip together.
+     */
+    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val tick = object : Runnable {
+        override fun run() {
+            refresh()
+            handler.postDelayed(this, 1_000L - System.currentTimeMillis() % 1_000L)
+        }
+    }
+
     override fun onCreate() {
         super.onCreate()
         wm = getSystemService(WindowManager::class.java)
@@ -70,13 +82,7 @@ class PanelService : Service() {
         when (intent?.action) {
             ACTION_HIDE -> dismiss()
             ACTION_SYNC -> {
-                if (view != null) {
-                    runCatching { PanelChrome.onRefresh?.invoke() }
-                    view?.state = PanelChrome.state
-                    view?.invalidate()
-                } else {
-                    stopSelf()
-                }
+                if (view != null) refresh() else stopSelf()
             }
             else -> open()
         }
@@ -138,12 +144,23 @@ class PanelService : Service() {
             wm.addView(v, params)
             view = v
             PanelChrome.visible = true
+            handler.removeCallbacks(tick)
+            handler.postDelayed(tick, 1_000L - System.currentTimeMillis() % 1_000L)
         }.onFailure {
             dismiss()
         }
     }
 
+    /** Pulls a fresh state into the window that is already up. */
+    private fun refresh() {
+        val v = view ?: return
+        runCatching { PanelChrome.onRefresh?.invoke() }
+        v.state = PanelChrome.state
+        v.invalidate()
+    }
+
     private fun dismiss() {
+        handler.removeCallbacks(tick)
         view?.let { runCatching { wm.removeView(it) } }
         view = null
         PanelChrome.visible = false
