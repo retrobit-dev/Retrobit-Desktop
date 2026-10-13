@@ -77,9 +77,15 @@ class WidgetMathTest {
     }
 
     @Test
-    fun `moving a widget swaps it with its neighbour`() {
+    fun `moving a widget drops it one slot down`() {
+        // a -> one slot down: a, b, c  =>  b, a, c
         assertEquals(listOf("b", "a", "c"), WidgetMath.move(listOf("a", "b", "c"), "a", 1))
-        assertEquals(listOf("b", "a", "c"), WidgetMath.move(listOf("b", "a", "c"), "c", -1))
+    }
+
+    @Test
+    fun `moving a widget pulls it one slot up`() {
+        // c -> one slot up: b, a, c  =>  b, c, a
+        assertEquals(listOf("b", "c", "a"), WidgetMath.move(listOf("b", "a", "c"), "c", -1))
     }
 
     @Test
