@@ -231,7 +231,7 @@ class RailView(
         val used = state.railMode == "used"
         val modeW = dp(34f)
         val modeRect = RectF(x, top, x + modeW, top + itemH)
-        bar.color = state.paper
+        bar.color = state.ink.paper
         canvas.drawRect(modeRect, bar)
         bar.color = Color.BLACK
         canvas.drawRect(modeRect.left, modeRect.top, modeRect.right, modeRect.top + dp(1.6f), bar)

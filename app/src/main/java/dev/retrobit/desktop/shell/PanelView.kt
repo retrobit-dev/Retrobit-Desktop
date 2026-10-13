@@ -229,7 +229,7 @@ class PanelView(context: Context) : View(context) {
         y: Float,
         w: Float,
         action: String,
-        glyph: Glyph?,
+        glyph: Glyph? = null,
         label: String? = null,
         active: Boolean = false,
     ) {

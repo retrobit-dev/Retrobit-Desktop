@@ -173,7 +173,8 @@ private fun Root(vm: LauncherViewModel) {
 
     // rotation lock from the quick panel (the manifest default is fullUser)
     LaunchedEffect(settings.rotateLocked) {
-        requestedOrientation = if (settings.rotateLocked) {
+        val activity = view.context as? Activity ?: return@LaunchedEffect
+        activity.requestedOrientation = if (settings.rotateLocked) {
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LOCKED
         } else {
             android.content.pm.ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
