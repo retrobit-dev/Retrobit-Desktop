@@ -86,8 +86,8 @@ fun TerminalView(vm: LauncherViewModel) {
             }
             QuickKeys { text ->
                 when (text) {
-                    "↑" -> input = shell.historyPrev(input)
-                    "↓" -> input = shell.historyNext()
+                    "prev" -> input = shell.historyPrev(input)
+                    "next" -> input = shell.historyNext()
                     "clear" -> shell.clear()
                     "help" -> shell.submit("help")
                 }
@@ -103,7 +103,7 @@ private fun QuickKeys(onKey: (String) -> Unit) {
         Modifier.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(dp(5f)),
     ) {
-        listOf("help", "↑", "↓", "clear").forEach { k ->
+        listOf("help", "prev", "next", "clear").forEach { k ->
             Box(
                 Modifier
                     .background(p.paper)

@@ -73,6 +73,21 @@ val LocalUiScale = staticCompositionLocalOf { 1f }
 @Composable
 fun sp(base: Float): TextUnit = (base * LocalUiScale.current).sp
 
+/**
+ * Pixel Operator is drawn on a 16 px em grid: one glyph pixel maps to exactly one device pixel
+ * when the rendered font size is a multiple of 16 px. Anything in between resamples the glyphs and
+ * the crisp pixel look is lost, so every text size request is snapped to that grid.
+ * 13sp on a xxhdpi tablet becomes 32 px (2 font pixels per glyph pixel) instead of 39 px.
+ */
+@Composable
+fun pixelSp(size: Float): TextUnit {
+    val d = androidx.compose.ui.platform.LocalDensity.current
+    val unit = d.density * d.fontScale
+    val requestedPx = size * LocalUiScale.current * unit
+    val snappedPx = maxOf(16f, kotlin.math.round(requestedPx / 16f) * 16f)
+    return (snappedPx / unit).sp
+}
+
 @Composable
 fun dp(base: Float): Dp = (base * LocalUiScale.current).dp
 
@@ -114,7 +129,7 @@ fun RetroText(
         overflow = overflow,
         style = TextStyle(
             color = color ?: p.ink,
-            fontSize = sp(if (display) size * 1.45f else size),
+            fontSize = pixelSp(if (display) size * 1.45f else size),
             fontFamily = if (display) PixelDisplay else PixelMono,
             fontWeight = weight,
             letterSpacing = 0.sp,
@@ -312,7 +327,7 @@ fun RetroTextField(
             onValueChange = onValueChange,
             enabled = enabled,
             singleLine = singleLine,
-            textStyle = TextStyle(color = p.ink, fontSize = sp(textSize), fontFamily = PixelMono),
+            textStyle = TextStyle(color = p.ink, fontSize = pixelSp(textSize), fontFamily = PixelMono),
             cursorBrush = SolidColor(p.ink),
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (singleLine) ImeAction.Done else ImeAction.Default),
             keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke(); focus.clearFocus() }),
@@ -379,7 +394,7 @@ fun MarqueeText(text: String, modifier: Modifier = Modifier, size: Float = 12f, 
         maxLines = maxLines,
         modifier = modifier,
         overflow = TextOverflow.Ellipsis,
-        style = TextStyle(color = p.ink, fontSize = sp(size), fontFamily = PixelMono),
+        style = TextStyle(color = p.ink, fontSize = pixelSp(size), fontFamily = PixelMono),
     )
 }
 

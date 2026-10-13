@@ -27,13 +27,15 @@ import dev.retrobit.desktop.ui.theme.LocalPalette
 @Composable
 fun AboutView(vm: LauncherViewModel) {
     val p = LocalPalette.current
+    // Pixel Operator has no box-drawing glyphs, so the logo is pure ASCII — it stays aligned
+    // because the whole UI is rendered with Pixel Operator Mono.
     val logo = """
-        ┌───────────────────────────────┐
-        │   R E T R O B I T             │
-        │   D E S K T O P   v1.0        │
-        │                               │
-        │   >_  e-paper launcher        │
-        └───────────────────────────────┘
+        +-------------------------------+
+        |   R E T R O B I T             |
+        |   D E S K T O P   v1.0        |
+        |                               |
+        |   >_  e-paper launcher        |
+        +-------------------------------+
     """.trimIndent()
 
     Column(
@@ -74,10 +76,10 @@ fun AboutView(vm: LauncherViewModel) {
                 "· barrel button = right click · drag = move icons & windows\n" +
                 "\n" +
                 "Mouse: left click selects/opens, right click = context menu, wheel scrolls.\n" +
-                "Keyboard: the on-screen keyboard appears when you tap a text field; the ⌨ button in the\n" +
+                "Keyboard: the on-screen keyboard appears when you tap a text field; the keyboard button in the\n" +
                 "panel/taskbar (or ctrl+alt+k) shows or hides it. External keyboards: ctrl+alt+t terminal ·\n" +
                 "ctrl+alt+s settings · ctrl+alt+w close · ctrl+alt+m minimize all · ctrl+alt+d desktop menu ·\n" +
-                "tab / ctrl+alt+arrows cycle windows · super = spotlight",
+                "tab or ctrl+alt+left/right cycles windows · ctrl+alt+up maximizes · super = spotlight",
             size = 11f, color = p.mid, maxLines = 16,
         )
         RetroText("personal project of retrobit-dev · font: Pixel Operator & Pixel Operator Mono (CC0 1.0)", size = 10f, color = p.mid, maxLines = 3)

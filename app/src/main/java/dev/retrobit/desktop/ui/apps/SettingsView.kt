@@ -194,8 +194,8 @@ fun SettingsView(vm: LauncherViewModel) {
                 "up so nothing is covered. Use the keyboard button in the panel/taskbar (or Ctrl+Alt+K) to " +
                 "summon or hide it manually, which is handy with an external mouse.\n" +
                 "External keyboards: Ctrl+Alt+T terminal · Ctrl+Alt+S settings · Ctrl+Alt+W close window · " +
-                "Ctrl+Alt+M minimize all · Ctrl+Alt+D desktop menu · Ctrl+Alt+←/→ or Tab cycle windows · " +
-                "Ctrl+Alt+↑ maximize · Super opens Spotlight.",
+                "Ctrl+Alt+M minimize all · Ctrl+Alt+D desktop menu · Ctrl+Alt+left/right or Tab cycles windows · " +
+                "Ctrl+Alt+up maximizes · Super opens Spotlight.",
             size = 11f, color = p.mid, maxLines = 12,
         )
 

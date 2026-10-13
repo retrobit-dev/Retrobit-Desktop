@@ -118,7 +118,14 @@ fun MacosShell(vm: LauncherViewModel) {
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dp(14f)),
         ) {
-            MenuTitle(if (vm.wm.focused == null) "◆" else "◇") { vm.desktopMenu(Offset(12f, 40f)) }
+            // the retro logo doubles as the system menu (Pixel Operator has no ◆/◇ glyphs)
+            Box(
+                Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                    vm.desktopMenu(Offset(12f, 40f))
+                },
+            ) {
+                GlyphIcon(Glyph.LOGO, dp(17f))
+            }
             MenuTitle("File") {
                 vm.openMenu(
                     dev.retrobit.desktop.ui.MenuRequest("File", null, Offset(40f, 40f), listOf(

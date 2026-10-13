@@ -63,6 +63,19 @@ def grid(img, color=PATTERN, step=42):
         d.line([0, y, w, y], fill=color)
 
 
+def text_run(d, x, y, items, font, gap=16, fill=INK):
+    """Draws a row of labels spaced by the widest metric of the actual font."""
+    for item in items:
+        d.text((x, y), item, font=font, fill=fill)
+        x += d.textlength(item, font=font) + gap
+    return x
+
+
+def lab(d, x, y, text, font, fill=INK):
+    d.text((x, y), text, font=font, fill=fill)
+    return d.textlength(text, font=font)
+
+
 def bevel(d, box, width=2, color=INK):
     d.rectangle(box, outline=color, width=width)
 
@@ -210,20 +223,33 @@ def panel(caption, style):
         # top panel
         d.rectangle([0, 0, w, 44], fill=PAPER)
         bevel(d, [0, 0, w - 1, 44])
-        d.text((14, 12), "◆", font=px_small, fill=INK)
-        d.text((40, 13), "retrOS", font=mono_bold, fill=INK)
-        for i, m in enumerate(["system", "apps", "term"]):
-            d.text((110 + i * 62, 13), m, font=mono, fill=INK)
-        d.rectangle([270, 8, 380, 36], fill=INK)
-        d.text((278, 12), "terminal", font=mono, fill=PAPER)
-        d.rectangle([386, 8, 470, 36], fill=PAPER, outline=INK, width=2)
-        d.text((394, 12), "notes.txt", font=mono, fill=INK)
-        d.rectangle([w - 310, 9, w - 216, 35], fill=PAPER, outline=INK, width=2)
-        d.text((w - 302, 12), "[LINUX]", font=mono_tiny, fill=INK)
-        d.rectangle([w - 206, 10, w - 184, 32], fill=PAPER, outline=INK, width=2)
-        d.text((w - 200, 12), "KB", font=mono_tiny, fill=INK)
-        d.text((w - 138, 12), "WIFI 92%", font=mono_tiny, fill=INK)
-        d.text((w - 62, 8), "13:37", font=px_small, fill=INK)
+        x = lab(d, 14, 12, "◆", px_small)
+        x = text_run(d, 44, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
+        # active window button ("terminal")
+        tw = d.textlength("terminal", font=mono)
+        d.rectangle([x + 6, 8, x + 26 + tw, 36], fill=INK)
+        d.text((x + 16, 12), "terminal", font=mono, fill=PAPER)
+        x += 32 + tw
+        tw2 = d.textlength("notes.txt", font=mono)
+        d.rectangle([x + 6, 8, x + 26 + tw2, 36], fill=PAPER, outline=INK, width=2)
+        d.text((x + 16, 12), "notes.txt", font=mono, fill=INK)
+        # right cluster, aligned to the panel edge
+        clock_w = d.textlength("13:37", font=px_small)
+        d.text((w - 14 - clock_w, 6), "13:37", font=px_small, fill=INK)
+        rx = w - 24 - clock_w
+        for label, kind in [("WIFI 92%", "text"), ("KB", "button")]:
+            tw3 = d.textlength(label, font=mono_tiny)
+            if kind == "text":
+                d.text((rx - tw3 - 10, 12), label, font=mono_tiny, fill=INK)
+                rx -= tw3 + 20
+            else:
+                d.rectangle([rx - tw3 - 18, 10, rx - 6, 32], fill=PAPER, outline=INK, width=2)
+                d.text((rx - tw3 - 12, 12), label, font=mono_tiny, fill=INK)
+                rx -= tw3 + 30
+        chip = "[LINUX]"
+        cw = d.textlength(chip, font=mono_tiny)
+        d.rectangle([rx - cw - 12, 9, rx - 4, 35], fill=PAPER, outline=INK, width=2)
+        d.text((rx - cw - 8, 12), chip, font=mono_tiny, fill=INK)
         # left dock
         d.rectangle([0, 44, 78, h], fill=PAPER)
         bevel(d, [0, 44, 78, h])
@@ -262,15 +288,20 @@ def panel(caption, style):
     elif style == "macos":
         d.rectangle([0, 0, w, 40], fill=PAPER)
         d.line([0, 40, w, 40], fill=INK, width=2)
-        d.text((14, 10), "◆", font=px_small, fill=INK)
-        for i, m in enumerate(["File", "View", "Window", "Help"]):
-            d.text((46 + i * 62, 11), m, font=mono_med, fill=INK)
-        d.rectangle([w - 288, 10, w - 266, 32], fill=PAPER, outline=INK, width=2)
-        d.text((w - 282, 11), "KB", font=mono_tiny, fill=INK)
-        d.rectangle([w - 240, 10, w - 140, 32], fill=PAPER, outline=INK, width=2)
-        d.text((w - 232, 11), "[MACOS]", font=mono_tiny, fill=INK)
-        d.text((w - 130, 11), "WIFI 92%", font=mono_tiny, fill=INK)
-        d.text((w - 56, 6), "13:37", font=px_small, fill=INK)
+        lab(d, 14, 10, "◆", px_small)
+        text_run(d, 48, 11, ["File", "View", "Window", "Help"], mono_med, gap=22)
+        clock_w = d.textlength("13:37", font=px_small)
+        d.text((w - 14 - clock_w, 4), "13:37", font=px_small, fill=INK)
+        rx = w - 24 - clock_w
+        for label, kind in [("WIFI 92%", "text"), ("KB", "button"), ("[MACOS]", "button")]:
+            tw = d.textlength(label, font=mono_tiny)
+            if kind == "button":
+                d.rectangle([rx - tw - 16, 10, rx - 4, 32], fill=PAPER, outline=INK, width=2)
+                d.text((rx - tw - 10, 11), label, font=mono_tiny, fill=INK)
+                rx -= tw + 28
+            else:
+                d.text((rx - tw - 8, 11), label, font=mono_tiny, fill=INK)
+                rx -= tw + 18
         # right-aligned desktop icons
         for i, (kind, label) in enumerate([("folder", "Files"), ("monitor", "Safari"), ("grid", "Photos")]):
             glyph_tile(d, w - 120, 66 + i * 124, 62, kind=kind, label=label)
@@ -290,16 +321,19 @@ def panel(caption, style):
         # dock
         dock_y = h - 130
         d.rectangle([60, dock_y, 60 + 5 * 84 + 110, dock_y + 100], fill=PAPER, outline=INK, width=3)
-        d.text((92, dock_y + 18), "⌘", font=px_font, fill=INK)
+        d.text((92, dock_y + 12), "▣", font=px_small, fill=INK)
         d.line([140, dock_y + 14, 140, dock_y + 86], fill=INK, width=2)
         for i in range(5):
             d.rectangle([150 + i * 84, dock_y + 16, 216 + i * 84, dock_y + 82], fill=PAPER, outline=INK, width=2)
             d.rectangle([168 + i * 84, dock_y + 30, 198 + i * 84, dock_y + 66], fill=INK)
         d.line([150 + 5 * 84, dock_y + 14, 150 + 5 * 84, dock_y + 86], fill=INK, width=2)
         d.text((160 + 5 * 84, dock_y + 34), "term", font=mono_tiny, fill=INK)
-        for i, t in enumerate(["terminal", "notes.txt"]):
-            d.rectangle([250 + i * 110, dock_y - 30, 350 + i * 110, dock_y - 6], fill=INK)
-            d.text((258 + i * 110, dock_y - 27), t, font=mono_tiny, fill=PAPER)
+        ox = 250
+        for t in ["terminal", "notes.txt"]:
+            tw = d.textlength(t, font=mono_tiny)
+            d.rectangle([ox, dock_y - 30, ox + tw + 16, dock_y - 6], fill=INK)
+            d.text((ox + 8, dock_y - 27), t, font=mono_tiny, fill=PAPER)
+            ox += tw + 26
     else:
         fill_dither(d, (0, 0, w, h), PATTERN, cell=4, level_max=4)
         for i, (kind, label) in enumerate([("monitor", "My Computer"), ("folder", "Documents"), ("grid", "Network")]):
@@ -332,10 +366,12 @@ def panel(caption, style):
         d.text((136, tb + 18), "Applications", font=mono, fill=PAPER)
         d.rectangle([306, tb + 12, 420, tb + 48], fill=PAPER, outline=INK, width=2)
         d.text((316, tb + 18), "notes.txt", font=mono, fill=INK)
-        d.rectangle([w - 250, tb + 10, w - 8, tb + 50], fill=PATTERN)
-        d.rectangle([w - 240, tb + 16, w - 216, tb + 42], fill=PAPER, outline=INK, width=2)
-        d.text((w - 234, tb + 18), "KB", font=mono_tiny, fill=INK)
-        d.text((w - 208, tb + 18), "WIFI 92%  13:37", font=mono_tiny, fill=INK)
+        tray = "WIFI 92%  13:37"
+        tray_w = d.textlength(tray, font=mono_tiny)
+        d.rectangle([w - tray_w - 60, tb + 10, w - 8, tb + 50], fill=PATTERN)
+        d.rectangle([w - tray_w - 52, tb + 16, w - tray_w - 26, tb + 42], fill=PAPER, outline=INK, width=2)
+        d.text((w - tray_w - 46, tb + 18), "KB", font=mono_tiny, fill=INK)
+        d.text((w - tray_w - 16, tb + 18), tray, font=mono_tiny, fill=INK)
         cursor(d, 620, 470, cell=3, pressed=True)
 
     # caption
