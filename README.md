@@ -26,6 +26,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 ![Pratinjau UI Retrobit Desktop](docs/ui-preview.png)
 
+![Cyberdeck chrome: rail normal, rail large, dan saat auto-hide](docs/cyberdeck-chrome.png)
+
 *Mockup dari palet, font, dan tata letak yang dipakai kode aslinya — dibuat ulang dengan
 `tools/mockup.py`. Hasil di perangkat mengikuti kode Compose yang sama.*
 
