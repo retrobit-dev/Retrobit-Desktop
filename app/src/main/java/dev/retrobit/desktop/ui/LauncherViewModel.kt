@@ -50,6 +50,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     var requestDefaultLauncher: (() -> Unit)? = null
     var requestRoleState: (() -> Boolean)? = null
 
+    /** Wired by the activity: summon or hide the internal (on-screen) keyboard. */
+    var toggleKeyboard: (() -> Unit)? = null
+
     private var seeded = false
 
     init {

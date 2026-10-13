@@ -40,6 +40,7 @@ import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.rememberAppIcon
+import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -68,7 +69,10 @@ fun Spotlight(vm: LauncherViewModel) {
     val builtinHits = builtins.filter { q.isEmpty() || it.first.lowercase().contains(q) }
 
     Box(
-        Modifier.fillMaxSize().background(p.ink.copy(alpha = 0.28f)),
+        Modifier
+            .fillMaxSize()
+            .background(p.ink.copy(alpha = 0.28f))
+            .desktopClick(primary = { vm.spotlight = false }),
         contentAlignment = Alignment.TopCenter,
     ) {
         Column(

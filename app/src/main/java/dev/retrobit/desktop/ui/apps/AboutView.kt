@@ -68,8 +68,17 @@ fun AboutView(vm: LauncherViewModel) {
                 "· tap & hold an icon for its menu (open in window, pin to dock, app info)\n" +
                 "· drag an icon onto the dock or sidebar to pin it\n" +
                 "· long-press the desktop for the system menu\n" +
-                "· keyboard: ctrl+alt+t terminal · ctrl+alt+s settings · super = app search",
-            size = 11f, color = p.mid, maxLines = 8,
+                "\n" +
+                "M-Pencil (treated as a mouse):\n" +
+                "· 1 tap = left click · 2 taps = right click / context menu\n" +
+                "· barrel button = right click · drag = move icons & windows\n" +
+                "\n" +
+                "Mouse: left click selects/opens, right click = context menu, wheel scrolls.\n" +
+                "Keyboard: the on-screen keyboard appears when you tap a text field; the ⌨ button in the\n" +
+                "panel/taskbar (or ctrl+alt+k) shows or hides it. External keyboards: ctrl+alt+t terminal ·\n" +
+                "ctrl+alt+s settings · ctrl+alt+w close · ctrl+alt+m minimize all · ctrl+alt+d desktop menu ·\n" +
+                "tab / ctrl+alt+arrows cycle windows · super = spotlight",
+            size = 10.5f, color = p.mid, maxLines = 16,
         )
         RetroText("MIT-less personal project of retrobit-dev · fonts: VT323 & IBM Plex Mono (OFL)", size = 10f, color = p.mid, maxLines = 3)
     }

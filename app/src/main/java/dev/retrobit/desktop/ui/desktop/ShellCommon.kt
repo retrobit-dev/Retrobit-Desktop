@@ -39,7 +39,7 @@ import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
-import dev.retrobit.desktop.ui.components.onSecondaryClick
+import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
@@ -65,7 +65,11 @@ fun DesktopIcons(
                 drag.desktopBounds = it.boundsInRoot()
                 rootOffset = it.positionInRoot()
             }
-            .onSecondaryClick { pos -> vm.desktopMenu(rootOffset + pos) },
+            // empty desktop: right click (mouse / pen barrel) or a pen double tap opens the menu
+            .desktopClick(
+                primary = { },
+                secondary = { pos -> vm.desktopMenu(rootOffset + pos) },
+            ),
     ) {
         if (pinned.isEmpty()) {
             Column(

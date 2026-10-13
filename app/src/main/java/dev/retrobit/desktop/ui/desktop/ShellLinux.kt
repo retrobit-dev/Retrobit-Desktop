@@ -44,7 +44,7 @@ import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.px
-import dev.retrobit.desktop.ui.components.onSecondaryClick
+import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.WindowLayer
 import dev.retrobit.desktop.ui.wm.ShellMetrics
@@ -153,6 +153,7 @@ fun LinuxShell(vm: LauncherViewModel) {
             Spacer(Modifier.weight(1f))
             StyleChip(vm, compact = true)
             TrayStatus(vm)
+            KeyboardTrayButton(boxSize = dp(22f))
             TrayButton(Glyph.SEARCH) { vm.spotlight = true }
             RetroText(
                 SimpleDateFormat(if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),

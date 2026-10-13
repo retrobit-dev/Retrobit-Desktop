@@ -145,6 +145,60 @@ fun SettingsView(vm: LauncherViewModel) {
         ToggleRow("hide android system bars", s.hideSystemBars, onGlyph = Glyph.SYSMON) { s.hideSystemBars = it }
         ToggleRow("tiling window layout (Linux style)", s.tiling, onGlyph = Glyph.COMPUTER) { vm.setTiling(it) }
 
+        Section("input & devices — pen, mouse, keyboard")
+        ToggleRow("Pen double-tap = right click (tap twice with the M-Pencil to open the context menu)",
+            s.penRightClick, onGlyph = Glyph.PEN) { s.penRightClick = it }
+        ToggleRow("Show pointer cursor for pen & mouse", s.showCursor, onGlyph = Glyph.CURSOR) { s.showCursor = it }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier.weight(1f).border(dp(1.6f), p.ink).padding(dp(9f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(dp(4f))) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(7f))) {
+                        GlyphIcon(Glyph.PEN, dp(16f))
+                        RetroText("M-Pencil", size = 12f, weight = FontWeight.Bold)
+                    }
+                    RetroText("1 tap = left click\n2 taps = right click\nbarrel button = right click\ndrag = move icons & windows", size = 10f, color = p.mid, maxLines = 4)
+                }
+            }
+            Box(
+                Modifier.weight(1f).border(dp(1.6f), p.ink).padding(dp(9f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(dp(4f))) {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(7f))) {
+                        GlyphIcon(Glyph.MOUSE, dp(16f))
+                        RetroText("Mouse / trackpad", size = 12f, weight = FontWeight.Bold)
+                    }
+                    RetroText("left = click\nright = context menu\nwheel = scroll lists\nhover = move the pointer", size = 10f, color = p.mid, maxLines = 4)
+                }
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroButton(
+                label = "Show internal keyboard",
+                glyph = Glyph.KEYBOARD,
+                modifier = Modifier.weight(1f),
+                onClick = { vm.toggleKeyboard?.invoke() },
+            )
+            RetroButton(
+                label = "Terminal",
+                glyph = Glyph.TERMINAL,
+                modifier = Modifier.weight(1f),
+                onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.TERMINAL) },
+            )
+        }
+        RetroText(
+            "Android's own keyboard is kept: it appears when you tap a text field and the desktop slides " +
+                "up so nothing is covered. Use the keyboard button in the panel/taskbar (or Ctrl+Alt+K) to " +
+                "summon or hide it manually, which is handy with an external mouse.\n" +
+                "External keyboards: Ctrl+Alt+T terminal · Ctrl+Alt+S settings · Ctrl+Alt+W close window · " +
+                "Ctrl+Alt+M minimize all · Ctrl+Alt+D desktop menu · Ctrl+Alt+←/→ or Tab cycle windows · " +
+                "Ctrl+Alt+↑ maximize · Super opens Spotlight.",
+            size = 10.5f, color = p.mid, maxLines = 12,
+        )
+
         Section("launcher")
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
             RetroButton(

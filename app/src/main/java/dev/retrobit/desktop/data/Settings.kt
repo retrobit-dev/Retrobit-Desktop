@@ -32,6 +32,10 @@ class Settings(context: Context) {
     var bootSequence: Boolean by boolPref("bootSequence", true)
     var hideSystemBars: Boolean by boolPref("hideSystemBars", true)
     var tiling: Boolean by boolPref("tiling", false)
+    /** M-Pencil / stylus: double tap behaves as a right click (context menu). */
+    var penRightClick: Boolean by boolPref("penRightClick", true)
+    /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
+    var showCursor: Boolean by boolPref("showCursor", true)
     var setupDone: Boolean by boolPref("setupDone", false)
     var defaultsSeeded: Boolean by boolPref("defaultsSeeded", false)
     var notes: String by stringPref("notes", "RETROBIT NOTES\n==============\n\n- tap & hold any icon for options\n- type `help` in the terminal\n")

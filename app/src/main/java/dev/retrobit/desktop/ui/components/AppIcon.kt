@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -34,6 +33,8 @@ import androidx.compose.ui.unit.Dp
 import dev.retrobit.desktop.data.IconCache
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.ui.theme.LocalIconMode
+import dev.retrobit.desktop.ui.input.desktopClick
+import dev.retrobit.desktop.ui.input.penOrMouseDrag
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
@@ -82,9 +83,7 @@ fun AppIconTile(
     val tileModifier = modifier
         .width(iconSize + dp(18f))
         .onGloballyPositioned { origin = it.positionInRoot() }
-        .pointerInput(app.key) {
-            detectTapGestures(onTap = { onOpen(app) })
-        }
+        // touch: long-press to pick the icon up, release without moving for the context menu
         .pointerInput(app.key) {
             detectDragGesturesAfterLongPress(
                 onDragStart = { pos -> moved = 0f; drag.start(app, origin + pos) },
@@ -105,6 +104,17 @@ fun AppIconTile(
                 },
             )
         }
+        // pen / mouse: drag straight away, single tap = open, double tap = context menu
+        .penOrMouseDrag(
+            onStart = { pos -> drag.start(app, origin + pos) },
+            onMove = { pos -> drag.move(origin + pos) },
+            onEnd = { completed -> if (completed) finishDrag() else drag.clear() },
+        )
+        .desktopClick(
+            key = app.key,
+            primary = { onOpen(app) },
+            secondary = { pos -> onContextMenu?.invoke(app, origin + pos) },
+        )
         .padding(vertical = dp(5f), horizontal = dp(2f))
 
     Column(
@@ -171,9 +181,6 @@ fun AppIconRow(
         modifier = modifier
             .onGloballyPositioned { origin = it.positionInRoot() }
             .pointerInput(app.key) {
-                detectTapGestures(onTap = { onOpen(app) })
-            }
-            .pointerInput(app.key) {
                 detectDragGesturesAfterLongPress(
                     onDragStart = { pos -> moved = 0f; drag.start(app, origin + pos) },
                     onDragEnd = {
@@ -188,7 +195,21 @@ fun AppIconRow(
                         drag.move(origin + change.position)
                     },
                 )
-            },
+            }
+            .penOrMouseDrag(
+                onStart = { pos -> drag.start(app, origin + pos) },
+                onMove = { pos -> drag.move(origin + pos) },
+                onEnd = { completed ->
+                    val target = drag.dropTarget()
+                    drag.clear()
+                    if (completed) onDrop?.invoke(app, target) else Unit
+                },
+            )
+            .desktopClick(
+                key = app.key,
+                primary = { onOpen(app) },
+                secondary = { pos -> onContextMenu?.invoke(app, origin + pos) },
+            ),
         contentAlignment = Alignment.Center,
     ) {
         androidx.compose.foundation.layout.Row(

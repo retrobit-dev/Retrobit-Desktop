@@ -47,7 +47,8 @@ import dev.retrobit.desktop.ui.components.MenuItem
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.px
-import dev.retrobit.desktop.ui.components.onSecondaryClick
+import dev.retrobit.desktop.ui.input.KeyboardTrayButton
+import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
@@ -154,6 +155,7 @@ fun MacosShell(vm: LauncherViewModel) {
             Spacer(Modifier.weight(1f))
             StyleChip(vm, compact = true)
             TrayStatus(vm)
+            KeyboardTrayButton(boxSize = dp(20f))
             RetroText(
                 SimpleDateFormat("EEE dd MMM  " + if (vm.settings.use24h) "HH:mm" else "hh:mm a", Locale.getDefault()).format(Date(vm.now)),
                 size = 11.5f, weight = FontWeight.Bold,
@@ -242,7 +244,12 @@ fun MacosShell(vm: LauncherViewModel) {
                     }
                 }
                 Box(
-                    Modifier.fillMaxSize().onSecondaryClick { /* swallow */ },
+                    Modifier
+                        .fillMaxSize()
+                        .desktopClick(
+                            primary = { vm.launchpad = false },
+                            secondary = { pos -> vm.desktopMenu(pos) },
+                        ),
                 )
             }
         }

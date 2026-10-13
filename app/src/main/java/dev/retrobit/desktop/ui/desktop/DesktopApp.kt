@@ -43,6 +43,10 @@ import dev.retrobit.desktop.ui.theme.LocalIconMode
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.Palettes
 import dev.retrobit.desktop.ui.theme.rememberWallpaperBrush
+import dev.retrobit.desktop.ui.input.LocalPointerRouter
+import dev.retrobit.desktop.ui.input.PointerRouter
+import dev.retrobit.desktop.ui.input.StylusCursorOverlay
+import dev.retrobit.desktop.ui.input.watchPointer
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
 
@@ -53,8 +57,14 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     val palette = remember(settings.palette, inverted) { Palettes.of(settings.palette).let { if (inverted) it.invert() else it } }
     val drag = remember { DragState() }
     val focus = remember { FocusRequester() }
+    val pointer = remember { PointerRouter() }
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    // pen / mouse behaviour follows the settings section "input & devices"
+    LaunchedEffect(settings.penRightClick, settings.showCursor) {
+        pointer.penRightClick = settings.penRightClick
+        pointer.showCursor = settings.showCursor
+    }
 
     CompositionLocalProvider(
         LocalPalette provides palette,
@@ -63,6 +73,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         LocalUiScale provides settings.uiScale,
         LocalViewModel provides vm,
         LocalDragState provides drag,
+        LocalPointerRouter provides pointer,
     ) {
         Box(
             modifier
@@ -70,6 +81,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                 .background(palette.paper)
                 .focusRequester(focus)
                 .focusable()
+                .watchPointer(pointer)
                 .onPreviewKeyEvent { ev ->
                     if (ev.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                     when {
@@ -78,6 +90,13 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.M -> { vm.wm.minimizeAll(); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.W -> { vm.wm.focused?.let { vm.wm.close(it.id) }; true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.D -> { vm.desktopMenu(Offset(120f, 160f)); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.K -> { vm.toggleKeyboard?.invoke(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Right -> { vm.wm.cycleFocus(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Left -> { vm.wm.cycleFocus(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.Up -> {
+                            vm.wm.focused?.let { vm.wm.toggleMaximize(it.id) }; true
+                        }
+                        ev.key == Key.Tab -> { vm.wm.cycleFocus(); true }
                         ev.key == Key.MetaLeft || ev.key == Key.MetaRight -> { vm.spotlight = true; true }
                         ev.key == Key.Escape -> {
                             vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false; true
@@ -103,6 +122,9 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
             DragGhost(dp(64f))
 
             if (vm.booting) BootScreen(vm) { vm.booting = false }
+
+            // e-paper pointer for the M-Pencil / mouse, drawn above everything else
+            StylusCursorOverlay(pointer)
         }
     }
 }

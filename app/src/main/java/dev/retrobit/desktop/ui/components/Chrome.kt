@@ -37,7 +37,14 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
@@ -56,6 +63,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.Plex
 import dev.retrobit.desktop.ui.theme.Pixel
+import dev.retrobit.desktop.ui.input.LocalKeyboardRequester
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 
@@ -287,6 +295,8 @@ fun RetroTextField(
 ) {
     val p = LocalPalette.current
     val focus = LocalFocusManager.current
+    val keyboard = LocalKeyboardRequester.current
+    val fieldFocus = focusRequester ?: remember { FocusRequester() }
     Box(
         modifier
             .background(fill ?: p.paper)
@@ -308,7 +318,20 @@ fun RetroTextField(
             keyboardActions = KeyboardActions(onDone = { onSubmit?.invoke(); focus.clearFocus() }),
             modifier = Modifier
                 .fillMaxWidth()
-                .then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
+                .focusRequester(fieldFocus)
+                .onFocusChanged { if (it.isFocused) keyboard.rememberFocus(fieldFocus) }
+                .onKeyEvent { ev ->
+                    // physical keyboards: enter submits single line fields
+                    if (singleLine && ev.type == KeyEventType.KeyDown &&
+                        (ev.key == Key.Enter || ev.key == Key.NumPadEnter)
+                    ) {
+                        onSubmit?.invoke()
+                        focus.clearFocus()
+                        true
+                    } else {
+                        false
+                    }
+                },
         )
     }
 }

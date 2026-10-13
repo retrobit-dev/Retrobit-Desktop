@@ -47,6 +47,7 @@ import dev.retrobit.desktop.ui.components.RetroButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.retroShadow
+import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
@@ -216,6 +217,7 @@ fun WindowsShell(vm: LauncherViewModel) {
             StyleChip(vm, compact = true)
             Row(Modifier.background(hatch).padding(horizontal = dp(8f), vertical = dp(3f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
                 TrayStatus(vm)
+                KeyboardTrayButton(boxSize = dp(24f))
                 TrayButton(Glyph.SEARCH) { vm.spotlight = true }
                 TrayButton(Glyph.SYSMON) { vm.openWindow(WinKind.SYSMON) }
                 RetroText(

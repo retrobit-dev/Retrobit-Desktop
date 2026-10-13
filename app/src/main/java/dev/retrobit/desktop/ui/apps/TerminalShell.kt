@@ -123,6 +123,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             Kind.DIM,
         )
         print("tip: tap & hold any icon for its context menu.", Kind.DIM)
+        print("pen: 1 tap = click, 2 taps = right click. keyboard: ⌨ button in the panel, or ctrl+alt+k.", Kind.DIM)
     }
 
     private fun listApps(filter: String?) {

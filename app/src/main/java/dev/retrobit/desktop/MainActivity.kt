@@ -3,6 +3,7 @@ package dev.retrobit.desktop
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
@@ -11,28 +12,54 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.ime
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.unit.IntOffset
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.LocalViewModel
 import dev.retrobit.desktop.ui.desktop.DesktopApp
+import dev.retrobit.desktop.ui.input.KeyboardRequester
+import dev.retrobit.desktop.ui.input.LocalKeyboardRequester
 
 class MainActivity : ComponentActivity() {
 
     private val vm: LauncherViewModel by viewModels()
+    private val keyboard = KeyboardRequester()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
+
+        vm.toggleKeyboard = {
+            val imm = getSystemService(InputMethodManager::class.java)
+            if (keyboard.visible) {
+                imm.hideSoftInputFromWindow(window.decorView.windowToken, 0)
+            } else {
+                val field = keyboard.lastFocus
+                if (field != null) {
+                    // refocus the last text field, then let the IME attach to it
+                    runCatching { field.requestFocus() }
+                    window.decorView.postDelayed(
+                        { runCatching { imm.showSoftInput(window.decorView, InputMethodManager.SHOW_IMPLICIT) } },
+                        90,
+                    )
+                } else {
+                    vm.shell.print("keyboard: tap a text field first (terminal input, notes, search box)")
+                }
+            }
+        }
 
         vm.requestDefaultLauncher = {
             runCatching {
@@ -45,7 +72,10 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            CompositionLocalProvider(LocalViewModel provides vm) {
+            CompositionLocalProvider(
+                LocalViewModel provides vm,
+                LocalKeyboardRequester provides keyboard,
+            ) {
                 Root(vm)
             }
         }
@@ -68,6 +98,13 @@ class MainActivity : ComponentActivity() {
 private fun Root(vm: LauncherViewModel) {
     val view = LocalView.current
     val settings = vm.settings
+    val keyboard = LocalKeyboardRequester.current
+    val density = LocalDensity.current
+    // The internal keyboard is allowed to appear whenever it is needed; the desktop simply slides
+    // up by the keyboard height so the focused field and the tray button stay reachable.
+    val imeHeight = WindowInsets.ime.getBottom(density)
+
+    LaunchedEffect(imeHeight > 0) { keyboard.visible = imeHeight > 0 }
 
     LaunchedEffect(settings.hideSystemBars) {
         val window = (view.context as? Activity)?.window ?: return@LaunchedEffect
@@ -94,8 +131,13 @@ private fun Root(vm: LauncherViewModel) {
     Box(Modifier.fillMaxSize()) {
         DesktopApp(
             vm,
-            modifier = if (settings.hideSystemBars) Modifier.fillMaxSize()
-            else Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.systemBars),
+            modifier = Modifier
+                .fillMaxSize()
+                .then(
+                    if (settings.hideSystemBars) Modifier
+                    else Modifier.windowInsetsPadding(WindowInsets.systemBars)
+                )
+                .offset { IntOffset(0, -imeHeight) },
         )
     }
 }

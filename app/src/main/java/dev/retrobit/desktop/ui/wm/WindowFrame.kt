@@ -3,6 +3,8 @@ package dev.retrobit.desktop.ui.wm
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +53,15 @@ import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import androidx.compose.foundation.Image
 import kotlin.math.roundToInt
+
+
+/** Click-to-focus helper: any press on a title bar raises and focuses that window. */
+private fun Modifier.raiseOnPress(win: WinState, wm: WindowManager): Modifier = this.pointerInput(win.id) {
+    awaitEachGesture {
+        awaitFirstDown(requireUnconsumed = false)
+        wm.focus(win.id)
+    }
+}
 
 @Composable
 fun WindowLayer(wm: WindowManager, modifier: Modifier = Modifier) {
@@ -159,6 +170,7 @@ private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
             .fillMaxWidth()
             .height(height)
             .background(if (focused) p.ink else p.soft)
+            .raiseOnPress(win, wm)
             .pointerInput(win.id, focused) {
                 detectDragGestures(
                     onDragStart = { wm.focus(win.id) },
@@ -197,6 +209,7 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
         Row(
             Modifier
                 .fillMaxSize()
+                .raiseOnPress(win, wm)
                 .pointerInput(win.id) {
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
@@ -225,6 +238,7 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
                 .fillMaxWidth()
                 .height(height)
                 .background(p.paper)
+                .raiseOnPress(win, wm)
                 .pointerInput(win.id) {
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
