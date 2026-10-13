@@ -95,11 +95,17 @@ jobs:
           PKG=$([ -n "$AAPT" ] && "$AAPT" dump badging "$REL" 2>/dev/null | grep -m1 '^package:' || echo "package: (aapt2 unavailable)")
           ACT=$([ -n "$AAPT" ] && "$AAPT" dump badging "$REL" 2>/dev/null | grep -m1 '^launchable-activity:' || echo "launchable-activity: (aapt2 unavailable)")
           DEX=$(unzip -l "$REL" | grep -Ec 'classes[0-9]*\.dex' || true)
-          FONTS=$(unzip -l "$REL" | grep -c 'res/font' || true)
+          FONTS=$(unzip -l "$REL" | grep -Ec '\.ttf' || true)
+          APKSIGNER=$(ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          SIG="apksigner unavailable"
+          if [ -n "$APKSIGNER" ]; then
+            SIG=$("$APKSIGNER" verify -v --print-certs "$REL" 2>&1 | grep -E "^(Verified using|Verifies|Signer #1 certificate DN)" | tr '\n' ' ' | head -c 400)
+          fi
           echo "::notice title=release APK size::$(du -h "$REL" | cut -f1)"
           echo "::notice title=release APK package::$(printf '%s' "$PKG" | sed 's/%/%25/g')"
           echo "::notice title=release APK entry activity::$(printf '%s' "$ACT" | sed 's/%/%25/g')"
-          echo "::notice title=release APK contents::${DEX:-0} dex files, ${FONTS:-0} font resources, signed=$(unzip -l "$REL" | grep -c 'META-INF.*\.RSA' || true)"
+          echo "::notice title=release APK contents::${DEX:-0} dex files, ${FONTS:-0} font files"
+          echo "::notice title=release APK signature::$(printf '%s' "$SIG" | sed 's/%/%25/g')"
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
