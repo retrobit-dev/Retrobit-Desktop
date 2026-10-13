@@ -158,6 +158,13 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setTiling(on: Boolean) { wm.retile(on) }
 
+    fun switchDesktop(index: Int) { wm.switchDesktop(index) }
+    fun moveFocusedToDesktop(index: Int) { wm.moveFocusedToDesktop(index) }
+    fun setWorkspaceCount(count: Int) {
+        settings.workspaceCount = count.coerceIn(1, 4)
+        if (wm.desktop > settings.workspaceCount - 1) wm.switchDesktop(settings.workspaceCount - 1)
+    }
+
     // ── menus ────────────────────────────────────────────────────────────────────
     fun openMenu(request: MenuRequest) { menu = request }
     fun dismissMenu() { menu = null }
@@ -203,10 +210,35 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                         dev.retrobit.desktop.ui.components.Glyph.GRID,
                         onSelect = { setTiling(!settings.tiling) },
                     ),
-                    MenuItem("Close all windows", null, onSelect = { wm.closeAll() }),
+                    MenuItem(
+                        if (settings.snapWindows) "Disable edge snapping" else "Enable edge snapping",
+                        dev.retrobit.desktop.ui.components.Glyph.COMPUTER,
+                        onSelect = { settings.snapWindows = !settings.snapWindows },
+                    ),
+                    MenuItem("Desktops / workspaces…", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
+                        workspaceMenu(Offset(150f, 220f))
+                    }),
+                    MenuItem("Close all windows on this desktop", null, onSelect = { wm.closeAll() }),
                 ),
             )
         )
+    }
+
+    fun workspaceMenu(anchor: Offset) {
+        val items = (0 until wm.desktopCount).map { index ->
+            MenuItem(
+                label = "Desktop ${index + 1}" + if (index == wm.desktop) "   (current)" else "",
+                glyph = if (index == wm.desktop) dev.retrobit.desktop.ui.components.Glyph.GRID else null,
+                onSelect = { switchDesktop(index) },
+            )
+        } + (0 until wm.desktopCount).map { index ->
+            MenuItem(
+                label = "   send window to desktop ${index + 1}",
+                enabled = wm.focused != null && index != wm.desktop,
+                onSelect = { moveFocusedToDesktop(index) },
+            )
+        }
+        openMenu(MenuRequest("Desktops", "${wm.onScreen.size} windows on desktop ${wm.desktop + 1}", anchor, items))
     }
 
     // ── boot ─────────────────────────────────────────────────────────────────────

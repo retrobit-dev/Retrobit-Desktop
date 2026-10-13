@@ -154,6 +154,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                             StartItem(Glyph.ABOUT, "About") { vm.openWindow(WinKind.ABOUT) }
                             Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink.copy(alpha = 0.35f)))
                             StartItem(Glyph.COMPUTER, "Minimize all windows") { vm.wm.minimizeAll(); vm.startMenu = false }
+                            StartItem(Glyph.GRID, "Desktops / workspaces") { vm.startMenu = false; vm.workspaceMenu(Offset(24f, 300f)) }
                             StartItem(Glyph.POWER, "Close all windows") { vm.wm.closeAll(); vm.startMenu = false }
                         }
                     }
@@ -194,7 +195,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(dp(5f)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                vm.wm.windows.take(8).forEach { w ->
+                vm.wm.onScreen.take(8).forEach { w ->
                     val active = vm.wm.focusedId == w.id && !w.minimized
                     Row(
                         Modifier
@@ -214,6 +215,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                     }
                 }
             }
+            WorkspacePager(vm, boxSize = dp(30f))
             StyleChip(vm, compact = true)
             Row(Modifier.background(hatch).padding(horizontal = dp(8f), vertical = dp(3f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
                 TrayStatus(vm)

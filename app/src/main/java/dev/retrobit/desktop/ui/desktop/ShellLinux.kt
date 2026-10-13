@@ -129,9 +129,9 @@ fun LinuxShell(vm: LauncherViewModel) {
             PanelMenu("apps") { vm.openWindow(WinKind.APPS) }
             PanelMenu("term") { vm.openWindow(WinKind.TERMINAL) }
             Spacer(Modifier.weight(1f))
-            // window buttons — the "task list" of the panel
+            // window buttons — the "task list" of the panel (current workspace only)
             Row(horizontalArrangement = Arrangement.spacedBy(dp(4f)), verticalAlignment = Alignment.CenterVertically) {
-                vm.wm.windows.take(7).forEach { w ->
+                vm.wm.onScreen.take(7).forEach { w ->
                     Box(
                         Modifier
                             .border(dp(1.1f), p.ink)
@@ -151,6 +151,7 @@ fun LinuxShell(vm: LauncherViewModel) {
                 }
             }
             Spacer(Modifier.weight(1f))
+            WorkspacePager(vm, boxSize = dp(20f))
             StyleChip(vm, compact = true)
             TrayStatus(vm)
             KeyboardTrayButton(boxSize = dp(22f))

@@ -114,9 +114,63 @@ jobs:
           path: dist/*.apk
           if-no-files-found: error
 
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        id: tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --console=plain 2>&1 | tee test.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Report test results
+        if: always()
+        run: |
+          RESULTS="app/build/test-results/testDebugUnitTest"
+          TOTAL=0; FAILED=0; SKIPPED=0
+          if [ -d "$RESULTS" ]; then
+            TOTAL=$(grep -ho 'tests="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | paste -sd+ - | bc 2>/dev/null || echo 0)
+            FAILED=$(grep -ho 'failures="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | paste -sd+ - | bc 2>/dev/null || echo 0)
+            SKIPPED=$(grep -ho 'skipped="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | paste -sd+ - | bc 2>/dev/null || echo 0)
+          fi
+          {
+            echo "### Unit tests"
+            echo "tests: ${TOTAL:-0} · failures: ${FAILED:-0} · skipped: ${SKIPPED:-0}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -d "$RESULTS" ]; then
+            for f in "$RESULTS"/*.xml; do
+              echo "::notice title=$(basename "$f")::$(grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$f" | head -1)"
+            done
+          fi
+          if [ "${FAILED:-0}" != "0" ] || [ ! -d "$RESULTS" ]; then
+            grep -nE "^(.*Test.*FAILED|e: |FAILURE:|.*expected.*)" test.log | head -40 | while IFS= read -r line; do
+              echo "::error title=Unit test::$(printf '%s' "$line" | head -c 500 | sed 's/%/%25/g')"
+            done
+            exit 1
+          fi
+
   release:
     name: Publish APKs
-    needs: build
+    needs: [build, test]
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:

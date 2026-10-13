@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -29,6 +30,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.DesktopStyle
@@ -154,6 +156,56 @@ fun StyleChip(vm: LauncherViewModel, compact: Boolean = false) {
     ) {
         RetroText("[${current.label.uppercase()}]", size = 11f, weight = FontWeight.Bold, maxLines = 1)
         if (!compact) RetroText("switch", size = 10f, color = p.mid)
+    }
+}
+
+/**
+ * Virtual desktop switcher: one square per workspace, the number of windows drawn as dots.
+ * Tap a square to switch, long-press to open the desktop menu (send window / change count).
+ */
+@Composable
+fun WorkspacePager(vm: LauncherViewModel, modifier: Modifier = Modifier, boxSize: Dp = dp(22f)) {
+    val p = LocalPalette.current
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(dp(4f)), verticalAlignment = Alignment.CenterVertically) {
+        for (index in 0 until vm.wm.desktopCount) {
+            val active = vm.wm.desktop == index
+            val windowsHere = vm.wm.onScreen.count { it.desktop == index }
+            Box(
+                Modifier
+                    .size(boxSize)
+                    .background(if (active) p.ink else p.paper)
+                    .border(dp(1.3f), p.ink)
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ) { if (active) vm.workspaceMenu(Offset.Zero) else vm.switchDesktop(index) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    RetroText(
+                        "${index + 1}",
+                        size = 11f,
+                        display = true,
+                        weight = FontWeight.Bold,
+                        color = if (active) p.paper else p.ink,
+                    )
+                    if (windowsHere > 0) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(1.5f)) {
+                            repeat(windowsHere.coerceAtMost(3)) {
+                                Box(
+                                    Modifier
+                                        .size(dp(3f))
+                                        .background(if (active) p.paper else p.ink),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

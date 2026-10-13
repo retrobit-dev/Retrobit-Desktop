@@ -81,6 +81,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "icons", "iconmode" -> icons(args.firstOrNull())
             "scale" -> scale(args.firstOrNull())
             "tiling" -> tiling(args.firstOrNull())
+            "workspace", "ws", "desktop" -> workspace(args.firstOrNull())
+            "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
             "notes" -> vm.openWindow(WinKind.NOTES)
             "settings", "config" -> vm.openWindow(WinKind.SETTINGS)
@@ -117,6 +119,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             icons color|mono|dither
             scale 0.8|0.9|1.0|1.15|1.3
             tiling on|off          linux-style tiling window layout
+            workspace 1..4         switch virtual desktop (also: ws)
+            wsmove 1..4            send the focused window to a desktop
             wmctrl list|close|tile | invert | boot
             notes | settings | sysmon | about | clear | exit
             """.trimIndent(),
@@ -160,9 +164,9 @@ class TerminalShell(private val vm: LauncherViewModel) {
     private fun ps() {
         val wins = vm.wm.windows
         if (wins.isEmpty()) { print("no windows open", Kind.DIM); return }
-        print("  PID  WIN            TITLE", Kind.HEAD)
+        print("  PID  WS  WIN            TITLE", Kind.HEAD)
         wins.forEach { w ->
-            print("  ${w.id.toString().padStart(3)}  ${w.kind.name.padEnd(13)} ${w.title}${if (w.minimized) "  (minimized)" else ""}")
+            print("  ${w.id.toString().padStart(3)}  d${w.desktop + 1}  ${w.kind.name.padEnd(13)} ${w.title}${if (w.minimized) "  (minimized)" else ""}")
         }
     }
 
@@ -196,7 +200,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "Device   : ${Build.MANUFACTURER} ${Build.MODEL}",
             "WM       : retrobit-wm (${vm.settings.style.label} style)",
             "Theme    : ${vm.settings.palette.label} / ${vm.settings.wallpaper.label} / ${vm.settings.iconMode.label}",
-            "Windows  : ${vm.wm.windows.size} open",
+            "Windows  : ${vm.wm.onScreen.size} on desktop ${vm.wm.desktop + 1} / ${vm.wm.windows.size} total",
             "Uptime   : ${SystemInfo.fmtUptime(s.uptimeMs)}",
             "Memory   : ${SystemInfo.fmtBytes(s.memUsed)} / ${SystemInfo.fmtBytes(s.memTotal)}",
             "Disk     : ${SystemInfo.fmtBytes(s.diskUsed)} / ${SystemInfo.fmtBytes(s.diskTotal)}",
@@ -271,6 +275,30 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "off", "0", "false" -> { vm.setTiling(false); print("tiling -> off") }
             else -> print("usage: tiling on|off", Kind.ERR)
         }
+    }
+
+    private fun workspace(arg: String?) {
+        val index = arg?.toIntOrNull()?.minus(1)
+        if (index == null || index !in 0 until vm.wm.desktopCount) {
+            print("usage: workspace 1..${vm.wm.desktopCount} (currently on desktop ${vm.wm.desktop + 1})", Kind.ERR)
+            return
+        }
+        vm.switchDesktop(index)
+        print("desktop ${index + 1} — ${vm.wm.onScreen.count { !it.minimized }} windows visible")
+    }
+
+    private fun wsMove(arg: String?) {
+        val index = arg?.toIntOrNull()?.minus(1)
+        if (index == null || index !in 0 until vm.wm.desktopCount) {
+            print("usage: wsmove 1..${vm.wm.desktopCount}", Kind.ERR)
+            return
+        }
+        if (vm.wm.focused == null) {
+            print("no focused window", Kind.ERR)
+            return
+        }
+        vm.moveFocusedToDesktop(index)
+        print("window moved to desktop ${index + 1}")
     }
 
     private fun exit() {

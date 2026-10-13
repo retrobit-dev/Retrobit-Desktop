@@ -36,6 +36,10 @@ class Settings(context: Context) {
     var penRightClick: Boolean by boolPref("penRightClick", true)
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
+    /** Drag a window against a screen edge to snap it (half screen / maximize). */
+    var snapWindows: Boolean by boolPref("snapWindows", true)
+    /** Virtual desktops (workspaces), 1..4. */
+    var workspaceCount: Int by intPref("workspaceCount", 3)
     var setupDone: Boolean by boolPref("setupDone", false)
     var defaultsSeeded: Boolean by boolPref("defaultsSeeded", false)
     var notes: String by stringPref("notes", "RETROBIT NOTES\n==============\n\n- tap & hold any icon for options\n- type `help` in the terminal\n")
@@ -51,6 +55,9 @@ class Settings(context: Context) {
 
     private fun boolPref(key: String, def: Boolean) =
         PrefState(sp.getBoolean(key, def)) { sp.edit().putBoolean(key, it).apply() }
+
+    private fun intPref(key: String, def: Int) =
+        PrefState(sp.getInt(key, def)) { sp.edit().putInt(key, it).apply() }
 
     private fun floatPref(key: String, def: Float) =
         PrefState(sp.getFloat(key, def)) { sp.edit().putFloat(key, it).apply() }

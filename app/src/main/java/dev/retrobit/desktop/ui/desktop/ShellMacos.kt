@@ -141,11 +141,12 @@ fun MacosShell(vm: LauncherViewModel) {
                         MenuItem(if (vm.settings.tiling) "Stop tiling windows" else "Tile windows", Glyph.GRID) { vm.setTiling(!vm.settings.tiling) },
                         MenuItem(if (vm.settings.showWidgets) "Hide widgets" else "Show widgets") { vm.settings.showWidgets = !vm.settings.showWidgets },
                         MenuItem("Minimize all windows", Glyph.COMPUTER) { vm.wm.minimizeAll() },
+                        MenuItem("Desktops / workspaces…", Glyph.GRID) { vm.workspaceMenu(Offset(60f, 46f)) },
                     ))
                 )
             }
             MenuTitle("Window") {
-                val items = vm.wm.windows.map { w ->
+                val items = vm.wm.onScreen.map { w ->
                     MenuItem(w.title, Glyph.COMPUTER) { vm.wm.focus(w.id) }
                 }.ifEmpty { listOf(MenuItem("no windows open", null, enabled = false) {}) }
                 vm.openMenu(dev.retrobit.desktop.ui.MenuRequest("Window", null, Offset(140f, 40f), items))
@@ -160,6 +161,7 @@ fun MacosShell(vm: LauncherViewModel) {
                 )
             }
             Spacer(Modifier.weight(1f))
+            WorkspacePager(vm, boxSize = dp(19f))
             StyleChip(vm, compact = true)
             TrayStatus(vm)
             KeyboardTrayButton(boxSize = dp(20f))
@@ -208,7 +210,7 @@ fun MacosShell(vm: LauncherViewModel) {
             Modifier.align(Alignment.BottomCenter).padding(bottom = dp(68f)),
             horizontalArrangement = Arrangement.spacedBy(dp(6f)),
         ) {
-            vm.wm.windows.take(8).forEach { w ->
+            vm.wm.onScreen.take(8).forEach { w ->
                 Box(
                     Modifier
                         .background(if (w.minimized) p.mid else p.ink)

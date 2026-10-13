@@ -22,6 +22,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -49,6 +50,9 @@ import dev.retrobit.desktop.ui.input.StylusCursorOverlay
 import dev.retrobit.desktop.ui.input.watchPointer
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
+
+/** Ctrl+Alt+1..4 switch workspace, Ctrl+Alt+Shift+1..4 move the focused window. */
+private val NUMBER_KEYS = listOf(Key.One, Key.Two, Key.Three, Key.Four)
 
 @Composable
 fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
@@ -97,6 +101,11 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                             vm.wm.focused?.let { vm.wm.toggleMaximize(it.id) }; true
                         }
                         ev.key == Key.Tab -> { vm.wm.cycleFocus(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key in NUMBER_KEYS -> {
+                            val index = NUMBER_KEYS.indexOf(ev.key)
+                            if (ev.isShiftPressed) vm.moveFocusedToDesktop(index) else vm.switchDesktop(index)
+                            true
+                        }
                         ev.key == Key.MetaLeft || ev.key == Key.MetaRight -> { vm.spotlight = true; true }
                         ev.key == Key.Escape -> {
                             vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false; true

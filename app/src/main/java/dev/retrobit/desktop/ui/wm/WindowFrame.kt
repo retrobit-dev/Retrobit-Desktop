@@ -66,7 +66,28 @@ private fun Modifier.raiseOnPress(win: WinState, wm: WindowManager): Modifier = 
 @Composable
 fun WindowLayer(wm: WindowManager, modifier: Modifier = Modifier) {
     val windows = wm.visible
+    val preview = wm.snapPreview
+    val p = LocalPalette.current
     Box(modifier.fillMaxSize()) {
+        // edge-snap preview: dashed ink outline, drawn under the windows
+        if (preview != null) {
+            Canvas(Modifier.fillMaxSize()) {
+                drawRect(
+                    color = p.ink,
+                    topLeft = Offset(preview.left, preview.top),
+                    size = Size(preview.width, preview.height),
+                    style = Stroke(
+                        width = 3f,
+                        pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(14f, 10f)),
+                    ),
+                )
+                drawRect(
+                    color = p.ink.copy(alpha = 0.10f),
+                    topLeft = Offset(preview.left, preview.top),
+                    size = Size(preview.width, preview.height),
+                )
+            }
+        }
         for (w in windows) {
             key(w.id) {
                 WindowFrame(w, wm)
@@ -174,6 +195,8 @@ private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
             .pointerInput(win.id, focused) {
                 detectDragGestures(
                     onDragStart = { wm.focus(win.id) },
+                    onDragCancel = { wm.cancelDrag() },
+                    onDragEnd = { wm.endDrag(win.id) },
                     onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                 )
             }
@@ -213,6 +236,8 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
                 .pointerInput(win.id) {
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
+                        onDragCancel = { wm.cancelDrag() },
+                        onDragEnd = { wm.endDrag(win.id) },
                         onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                     )
                 }
@@ -242,6 +267,8 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
                 .pointerInput(win.id) {
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
+                        onDragCancel = { wm.cancelDrag() },
+                        onDragEnd = { wm.endDrag(win.id) },
                         onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                     )
                 }

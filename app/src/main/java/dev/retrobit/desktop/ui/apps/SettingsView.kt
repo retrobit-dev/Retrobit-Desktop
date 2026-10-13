@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -143,7 +144,28 @@ fun SettingsView(vm: LauncherViewModel) {
         ToggleRow("desktop widgets", s.showWidgets, onGlyph = Glyph.GRID) { s.showWidgets = it }
         ToggleRow("boot sequence animation", s.bootSequence, onGlyph = Glyph.POWER) { s.bootSequence = it }
         ToggleRow("hide android system bars", s.hideSystemBars, onGlyph = Glyph.SYSMON) { s.hideSystemBars = it }
-        ToggleRow("tiling window layout (Linux style)", s.tiling, onGlyph = Glyph.COMPUTER) { vm.setTiling(it) }
+
+        Section("windows & workspaces")
+        ToggleRow("Snap windows to screen edges (drag a window to the left/right edge, or to the top to maximize)",
+            s.snapWindows, onGlyph = Glyph.COMPUTER) { s.snapWindows = it }
+        ToggleRow("Tiling window layout (master + stack, Linux style)", s.tiling, onGlyph = Glyph.GRID) { vm.setTiling(it) }
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            RetroText("virtual desktops", size = 12f, modifier = Modifier.weight(1f), maxLines = 1)
+            listOf(1, 2, 3, 4).forEach { count ->
+                RetroButton(
+                    label = "$count",
+                    active = s.workspaceCount == count,
+                    modifier = Modifier.width(dp(52f)),
+                    onClick = { vm.setWorkspaceCount(count) },
+                )
+            }
+        }
+        RetroText(
+            "Tap the numbered squares in the panel / menu bar / taskbar to switch desktop " +
+                "(long-press one for the desktop menu). Shortcuts: Ctrl+Alt+1..4, Ctrl+Alt+Shift+1..4 " +
+                "sends the focused window to that desktop, terminal: `workspace 2`, `wsmove 3`.",
+            size = 11f, color = p.mid, maxLines = 6,
+        )
 
         Section("input & devices — pen, mouse, keyboard")
         ToggleRow("Pen double-tap = right click (tap twice with the M-Pencil to open the context menu)",
