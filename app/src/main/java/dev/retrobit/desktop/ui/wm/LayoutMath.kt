@@ -21,15 +21,18 @@ object LayoutMath {
 
     /**
      * Which zone the window would snap to, or null for free placement.
-     * Top of the screen (while horizontally centred) maximizes, left/right edges fill that half.
+     *
+     * The side edges take priority: dragging a window into the top-left corner fills the left half
+     * (like Aero Snap), while dragging it to the top *centre* maximizes.
      */
     fun zoneFor(area: Rect, window: Rect, edge: Float = EDGE, top: Float = TOP): SnapZone? {
         if (area.width <= 16f || area.height <= 16f) return null
-        val centered = kotlin.math.abs(window.center.x - area.center.x) < area.width * 0.28f
+        val atTop = window.top <= area.top + top
+        val centered = kotlin.math.abs(window.center.x - area.center.x) < area.width * 0.22f
         return when {
-            window.top <= area.top + top && centered -> SnapZone.MAXIMIZE
             window.left <= area.left + edge -> SnapZone.LEFT
             window.right >= area.right - edge -> SnapZone.RIGHT
+            atTop && centered -> SnapZone.MAXIMIZE
             else -> null
         }
     }
