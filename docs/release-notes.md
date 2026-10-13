@@ -10,6 +10,62 @@
 ## Yang baru di {{TAG}}
 
 
+### Quick panel: semua pengaturan cyberdeck tanpa keluar dari aplikasi
+Tombol **settings di rail** (terminal `panel`, atau *quick panel now* di Settings) membuka panel di
+atas aplikasi yang sedang jalan - tidak perlu pulang ke desktop:
+
+- **Brightness** - geser groove-nya, atau `B-` / `B+` / `auto`. Nilai diingat, dan `auto`
+  mengembalikan kontrol ke tablet. Panel membaca brightness window yang sebenarnya, jadi `B-`/`B+`
+  mulai dari angka yang benar (bukan dari perkiraan).
+- **Display** - `auto rotate` / `rotate locked`, `night on|off` (tukar ke palet gelap **Ink**, dan
+  kembali ke palet hari yang kamu pakai), `chrome on|off`, `hide rails now`.
+- **Rails** - dock menampilkan **pinned apps** atau **most used first**, title rail & dock on/off,
+  dan auto-hide (on/off + 4s/6s/10s/20s).
+- **In frame now** - aplikasi yang sedang terbuka: tap = bawa ke depan **dan** masukkan lagi ke kotak
+  jendelanya, tahan = buka shell-nya di terminal.
+- **No chrome for** - daftar aplikasi tanpa bingkai: tap chip = kembalikan bingkainya.
+
+### Dock pintar: pinned atau most used
+- Pembatas di dock sekarang **tombol**: tap untuk berpindah antara **aplikasi yang dipin** dan
+  **aplikasi yang paling sering dipakai**. Berlaku untuk semua permukaan: dock desktop, sidebar
+  Linux, taskbar Windows, dock macOS, widget launcher, dan dock cyberdeck.
+- Di mode *most used first*, dua app pertama yang dipin tetap di tempatnya; sisanya diisi aplikasi
+  yang benar-benar sering dibuka.
+- **Tahan app di dock cyberdeck** untuk pin / unpin (chip yang dipin diberi tanda kotak kecil), dan
+  setiap aksi mengeluarkan konfirmasi singkat di rail (`pinned to the dock: Files`).
+- Terminal: `rail mode pinned|used` dan `pins` (daftar dock + jumlah pembukaan).
+
+### Per-app rules, night mode, rotation lock
+- **No chrome for** - aplikasi tertentu (kamera, game, player) bisa dikecualikan dari bingkai, dari
+  Settings, dari panel, atau dari chip di rail. Kalau app itu muncul di depan, rail tetap muncul
+  **4 detik** dengan alasan + cara mengembalikannya, jadi tidak pernah jadi jalan buntu.
+- **Night mode** - satu tap (atau `night on`) menukar ke palet gelap Ink dan kembali lagi.
+- **Rotation lock** - mengunci launcher pada orientasi sekarang, atau kembali ke auto.
+
+### Status hidup: jam, baterai, sinyal, keyboard
+- Rail menampilkan **jam `HH:mm:ss`** dan detiknya berganti tepat di batas detik (tick rail
+  diselaraskan ke jam dinding, bukan "sekitar satu detik").
+- **Baterai dan sinyal digambar, bukan ditulis**: gauge baterai kecil (isi proporsional + petir saat
+  mengisi) dan empat bar sinyal yang penuh sesuai transport (wifi/ethernet 4, seluler/VPN 3), dengan
+  label `WIFI`/`CELL`/`OFFLINE` di sebelahnya.
+- **Tombol keyboard** di rail dan di dock: memunculkan / menyembunyikan keyboard layar untuk
+  aplikasi yang sedang di depan (rail tidak pernah merebut fokus sendiri, jadi keyboardnya tetap
+  milik app itu).
+
+### UX pass
+- **Bingkai hitam bisa ditekan**: tap pada rail kosong = sembunyikan rail (atau munculkan lagi kalau
+  sedang tersembunyi). Handle auto-hide juga bisa disentuh untuk memunculkannya.
+- **Area sentuh tombol diperbesar** 3-4 dp dari kotak yang digambar, dan jari yang menggeser keluar
+  dari tombol membatalkan tekanannya - rail tidak pernah salah pencet.
+- **Tombol `eye`** di rail & dock: sembunyikan rail **hanya untuk app yang sedang di depan**; app
+  berikutnya memunculkannya lagi.
+- **Ikon baru** (pixel art 16x16 seperti yang lain): `EYE`, `SPARK` (brightness), `STAR` (most used),
+  `ROTATE`, `BARS` (sinyal).
+- Teks di-snap ke kelipatan 16 px dan glyph ke 8 px, jadi rail dan panel tetap tajam di semua skala.
+
+### Perintah terminal baru
+`panel`, `rail mode pinned|used`, `pins`, `night on|off`, `cyberdeck autohide on|off|<3..60>`.
+
 ### Cyberdeck: kotak jendela sekarang tetap terlihat di atas aplikasi
 
 **Masalahnya:** Android hanya mengizinkan aplikasi biasa menaruh aplikasi lain di dalam kotaknya lewat
