@@ -174,7 +174,11 @@ fun SettingsView(vm: LauncherViewModel) {
                 label = "Refresh apps",
                 glyph = Glyph.GRID,
                 modifier = Modifier.weight(1f),
-                onClick = { vm.settings.defaultsSeeded = false },
+                onClick = {
+                    vm.settings.defaultsSeeded = false
+                    vm.refreshApps(force = true)
+                    vm.shell.print("rescanned installed applications")
+                },
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {

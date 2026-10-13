@@ -1,7 +1,6 @@
 package dev.retrobit.desktop.ui
 
 import android.app.Application
-import android.content.Intent
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -237,13 +236,27 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    private var lastRefresh = 0L
+
+    /** Re-enumerate installed apps (called when the launcher comes back to the foreground). */
+    fun refreshApps(force: Boolean = false) {
+        val nowMs = System.currentTimeMillis()
+        if (!force && nowMs - lastRefresh < 5_000) return
+        lastRefresh = nowMs
+        viewModelScope.launch {
+            repo.reload()
+            if (settings.pinnedDock.isEmpty()) {
+                settings.defaultsSeeded = false
+                seedDefaults()
+            }
+        }
+    }
+
     fun showBootScreenAgain() {
         bootedThisProcess = false
         bootDone = false
         boot()
     }
-
-    fun openIntent(intent: Intent?) = Unit
 
     companion object {
         private var bootedThisProcess = false

@@ -52,6 +52,12 @@ class MainActivity : ComponentActivity() {
         vm.boot()
     }
 
+    override fun onResume() {
+        super.onResume()
+        // the user may have installed or removed apps while we were in the background
+        vm.refreshApps()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
