@@ -75,7 +75,7 @@ class AppWindowMathTest {
     fun `the title bar follows the density and the ui scale`() {
         assertEquals(90f, AppWindowMath.titleHeightPx(30f, 1f, 3f))
         assertEquals(45f, AppWindowMath.titleHeightPx(30f, 0.5f, 3f))
-        assertEquals(90f, AppWindowMath.titleHeightPx(30f, 8f, 3f))   // scale is clamped
+        assertEquals(180f, AppWindowMath.titleHeightPx(30f, 8f, 3f))  // scale is clamped at 2x
         assertEquals(6f, AppWindowMath.borderPx(2f, 3f))
     }
 
