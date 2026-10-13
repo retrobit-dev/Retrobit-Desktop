@@ -83,21 +83,17 @@ fun AppIconTile(
         .width(iconSize + dp(18f))
         .onGloballyPositioned { origin = it.positionInRoot() }
         .pointerInput(app.key) {
-            detectTapGestures(
-                onTap = { onOpen(app) },
-                onLongPress = { pos -> onContextMenu?.invoke(app, origin + pos) },
-            )
+            detectTapGestures(onTap = { onOpen(app) })
         }
         .pointerInput(app.key) {
             detectDragGesturesAfterLongPress(
                 onDragStart = { pos -> moved = 0f; drag.start(app, origin + pos) },
                 onDragEnd = {
+                    val target = drag.dropTarget()
+                    drag.clear()
                     if (moved > 28f) {
-                        val target = drag.dropTarget()
-                        drag.clear()
                         onDrop?.invoke(app, target)
                     } else {
-                        drag.clear()
                         onContextMenu?.invoke(app, origin + Offset(iconSize.value / 2f, iconSize.value / 2f))
                     }
                 },
@@ -175,10 +171,7 @@ fun AppIconRow(
         modifier = modifier
             .onGloballyPositioned { origin = it.positionInRoot() }
             .pointerInput(app.key) {
-                detectTapGestures(
-                    onTap = { onOpen(app) },
-                    onLongPress = { pos -> onContextMenu?.invoke(app, origin + pos) },
-                )
+                detectTapGestures(onTap = { onOpen(app) })
             }
             .pointerInput(app.key) {
                 detectDragGesturesAfterLongPress(
