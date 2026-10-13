@@ -252,6 +252,15 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
     }
 }
 
+/** One resize handle: which edge, where it sits in the grab ring, and how big it is (px). */
+private data class ResizeStrip(
+    val edge: ResizeEdge,
+    val x: Float,
+    val y: Float,
+    val w: Float,
+    val h: Float,
+)
+
 /** Grab width of every resize handle, in dp. */
 private const val HandleGrabDp = 16f
 
@@ -274,23 +283,24 @@ private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float
     val w = win.width
     val h = win.height
 
-    fun strip(edge: ResizeEdge, x: Float, y: Float, sw: Float, sh: Float) {
+    val strips = listOf(
+        ResizeStrip(ResizeEdge.LEFT, 0f, grab + corner * 0.5f, grab, h - corner),
+        ResizeStrip(ResizeEdge.RIGHT, grab + w, grab + corner * 0.5f, grab, h - corner),
+        ResizeStrip(ResizeEdge.TOP, grab + corner * 0.5f, 0f, w - corner, grab),
+        ResizeStrip(ResizeEdge.BOTTOM, grab + corner * 0.5f, grab + h, w - corner, grab),
+        ResizeStrip(ResizeEdge.TOP_LEFT, 0f, 0f, grab + corner * 0.5f, grab + corner * 0.5f),
+        ResizeStrip(ResizeEdge.TOP_RIGHT, grab + w - corner * 0.5f, 0f, grab + corner * 0.5f, grab + corner * 0.5f),
+        ResizeStrip(ResizeEdge.BOTTOM_LEFT, 0f, grab + h - corner * 0.5f, grab + corner * 0.5f, grab + corner * 0.5f),
+        ResizeStrip(ResizeEdge.BOTTOM_RIGHT, grab + w - corner * 0.5f, grab + h - corner * 0.5f, grab + corner * 0.5f, grab + corner * 0.5f),
+    )
+    strips.forEach { strip ->
         Box(
             Modifier
-                .offset { IntOffset(x.roundToInt(), y.roundToInt()) }
-                .size(with(density) { sw.toDp() }, with(density) { sh.toDp() })
-                .resizeHandle(win, wm, edge),
+                .offset { IntOffset(strip.x.roundToInt(), strip.y.roundToInt()) }
+                .size(with(density) { strip.w.toDp() }, with(density) { strip.h.toDp() })
+                .resizeHandle(win, wm, strip.edge),
         )
     }
-
-    strip(ResizeEdge.LEFT, 0f, grab + corner * 0.5f, grab, h - corner)
-    strip(ResizeEdge.RIGHT, grab + w, grab + corner * 0.5f, grab, h - corner)
-    strip(ResizeEdge.TOP, grab + corner * 0.5f, 0f, w - corner, grab)
-    strip(ResizeEdge.BOTTOM, grab + corner * 0.5f, grab + h, w - corner, grab)
-    strip(ResizeEdge.TOP_LEFT, 0f, 0f, grab + corner * 0.5f, grab + corner * 0.5f)
-    strip(ResizeEdge.TOP_RIGHT, grab + w - corner * 0.5f, 0f, grab + corner * 0.5f, grab + corner * 0.5f)
-    strip(ResizeEdge.BOTTOM_LEFT, 0f, grab + h - corner * 0.5f, grab + corner * 0.5f, grab + corner * 0.5f)
-    strip(ResizeEdge.BOTTOM_RIGHT, grab + w - corner * 0.5f, grab + h - corner * 0.5f, grab + corner * 0.5f, grab + corner * 0.5f)
 
     // grip marks: a live size readout while resizing, a printed corner grip otherwise
     Box(
@@ -398,6 +408,10 @@ private fun TrafficLight(sym: Sym, onClick: () -> Unit) {
                 }
                 Sym.MIN -> drawLine(p.ink, Offset(center.x - r * 0.5f, center.y), Offset(center.x + r * 0.5f, center.y), 1.6f)
                 Sym.MAX -> drawRect(p.ink, Offset(center.x - r * 0.5f, center.y - r * 0.5f), Size(r, r), style = Stroke(1.5f))
+                Sym.FLOAT -> {
+                    drawRect(p.ink, Offset(center.x - r * 0.7f, center.y - r * 0.3f), Size(r, r * 0.8f), style = Stroke(1.4f))
+                    drawRect(p.ink, Offset(center.x - r * 0.3f, center.y - r * 0.7f), Size(r, r * 0.8f), style = Stroke(1.4f))
+                }
             }
         }
     }

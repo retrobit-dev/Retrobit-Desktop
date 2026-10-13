@@ -23,10 +23,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.IntOffset
-import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.displayCutout
+import android.view.WindowInsets
 import androidx.core.view.WindowInsetsControllerCompat
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.LocalViewModel
@@ -76,9 +75,14 @@ class MainActivity : ComponentActivity() {
             }
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(window.decorView) { _, insets ->
-            val cut = insets.displayCutout
-            cutout.value = if (cut == null || android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.P) {
+        // the punch-hole camera: remember the display cutout so the shells can steer around it
+        window.decorView.setOnApplyWindowInsetsListener { _, insets: WindowInsets ->
+            val cut = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+                insets.displayCutout
+            } else {
+                null
+            }
+            cutout.value = if (cut == null) {
                 IntArray(0)
             } else {
                 intArrayOf(cut.safeInsetLeft, cut.safeInsetTop, cut.safeInsetRight, cut.safeInsetBottom)
