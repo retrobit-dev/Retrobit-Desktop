@@ -82,7 +82,6 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "wall", "wallpaper" -> wallpaper(args.firstOrNull())
             "icons", "iconmode" -> icons(args.firstOrNull())
             "scale" -> scale(args.firstOrNull())
-            "tiling" -> tiling(args.firstOrNull())
             "workspace", "ws", "desktop" -> workspace(args.firstOrNull())
             "cal", "calendar" -> calendar(args)
             "wallpaper", "wall" -> wallpaper(args.firstOrNull())
@@ -90,17 +89,14 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "arrange" -> arrange()
             "safearea" -> safeArea(args.firstOrNull())
             "dock" -> dock(args)
-            "floating" -> floating(args.firstOrNull())
             "cyberdeck", "chrome" -> cyberdeck(args.firstOrNull(), args.getOrNull(1))
             "panel" -> panel()
             "rail" -> rail(args.firstOrNull(), args.getOrNull(1))
             "pins" -> pins()
             "night" -> night(args.firstOrNull())
             "widgets", "widget" -> widgets(args)
-            "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
             "app" -> appCmd(args)
-            "appframe", "appframes" -> appFrameCmd(args)
             "usage" -> usageCmd(args)
             "doubleclick", "dblclick" -> {
                 val arg = args.firstOrNull()?.lowercase()
@@ -118,7 +114,6 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "about" -> vm.openWindow(WinKind.ABOUT)
             "files" -> vm.openWindow(WinKind.APPS)
             "ps" -> ps()
-            "wmctrl" -> wmctrl(args.firstOrNull())
             "boot" -> vm.showBootScreenAgain()
             "clear" -> clear()
             "exit", "quit" -> exit()
@@ -140,13 +135,12 @@ class TerminalShell(private val vm: LauncherViewModel) {
             open <name|pkg>        launch an application
             info <name>            details about a package
             neofetch               system + about summary
-            df | free | ps         disk, memory, running windows
+            df | free | ps         disk, memory, what owns the screen
             style linux|macos|windows
             palette paper|sepia|bwr|ink|phosphor|amber
             wall dots|grid|dither|hatch|plain
             icons color|mono|dither
             scale 0.8|0.9|1.0|1.15|1.3
-            tiling on|off          linux-style tiling window layout
             cal                    calendar entries (cal add "title" 2026-11-02 14:30 event|task|birthday)
             cal list | cal tasks   agenda view / open tasks
             wallpaper pattern|device|image   desktop background source
@@ -154,7 +148,6 @@ class TerminalShell(private val vm: LauncherViewModel) {
             arrange                auto arrange desktop icons
             safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
-            floating on|off        ask the system to float an app inside its window frame
             cyberdeck on|off       draw the desktop frame over apps that open full screen
             cyberdeck autohide on|off|<3..60>   slide the rails away after a few seconds
             cyberdeck size compact|normal|large|huge   how big the rail & dock read on this screen
@@ -166,13 +159,10 @@ class TerminalShell(private val vm: LauncherViewModel) {
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
             doubleclick on|off     apps open with a double click (tap selects) or a single tap
-            appframe follow on|off  re-place a floating app after its desktop window moved
-            appframe place <app>    send an app to its window rectangle now
             widgets                widgets (widget add|remove <name> | widget width <dp> | widget size <name> <w> <h> |
                                    widget reset | widget edit on|off | widget hold on|off | widget layout)
-            workspace 1..4         switch virtual desktop (also: ws)
-            wsmove 1..4            send the focused window to a desktop
-            wmctrl list|close|tile | invert | boot
+            workspace 1..4         switch desktop page: icons & widgets (also: ws)
+            ps | invert | boot     what owns the screen / invert the palette / boot screen
             notes | settings | sysmon | about | clear | exit
             """.trimIndent(),
             Kind.DIM,
@@ -213,23 +203,12 @@ class TerminalShell(private val vm: LauncherViewModel) {
     }
 
     private fun ps() {
-        val wins = vm.wm.windows
-        if (wins.isEmpty()) { print("no windows open", Kind.DIM); return }
-        print("  PID  WS  WIN            TITLE", Kind.HEAD)
-        wins.forEach { w ->
-            print("  ${w.id.toString().padStart(3)}  d${w.desktop + 1}  ${w.kind.name.padEnd(13)} ${w.title}${if (w.minimized) "  (minimized)" else ""}")
-        }
-    }
-
-    private fun wmctrl(arg: String?) {
-        when (arg) {
-            null, "list" -> ps()
-            "close" -> { vm.wm.closeAll(); print("all windows closed") }
-            "tile" -> { vm.setTiling(true); print("tiling enabled") }
-            "untile" -> { vm.setTiling(false); print("tiling disabled") }
-            "min" -> { vm.wm.minimizeAll(); print("all windows minimized") }
-            else -> print("usage: wmctrl list|close|tile|untile|min", Kind.ERR)
-        }
+        // there are no windows any more: one app owns the screen, and the chrome draws its frame
+        val front = vm.frontApp
+        print("  SCREEN  APP", Kind.HEAD)
+        print("  desktop  workspace ${vm.desktop + 1} of ${vm.desktopCount} (icons & widgets)")
+        print("  front    ${front?.label ?: "nothing - the desktop is on screen"}")
+        print("  shell    ${vm.shellOpen?.name?.lowercase() ?: "-"}")
     }
 
     private fun neofetch() {
@@ -251,7 +230,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "Device   : ${Build.MANUFACTURER} ${Build.MODEL}",
             "WM       : retrobit-wm (${vm.settings.style.label} style)",
             "Theme    : ${vm.settings.palette.label} / ${vm.settings.wallpaper.label} / ${vm.settings.iconMode.label}",
-            "Windows  : ${vm.wm.onScreen.size} on desktop ${vm.wm.desktop + 1} / ${vm.wm.windows.size} total",
+            "Screen   : ${vm.frontApp?.label ?: "desktop"}  (workspace ${vm.desktop + 1}/${vm.desktopCount})",
             "Uptime   : ${SystemInfo.fmtUptime(s.uptimeMs)}",
             "Memory   : ${SystemInfo.fmtBytes(s.memUsed)} / ${SystemInfo.fmtBytes(s.memTotal)}",
             "Disk     : ${SystemInfo.fmtBytes(s.diskUsed)} / ${SystemInfo.fmtBytes(s.diskTotal)}",
@@ -442,21 +421,6 @@ class TerminalShell(private val vm: LauncherViewModel) {
         }
     }
 
-    private fun floating(arg: String?) {
-        when (arg?.lowercase()) {
-            "on", "1", "true" -> { vm.settings.floatingApps = true; print("float inside the frame -> on${freeformNote()}") }
-            "off", "0", "false" -> { vm.settings.floatingApps = false; print("float inside the frame -> off (apps open full screen, their frame stays in the taskbar)") }
-            else -> {
-                vm.settings.floatingApps = !vm.settings.floatingApps
-                print("float inside the frame -> ${if (vm.settings.floatingApps) "on" else "off"}${freeformNote()}")
-            }
-        }
-    }
-
-    private fun freeformNote(): String =
-        if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(vm.appContext)) " (this device supports floating windows)"
-        else " (this device has no floating-window support: apps open full screen)"
-
     /**
      * `usage` — how often each app was opened (that order drives the app drawer).
      * `usage clear` forgets the counts and puts the drawer back to plain A-Z.
@@ -481,46 +445,6 @@ class TerminalShell(private val vm: LauncherViewModel) {
                 print("usage clear   forget these counts", Kind.DIM)
             }
             else -> print("usage: usage | usage top | usage clear", Kind.ERR)
-        }
-    }
-
-    /**
-     * `appframe follow on|off` — whether a floating app is re-placed after its desktop window moved.
-     * `appframe place <app>` — send the selected app to its window rectangle right now.
-     */
-    private fun appFrameCmd(args: List<String>) {
-        val s = vm.settings
-        val action = args.getOrNull(0)?.lowercase()
-        when {
-            action == "follow" || action == "f" -> {
-                val arg = args.getOrNull(1)?.lowercase()
-                s.appWindowFollow = when (arg) {
-                    null -> !s.appWindowFollow
-                    "on", "1", "true" -> true
-                    else -> false
-                }
-                print("apps follow their window -> ${if (s.appWindowFollow) "on" else "off"}")
-            }
-            action == "place" || action == "p" -> {
-                val name = args.drop(1).joinToString(" ")
-                val win = vm.wm.windows.firstOrNull {
-                    it.kind == dev.retrobit.desktop.model.WinKind.APPWINDOW &&
-                        (it.app?.label.equals(name, true) || it.app?.pkg.equals(name, true))
-                }
-                val placement = win?.let { vm.placementFor(it) }
-                if (win == null) {
-                    print("usage: appframe place <app>  (open its window first)", Kind.ERR)
-                } else if (placement == null) {
-                    print("the frame is too small to hold an app window", Kind.ERR)
-                } else {
-                    vm.placeAppWindow(win, force = true)
-                    print("${win.app?.label} -> ${placement.left},${placement.top} ${placement.width}x${placement.height} px")
-                }
-            }
-            else -> {
-                print("usage: appframe follow on|off | appframe place <app>", Kind.ERR)
-                print("apps follow their window -> ${if (s.appWindowFollow) "on" else "off"}")
-            }
         }
     }
 
@@ -721,40 +645,17 @@ class TerminalShell(private val vm: LauncherViewModel) {
         print("ui scale -> $v")
     }
 
-    private fun tiling(arg: String?) {
-        when (arg?.lowercase()) {
-            "on", "1", "true" -> { vm.setTiling(true); print("tiling -> on") }
-            "off", "0", "false" -> { vm.setTiling(false); print("tiling -> off") }
-            else -> print("usage: tiling on|off", Kind.ERR)
-        }
-    }
-
     private fun workspace(arg: String?) {
         val index = arg?.toIntOrNull()?.minus(1)
-        if (index == null || index !in 0 until vm.wm.desktopCount) {
-            print("usage: workspace 1..${vm.wm.desktopCount} (currently on desktop ${vm.wm.desktop + 1})", Kind.ERR)
+        if (index == null || index !in 0 until vm.desktopCount) {
+            print("usage: workspace 1..${vm.desktopCount} (currently on desktop ${vm.desktop + 1})", Kind.ERR)
             return
         }
         vm.switchDesktop(index)
-        print("desktop ${index + 1} — ${vm.wm.onScreen.count { !it.minimized }} windows visible")
     }
 
-    private fun wsMove(arg: String?) {
-        val index = arg?.toIntOrNull()?.minus(1)
-        if (index == null || index !in 0 until vm.wm.desktopCount) {
-            print("usage: wsmove 1..${vm.wm.desktopCount}", Kind.ERR)
-            return
-        }
-        if (vm.wm.focused == null) {
-            print("no focused window", Kind.ERR)
-            return
-        }
-        vm.moveFocusedToDesktop(index)
-        print("window moved to desktop ${index + 1}")
-    }
-
+    /** `exit` leaves the terminal: back to the desktop (it used to close its own window). */
     private fun exit() {
-        val term = vm.wm.windows.firstOrNull { it.kind == WinKind.TERMINAL }
-        if (term != null) vm.wm.close(term.id)
+        vm.closeShell()
     }
 }

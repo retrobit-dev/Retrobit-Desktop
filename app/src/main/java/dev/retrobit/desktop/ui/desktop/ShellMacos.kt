@@ -48,8 +48,6 @@ import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
-import dev.retrobit.desktop.ui.wm.ShellMetrics
-import dev.retrobit.desktop.ui.wm.WindowLayer
 import java.util.Date
 
 /**
@@ -75,16 +73,6 @@ fun MacosShell(vm: LauncherViewModel) {
         val m = edge
         Rect(m, barH + m, (size.width - m).coerceAtLeast(m), (size.height - dockH).coerceAtLeast(barH))
     }
-    LaunchedEffect(size, vm.settings.tiling) {
-        if (size.width > 0) {
-            vm.wm.relayout(
-                area,
-                ShellMetrics(barH, dockH, winMargin, cascade, minW, minH),
-                DesktopStyle.MACOS,
-                vm.settings.tiling,
-            )
-        }
-    }
 
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
         // desktop + icons (right aligned, like the real thing)
@@ -95,8 +83,7 @@ fun MacosShell(vm: LauncherViewModel) {
             }
         }
 
-        WindowLayer(vm.wm, Modifier.fillMaxSize())
-
+        
         // ── menu bar ──────────────────────────────────────────────────────────────
         Row(
             Modifier
@@ -127,18 +114,22 @@ fun MacosShell(vm: LauncherViewModel) {
             MenuTitle("View") {
                 vm.openMenu(
                     dev.retrobit.desktop.ui.MenuRequest("View", null, Offset(90f, 40f), listOf(
-                        MenuItem(if (vm.settings.tiling) "Stop tiling windows" else "Tile windows", Glyph.GRID) { vm.setTiling(!vm.settings.tiling) },
                         MenuItem(if (vm.settings.showWidgets) "Hide widgets" else "Show widgets") { vm.settings.showWidgets = !vm.settings.showWidgets },
-                        MenuItem("Minimize all windows", Glyph.COMPUTER) { vm.wm.minimizeAll() },
                         MenuItem("Desktops / workspaces…", Glyph.GRID) { vm.workspaceMenu(Offset(60f, 46f)) },
                     ))
                 )
             }
             MenuTitle("Window") {
-                val items = vm.wm.onScreen.map { w ->
-                    MenuItem(w.title, Glyph.COMPUTER) { vm.wm.focus(w.id) }
-                }.ifEmpty { listOf(MenuItem("no windows open", null, enabled = false) {}) }
-                vm.openMenu(dev.retrobit.desktop.ui.MenuRequest("Window", null, Offset(140f, 40f), items))
+                // no windows to list: one app, one screen, the chrome draws its frame
+                vm.openMenu(
+                    dev.retrobit.desktop.ui.MenuRequest(
+                        "Window", null, Offset(140f, 40f),
+                        listOf(
+                            MenuItem("Open the app drawer", Glyph.GRID) { vm.openWindow(WinKind.APPS) },
+                            MenuItem("Desktops / workspaces…", Glyph.COMPUTER) { vm.workspaceMenu(Offset(60f, 46f)) },
+                        ),
+                    ),
+                )
             }
             MenuTitle("Help") {
                 vm.openMenu(
@@ -202,24 +193,6 @@ fun MacosShell(vm: LauncherViewModel) {
                 DockItem(Glyph.TERMINAL, "term") { vm.openWindow(WinKind.TERMINAL) }
                 DockItem(Glyph.SETTINGS, "setup") { vm.openWindow(WinKind.SETTINGS) }
                 DockItem(Glyph.SYSMON, "monitor") { vm.openWindow(WinKind.SYSMON) }
-            }
-        }
-
-        // running window indicator strip above the dock
-        Row(
-            Modifier.align(Alignment.BottomCenter).padding(bottom = dp(68f)),
-            horizontalArrangement = Arrangement.spacedBy(dp(6f)),
-        ) {
-            vm.wm.onScreen.take(8).forEach { w ->
-                Box(
-                    Modifier
-                        .background(if (w.minimized) p.mid else p.ink)
-                        .border(dp(1.1f), p.ink)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.wm.focus(w.id) }
-                        .padding(horizontal = dp(6f), vertical = dp(1f)),
-                ) {
-                    RetroText(w.title.take(14), size = 10f, color = p.paper, maxLines = 1)
-                }
             }
         }
 

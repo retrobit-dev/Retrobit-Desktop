@@ -53,8 +53,6 @@ import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
-import dev.retrobit.desktop.ui.wm.ShellMetrics
-import dev.retrobit.desktop.ui.wm.WindowLayer
 import java.util.Date
 
 /**
@@ -79,16 +77,6 @@ fun WindowsShell(vm: LauncherViewModel) {
         val m = edge
         Rect(m, m, (size.width - m).coerceAtLeast(m), (size.height - taskH - m).coerceAtLeast(m))
     }
-    LaunchedEffect(size, vm.settings.tiling) {
-        if (size.width > 0) {
-            vm.wm.relayout(
-                area,
-                ShellMetrics(0f, taskH, winMargin, cascade, minW, minH),
-                DesktopStyle.WINDOWS,
-                vm.settings.tiling,
-            )
-        }
-    }
 
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
         Box(Modifier.fillMaxSize().padding(bottom = dp(44f))) {
@@ -98,8 +86,7 @@ fun WindowsShell(vm: LauncherViewModel) {
             }
         }
 
-        WindowLayer(vm.wm, Modifier.fillMaxSize())
-
+        
         // ── start menu ────────────────────────────────────────────────────────────
         if (vm.startMenu) {
             Box(
@@ -148,9 +135,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                             StartItem(Glyph.SEARCH, "Find (spotlight)") { vm.spotlight = true }
                             StartItem(Glyph.ABOUT, "About") { vm.openWindow(WinKind.ABOUT) }
                             Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink.copy(alpha = 0.35f)))
-                            StartItem(Glyph.COMPUTER, "Minimize all windows") { vm.wm.minimizeAll(); vm.startMenu = false }
                             StartItem(Glyph.GRID, "Desktops / workspaces") { vm.startMenu = false; vm.workspaceMenu(Offset(24f, 300f)) }
-                            StartItem(Glyph.POWER, "Close all windows") { vm.wm.closeAll(); vm.startMenu = false }
                         }
                     }
                 }
@@ -211,31 +196,9 @@ fun WindowsShell(vm: LauncherViewModel) {
                 }
                 DockInsertMarker(dockSlots, horizontal = true)
             }
-            Row(
-                Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(dp(5f)),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                vm.wm.onScreen.take(8).forEach { w ->
-                    val active = vm.wm.focusedId == w.id && !w.minimized
-                    Row(
-                        Modifier
-                            .width(dp(190f))
-                            .height(dp(32f))
-                            .background(if (active) p.ink else p.paper)
-                            .border(dp(1.4f), p.ink)
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                if (active) vm.wm.minimize(w.id) else vm.wm.focus(w.id)
-                            }
-                            .padding(horizontal = dp(6f)),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(dp(6f)),
-                    ) {
-                        GlyphIcon(if (w.isApp) Glyph.GRID else Glyph.TERMINAL, dp(12f))
-                        RetroText(w.title, size = 12f, color = if (active) p.paper else p.ink, maxLines = 1, modifier = Modifier.weight(1f))
-                    }
-                }
-            }
+            // the task buttons are gone with the windows: an app fills the screen, and the
+            // cyberdeck rail is what shows which app that is
+            Spacer(Modifier.weight(1f))
             WorkspacePager(vm, boxSize = dp(30f))
             StyleChip(vm, compact = true)
             Row(Modifier.background(hatch).padding(horizontal = dp(8f), vertical = dp(3f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {

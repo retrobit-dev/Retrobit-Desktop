@@ -45,15 +45,13 @@ import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.theme.LocalPalette
-import dev.retrobit.desktop.ui.wm.WindowLayer
-import dev.retrobit.desktop.ui.wm.ShellMetrics
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import java.util.Date
 
 /**
  * GNU/Linux style shell: top panel with a system menu + window buttons, a left side dock,
- * desktop icon grid, widgets in the top-right corner and (optionally) tiling windows.
+ * desktop icon grid and widgets in the top-right corner.
  */
 @Composable
 fun LinuxShell(vm: LauncherViewModel) {
@@ -72,17 +70,6 @@ fun LinuxShell(vm: LauncherViewModel) {
     val area = remember(size) {
         Rect(dockW, panelH, size.width.toFloat(), size.height.toFloat())
     }
-    LaunchedEffect(size, vm.settings.tiling) {
-        if (size.width > 0) {
-            vm.wm.relayout(
-                area,
-                ShellMetrics(topInset = panelH, bottomInset = 0f, margin = winMargin,
-                    cascade = cascade, minW = minW, minH = minH),
-                DesktopStyle.LINUX,
-                vm.settings.tiling,
-            )
-        }
-    }
 
     Box(Modifier.fillMaxSize().onSizeChanged { size = it }) {
         // ── desktop surface ───────────────────────────────────────────────────────
@@ -96,8 +83,6 @@ fun LinuxShell(vm: LauncherViewModel) {
             }
         }
 
-        // ── windows ───────────────────────────────────────────────────────────────
-        WindowLayer(vm.wm, Modifier.fillMaxSize())
 
         // ── top panel ─────────────────────────────────────────────────────────────
         Row(
@@ -123,28 +108,8 @@ fun LinuxShell(vm: LauncherViewModel) {
             PanelMenu("system") { vm.openWindow(WinKind.SETTINGS) }
             PanelMenu("apps") { vm.openWindow(WinKind.APPS) }
             PanelMenu("term") { vm.openWindow(WinKind.TERMINAL) }
-            Spacer(Modifier.weight(1f))
-            // window buttons — the "task list" of the panel (current workspace only)
-            Row(horizontalArrangement = Arrangement.spacedBy(dp(4f)), verticalAlignment = Alignment.CenterVertically) {
-                vm.wm.onScreen.take(7).forEach { w ->
-                    Box(
-                        Modifier
-                            .border(dp(1.1f), p.ink)
-                            .background(if (vm.wm.focusedId == w.id && !w.minimized) p.ink else p.paper)
-                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                                if (w.minimized) vm.wm.focus(w.id) else if (vm.wm.focusedId == w.id) vm.wm.minimize(w.id) else vm.wm.focus(w.id)
-                            }
-                            .padding(horizontal = dp(7f), vertical = dp(2f)),
-                    ) {
-                        RetroText(
-                            w.title.take(18),
-                            size = 11f,
-                            color = if (vm.wm.focusedId == w.id && !w.minimized) p.paper else p.ink,
-                            maxLines = 1,
-                        )
-                    }
-                }
-            }
+            // no task list any more: an app owns the whole screen, and the panel is only the
+            // desktop's own bar (the cyberdeck rail covers apps that are running)
             Spacer(Modifier.weight(1f))
             WorkspacePager(vm, boxSize = dp(20f))
             StyleChip(vm, compact = true)

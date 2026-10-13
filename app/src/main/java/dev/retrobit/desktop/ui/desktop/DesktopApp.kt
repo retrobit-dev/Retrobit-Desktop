@@ -23,7 +23,6 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.key.isShiftPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
@@ -55,7 +54,7 @@ import dev.retrobit.desktop.ui.input.watchPointer
 import dev.retrobit.desktop.ui.wm.DragState
 import dev.retrobit.desktop.ui.wm.LocalDragState
 
-/** Ctrl+Alt+1..4 switch workspace, Ctrl+Alt+Shift+1..4 move the focused window. */
+/** Ctrl+Alt+1..4 jump to a workspace page (icons and widgets). */
 private val NUMBER_KEYS = listOf(Key.One, Key.Two, Key.Three, Key.Four)
 
 @Composable
@@ -72,14 +71,7 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     // pen / mouse behaviour follows the settings section "input & devices"
-    // the floating-app rectangles are computed in screen px, so the shell's safe area has to be known
     androidx.compose.runtime.SideEffect { vm.desktopInsets = insets }
-    // keep a placed app inside its window: re-send the rectangle once the drag / resize has settled
-    LaunchedEffect(vm.frameSettleTick) {
-        if (vm.frameSettleTick == 0) return@LaunchedEffect
-        kotlinx.coroutines.delay(420)
-        vm.refitAppWindows()
-    }
     LaunchedEffect(settings.penRightClick, settings.showCursor, settings.penHoldMs) {
         pointer.penRightClick = settings.penRightClick
         pointer.showCursor = settings.showCursor
@@ -97,11 +89,6 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     ) {
         dev.retrobit.desktop.data.IconCache.clear()
     }
-    // forget the bookkeeping of windows the user closed
-    LaunchedEffect(vm.wm.windows.size) {
-        vm.retainAppWindows(vm.wm.windows.map { it.id }.toSet())
-    }
-
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalIconMode provides settings.iconMode,
@@ -133,28 +120,32 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                     when {
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.T -> { vm.openWindow(WinKind.TERMINAL); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.S -> { vm.openWindow(WinKind.SETTINGS); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.M -> { vm.wm.minimizeAll(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.W -> { vm.wm.focused?.let { vm.wm.close(it.id) }; true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.A -> { vm.openWindow(WinKind.APPS); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.D -> { vm.desktopMenu(Offset(120f, 160f)); true }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.K -> { vm.toggleKeyboard?.invoke(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionRight -> { vm.wm.cycleFocus(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionLeft -> { vm.wm.cycleFocus(); true }
-                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionUp -> {
-                            vm.wm.focused?.let { vm.wm.toggleMaximize(it.id) }; true
+                        // Ctrl+Alt+Left / Right walks the workspace pages (icons & widgets, no windows)
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionRight -> {
+                            vm.switchDesktop((vm.desktop + 1) % vm.desktopCount); true
                         }
-                        ev.key == Key.Tab -> { vm.wm.cycleFocus(); true }
+                        ev.isCtrlPressed && ev.isAltPressed && ev.key == Key.DirectionLeft -> {
+                            vm.switchDesktop((vm.desktop - 1 + vm.desktopCount) % vm.desktopCount); true
+                        }
                         ev.isCtrlPressed && ev.isAltPressed && ev.key in NUMBER_KEYS -> {
-                            val index = NUMBER_KEYS.indexOf(ev.key)
-                            if (ev.isShiftPressed) vm.moveFocusedToDesktop(index) else vm.switchDesktop(index)
-                            true
+                            vm.switchDesktop(NUMBER_KEYS.indexOf(ev.key)); true
                         }
                         ev.key == Key.MetaLeft || ev.key == Key.MetaRight -> { vm.spotlight = true; true }
                         ev.key == Key.Enter -> {
                             vm.openSelected(); true
                         }
                         ev.key == Key.Escape -> {
-                            vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false
-                            vm.widgetEdit = false; vm.appPicker = false; true
+                            // Esc leaves our own full-screen app first, then the menus
+                            if (vm.shellOpen != null) {
+                                vm.closeShell()
+                            } else {
+                                vm.menu = null; vm.spotlight = false; vm.startMenu = false; vm.launchpad = false
+                                vm.widgetEdit = false; vm.appPicker = false
+                            }
+                            true
                         }
                         else -> false
                     }
@@ -180,10 +171,16 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
                         bottom = with(density) { insets.bottom.toDp() },
                     ),
             ) {
-                when (settings.style) {
-                    DesktopStyle.LINUX -> LinuxShell(vm)
-                    DesktopStyle.MACOS -> MacosShell(vm)
-                    DesktopStyle.WINDOWS -> WindowsShell(vm)
+                if (vm.shellOpen != null) {
+                    // one of our own apps owns the screen: same full-screen window with the same
+                    // frame the cyberdeck chrome draws over somebody else's app
+                    ShellHost(vm, Modifier.fillMaxSize())
+                } else {
+                    when (settings.style) {
+                        DesktopStyle.LINUX -> LinuxShell(vm)
+                        DesktopStyle.MACOS -> MacosShell(vm)
+                        DesktopStyle.WINDOWS -> WindowsShell(vm)
+                    }
                 }
 
                 vm.menu?.let { m ->

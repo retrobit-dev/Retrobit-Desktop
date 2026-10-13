@@ -167,19 +167,21 @@ class PanelView(context: Context) : View(context) {
         y += snap8(dp(30f)) + dp(10f)
 
         // ── the app in front ────────────────────────────────────────────────────
-        y = section(canvas, x, y, "IN FRAME NOW", if (state.apps.isEmpty()) "nothing is open" else null)
+        y = section(canvas, x, y, "OPEN AN APP", if (state.apps.isEmpty()) "no apps installed" else null)
         if (state.apps.isEmpty()) {
-            y = hint(canvas, x, y, "open an app from the desktop dock and it appears here: one tap brings it back and fits it into its frame, a hold opens its shell.")
+            y = hint(canvas, x, y, "nothing to open: install an app and it shows up here.")
         } else {
+            // the app in front first, then the apps this tablet opens most - one tap opens that app
+            // full screen, which is how every app opens now (the chrome draws its frame)
             var cx = x
-            state.apps.take(4).forEach { app ->
+            state.apps.take(5).forEach { app ->
                 val w = minOf(text.measureText(app.label) + dp(30f), dp(280f))
                 if (cx + w > right) return@forEach
                 chip(canvas, cx, y, w, snap8(dp(30f)), app.label, "win:" + app.pkg, Glyph.HOME)
                 cx += w + dp(6f)
             }
             y += snap8(dp(30f)) + dp(6f)
-            y = hint(canvas, x, y, "tap = bring it back and fit it into its frame · hold = open its shell here")
+            y = hint(canvas, x, y, "one tap opens the app full screen - the chrome draws its frame")
             y += dp(6f)
         }
 

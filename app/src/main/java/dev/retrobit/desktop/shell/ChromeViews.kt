@@ -38,7 +38,7 @@ class RailView(
     private val topRail: Boolean,
 ) : View(context) {
 
-    /** Called with an action id: "home", "fit", "hide", "win:<id>", "app:<pkg>". */
+    /** Called with an action id: "home", "hide", "panel", "kbd", "eye", "rail:mode", "app:<pkg>". */
     var onAction: ((String) -> Unit)? = null
 
     /** Called on any press, so the service can keep the rail awake / bring it back. */
@@ -188,9 +188,6 @@ class RailView(
         right = box(canvas, right, top, key, "hide", "hide", Glyph.CLOSE, growRight = false) - dp(5f)
         right = box(canvas, right, top, key, "eye", "hide rails", Glyph.EYE, growRight = false) - dp(5f)
         right = box(canvas, right, top, key, "home", "desktop", Glyph.HOME, growRight = false) - dp(5f)
-        if (state.canRefit) {
-            right = box(canvas, right, top, key, "fit", "fit frame", Glyph.GRID, growRight = false) - dp(5f)
-        }
         right = box(canvas, right, top, key, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(5f)
         right = box(canvas, right, top, key, "kbd", "keyboard", Glyph.KEYBOARD, growRight = false) - dp(5f)
 
@@ -271,7 +268,7 @@ class RailView(
         hits += modeRect to "rail:mode"
         x = modeRect.right + dp(8f)
 
-        // right edge belongs to the hide key: reserve it plus the open windows
+        // right edge belongs to the hide key: reserve it before the app list
         var rx = width - hPad
         val dockKey = snap8(itemH * 0.76f)
         val dockKeyTop = top + (itemH - dockKey) / 2f
@@ -280,20 +277,14 @@ class RailView(
         rx = box(canvas, rx, dockKeyTop, dockKey, "panel", "quick panel", Glyph.SETTINGS, growRight = false) - dp(6f)
         rx = box(canvas, rx, dockKeyTop, dockKey, "kbd", "keyboard", Glyph.KEYBOARD, growRight = false) - dp(8f)
 
-        val windows = state.windows.takeLast(3)
-        val winRoom = windows.size * dp(120f)
-        val pinned = state.dock.take(6)
-        val endOfPinned = (width - hPad - winRoom - dp(150f)).coerceAtLeast(x + dp(80f))
+        // apps, left to right: an app fills the screen now, so the dock lists what to open - not
+        // which windows are up (there are none)
+        val pinned = state.dock.take(8)
+        val endOfPinned = (rx - dp(20f)).coerceAtLeast(x + dp(80f))
         pinned.forEach { entry ->
             val w = appWidth(entry, labelSize, iconSize)
             if (x + w > endOfPinned) return@forEach
             x = app(canvas, x, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, null, entry.active, entry.pinned) + dp(6f)
-        }
-
-        windows.reversed().forEach { entry ->
-            val w = minOf(appWidth(entry, labelSize, iconSize), dp(132f))
-            if (rx - w < x + dp(6f)) return@forEach
-            rx = appRight(canvas, rx, top, itemH, labelSize, iconSize, entry.action, entry.label, entry.pkg, entry.active, entry.pinned, w) - dp(6f)
         }
     }
 

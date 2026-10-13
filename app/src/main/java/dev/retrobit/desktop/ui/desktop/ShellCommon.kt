@@ -263,16 +263,15 @@ fun DockInsertMarker(slots: DockSlots, horizontal: Boolean) {
 }
 
 /**
- * Virtual desktop switcher: one square per workspace, the number of windows drawn as dots.
+ * Workspace switcher: one square per page of desktop icons and widgets.
  * Tap a square to switch, tap the active one for the desktop menu.
  */
 @Composable
 fun WorkspacePager(vm: LauncherViewModel, modifier: Modifier = Modifier, boxSize: Dp = dp(22f)) {
     val p = LocalPalette.current
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(dp(4f)), verticalAlignment = Alignment.CenterVertically) {
-        for (index in 0 until vm.wm.desktopCount) {
-            val active = vm.wm.desktop == index
-            val windowsHere = vm.wm.onScreen.count { it.desktop == index }
+        for (index in 0 until vm.desktopCount) {
+            val active = vm.desktop == index
             Box(
                 Modifier
                     .size(boxSize)
@@ -292,13 +291,6 @@ fun WorkspacePager(vm: LauncherViewModel, modifier: Modifier = Modifier, boxSize
                         weight = FontWeight.Bold,
                         color = if (active) p.paper else p.ink,
                     )
-                    if (windowsHere > 0) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-                            repeat(windowsHere.coerceAtMost(3)) {
-                                Box(Modifier.size(3.dp).background(if (active) p.paper else p.ink))
-                            }
-                        }
-                    }
                 }
             }
         }

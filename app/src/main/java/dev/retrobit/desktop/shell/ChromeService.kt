@@ -595,17 +595,6 @@ class ChromeService : Service() {
                 keepAwake()
                 if (mode != null) runCatching { mode() } else syncSoon()
             }
-            action == "fit" -> {
-                val refit = CyberdeckChrome.onRefit
-                hide()
-                if (refit != null) runCatching { refit() }
-            }
-            action.startsWith("win:") -> {
-                val id = action.removePrefix("win:").toIntOrNull()
-                val open = CyberdeckChrome.onOpenWindow
-                hide()
-                if (id != null && open != null) runCatching { open(id) }
-            }
             action.startsWith("app:") -> {
                 val pkg = action.removePrefix("app:")
                 val open = CyberdeckChrome.onOpenPackage

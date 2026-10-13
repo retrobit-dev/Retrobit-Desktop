@@ -31,7 +31,7 @@ object PanelChrome {
         val dockOn: Boolean = true,
         val autoHide: Boolean = true,
         val autoHideSecs: Int = 6,
-        /** Windows open right now: tap = bring it to the front and fit it into its frame. */
+        /** Apps to open from here: the app in front, then the ones this tablet uses most. */
         val apps: List<AppRef> = emptyList(),
         /** Apps the chrome must stay away from. */
         val noChrome: List<String> = emptyList(),

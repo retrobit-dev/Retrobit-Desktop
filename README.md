@@ -137,6 +137,16 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Tulisan rail/dock di-snap ke grid font 16 px dan ikon dock memakai **ikon asli aplikasi**
   (grayscale), jadi mudah dibaca.
 
+### Satu aplikasi, satu layar (tanpa floating window)
+- Desktop = **ikon + widget**. Membuka apa pun membuka **penuh**, dan bingkai cyberdeck digambar di
+  sekelilingnya: aplikasi pihak ketiga oleh `ChromeService` (overlay), aplikasi kita sendiri oleh
+  launcher (`ShellHost`, dengan title rail + dock yang sama bentuknya).
+- Launcher **tidak pernah** meminta Android membuat floating window lagi, dan tidak ada kotak
+  jendela di desktop: tanpa pindah/resize/minimize/maximize, tanpa tiling atau edge snapping.
+  Terminal kehilangan `wmctrl`, `tiling`, `floating`, `appframe`, `wsmove` untuk itu.
+- Esc (atau tombol `desktop` di rail) keluar dari aplikasi kita; `ctrl+alt+left/right` dan
+  `ctrl+alt+1..4` berpindah halaman desktop (ikon & widget).
+
 ### Quick panel & dock pintar
 - **Quick panel** (tombol gear di rail, terminal `panel`): brightness (drag + `B-`/`B+`/`auto`),
   rotation lock, night mode (palet ink), toggle chrome/rail/dock, auto-hide on/off + 4/6/10/20s,

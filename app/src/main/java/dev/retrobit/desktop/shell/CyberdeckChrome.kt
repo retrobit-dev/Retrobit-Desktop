@@ -1,18 +1,19 @@
 package dev.retrobit.desktop.shell
 
 /**
- * Shared state of the **cyberdeck chrome**: the frame the launcher draws *over* an app that the
- * system refused to float.
+ * Shared state of the **cyberdeck chrome**: the frame the launcher draws *over* the app that owns
+ * the screen.
  *
  * Why this exists: Android only lets a normal app place another app inside its own view through a
- * freeform (floating) system window, and plenty of tablets simply do not have that windowing mode —
- * on those devices every app opens full screen and the desktop frame behind it is never seen. The
- * launcher can still draw *on top* of the app (with the "display over other apps" permission), so
- * the frame, the title rail and the dock are drawn as overlay strips: the app then reads as a
- * window of the desktop even though the system gave it the whole screen.
+ * freeform (floating) system window, and this desktop deliberately never asks for one. Every app
+ * opens full screen - that is the model now, there are no desktop boxes either - and the launcher
+ * draws *on top* of the app instead (with the "display over other apps" permission): the black
+ * frame, the title rail and the dock are overlay strips, so whatever app is in front reads as a
+ * window of this desktop. Our own apps get the same frame from the launcher itself
+ * ([dev.retrobit.desktop.ui.desktop.ShellHost]), so the desktop looks the same either way.
  *
  * The launcher view model fills this object in and wires the actions; [ChromeService] owns the
- * windows and calls back once a second ([onRefresh]) so the rails always read fresh data.
+ * overlay windows and calls back once a second ([onRefresh]) so the rails always read fresh data.
  */
 object CyberdeckChrome {
 
@@ -34,15 +35,11 @@ object CyberdeckChrome {
         val ink: Ink = Ink(0xFFE8E5DA.toInt(), 0xFF1B1B1B.toInt(), 0xFF3F3F3F.toInt(), 0xFF3F3F3F.toInt()),
         /** Name shown in the title rail: the app in front, or "desktop". */
         val title: String = "desktop",
-        /** True when the app in front came from one of our window frames. */
+        /** True when an app owns the screen (so the frame reads as a window around it). */
         val inFrame: Boolean = false,
-        /** True when that app has a frame we can send it back into (drives the "fit" button). */
-        val canRefit: Boolean = false,
         val desktop: Int = 1,
         val desks: Int = 1,
-        /** Open app windows, so the dock can jump between them. */
-        val windows: List<Bar> = emptyList(),
-        /** Pinned dock apps. */
+        /** The dock list: the pinned apps, or the most used ones (see railMode). */
         val dock: List<Bar> = emptyList(),
         /** Desktop scale of the launcher, so the rails match the rest of the UI. */
         val scale: Float = 1f,
@@ -94,14 +91,6 @@ object CyberdeckChrome {
     @Volatile
     var onHideChrome: (() -> Unit)? = null
 
-    /** Send the app in front back into its window frame (relaunch it at the frame rectangle). */
-    @Volatile
-    var onRefit: (() -> Unit)? = null
-
-    /** Focus the desktop window with this id (raises the app inside it). */
-    @Volatile
-    var onOpenWindow: ((Int) -> Unit)? = null
-
     /** Open an installed app by package name. */
     @Volatile
     var onOpenPackage: ((String) -> Unit)? = null
@@ -122,7 +111,7 @@ object CyberdeckChrome {
     @Volatile
     var onRailMode: (() -> Unit)? = null
 
-    /** A rail key was held: "win:<id>" opens that app's shell, "app:<pkg>" pins or unpins it. */
+    /** A rail key was held: "app:<pkg>" pins or unpins it in the dock. */
     @Volatile
     var onRailHold: ((String) -> Unit)? = null
 

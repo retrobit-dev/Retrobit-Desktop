@@ -5,7 +5,7 @@ import android.content.pm.LauncherActivityInfo
 import android.os.UserHandle
 
 enum class DesktopStyle(val label: String, val osName: String, val tagline: String) {
-    LINUX("Linux", "retrOS GNU/Linux", "top panel · side dock · tiling · terminal"),
+    LINUX("Linux", "retrOS GNU/Linux", "top panel · side dock · terminal"),
     MACOS("macOS", "Retro System 9", "menu bar · dock · launchpad · spotlight"),
     WINDOWS("Windows", "Retrodows 95", "start menu · taskbar · system tray"),
 }
@@ -33,10 +33,13 @@ enum class IconMode(val label: String) {
     DITHER("1-bit"),
 }
 
+/**
+ * The launcher's own apps. Each one opens **full screen** ([dev.retrobit.desktop.ui.desktop.ShellHost]);
+ * third-party apps are launched plainly and fill the screen too - the cyberdeck chrome draws the
+ * frame around whatever owns the screen.
+ */
 enum class WinKind(val singleton: Boolean) {
     APPS(false),
-    /** A third-party app "wrapped" in a desktop window: chrome we own, app launched from it. */
-    APPWINDOW(false),
     TERMINAL(false),
     SETTINGS(true),
     SYSMON(true),

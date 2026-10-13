@@ -68,37 +68,20 @@ class AppRepository(private val context: Context) {
     }
 
     /**
-     * Launches an app.
-     *
-     * [bounds] is the rectangle the app should occupy on devices that support floating windows
-     * ([WindowedLaunch.activityOptionsFor]); it is also passed as the launch source bounds so the
-     * system animates from our window. With `force = true` the app's task is cleared and recreated,
-     * which is the only public way to move an app that is *already* running into a new rectangle.
+     * Launches an app. Apps open **full screen**: this desktop never asks the system for a floating
+     * window, so there is no rectangle to send and no task to recreate - the frame the user sees
+     * around the app is drawn by the cyberdeck chrome (see shell/ChromeService).
      */
-    fun launch(
-        app: AppEntry,
-        bounds: Rect? = null,
-        options: android.os.Bundle? = null,
-        force: Boolean = false,
-    ): Boolean = try {
-        if (force) {
-            val i = WindowedLaunch.launchIntent(context, app.pkg) ?: throw IllegalStateException("no launch intent")
-            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
-            if (options != null) context.startActivity(i, options) else context.startActivity(i)
-            true
-        } else {
-            val launcher = launcherApps ?: throw IllegalStateException("no launcher service")
-            launcher.startMainActivity(app.component, app.user, bounds, options)
-            true
-        }
+    fun launch(app: AppEntry): Boolean = try {
+        val launcher = launcherApps ?: throw IllegalStateException("no launcher service")
+        launcher.startMainActivity(app.component, app.user, null, null)
+        true
     } catch (t: Throwable) {
-        // Fallback: plain launch intent, with the floating bounds when we have them.
         runCatching {
             val i = context.packageManager.getLaunchIntentForPackage(app.pkg)
             if (i != null) {
                 i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                if (options != null) context.startActivity(i, options) else context.startActivity(i)
+                context.startActivity(i)
                 true
             } else false
         }.getOrDefault(false)

@@ -72,31 +72,13 @@ fun SystemMonitorView(vm: LauncherViewModel) {
         RetroText("uptime  : ${SystemInfo.fmtUptime(snap.uptimeMs)}", size = 12f)
         RetroText("network : ${snap.net}", size = 12f)
         RetroText("battery : " + if (snap.battery < 0) "unavailable" else "${snap.battery}%" + if (snap.charging) " (charging)" else "", size = 12f)
-        Section("open windows (${vm.wm.windows.size} total, desktop ${vm.wm.desktop + 1})")
-        if (vm.wm.windows.isEmpty()) {
-            RetroText("none — long-press the desktop for a menu", size = 12f, color = p.mid)
-        } else {
-            vm.wm.windows.forEach { w ->
-                Row(
-                    Modifier.fillMaxWidth().padding(vertical = dp(2f)),
-                    horizontalArrangement = Arrangement.spacedBy(dp(8f)),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    RetroText("#${w.id} d${w.desktop + 1}", size = 12f, color = p.mid)
-                    RetroText(w.kind.name.lowercase(), size = 12f, weight = FontWeight.Bold)
-                    RetroText(w.title, size = 12f, color = p.mid, maxLines = 1, modifier = Modifier.weight(1f))
-                    if (w.minimized) dev.retrobit.desktop.ui.components.RetroIconButton(
-                        label = "+",
-                        boxSize = dp(22f),
-                        onClick = { vm.wm.focus(w.id) },
-                    ) else dev.retrobit.desktop.ui.components.RetroIconButton(
-                        label = "-",
-                        boxSize = dp(22f),
-                        onClick = { vm.wm.minimize(w.id) },
-                    )
-                }
-            }
-        }
+        Section("what the chrome is describing")
+        RetroText(
+            "apps open full screen: the cyberdeck rail reports the app in front" +
+                (vm.frontApp?.let { " - ${it.label}" } ?: " - nothing is open right now") +
+                ", workspace ${vm.desktop + 1} of ${vm.desktopCount}.",
+            size = 12f, color = p.mid, maxLines = 4,
+        )
     }
 }
 

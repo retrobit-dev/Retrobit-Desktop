@@ -10,6 +10,31 @@
 ## Yang baru di {{TAG}}
 
 
+### Tidak ada lagi floating window: satu aplikasi, satu layar
+Desktop-nya sekarang bersih - **ikon dan widget saja**. Membuka apa pun (aplikasi terpasang,
+terminal, settings, notes) membuka **penuh**, dan bingkai cyberdeck (border hitam, title rail, dock)
+digambar di sekelilingnya:
+
+- **Aplikasi pihak ketiga**: dibuka biasa oleh Android dan memenuhi layar; chrome yang menggambar
+  bingkainya. Launcher tidak pernah lagi meminta Android membuat *floating window* (freeform), jadi
+  tidak ada lagi jendela yang melayang-layang di atas desktop atau task yang di-restart.
+- **Aplikasi kita sendiri** (terminal, settings, applications, notes, system monitor, calendar,
+  about): sekarang juga **penuh**, dengan bingkai, title rail (nama + jam hidup + tombol panel &
+  desktop) dan **dock di bawah** yang sama bentuknya dengan dock chrome - jadi desktop terlihat sama
+  dari sisi mana pun kamu melihatnya.
+- Esc (atau tombol `desktop` di rail) keluar dari aplikasi kita; tombol Back juga.
+
+### Yang dihapus (biar jujur)
+- **Floating window / freeform**: `WindowedLaunch`, rectangle `setLaunchBounds`, refleksi
+  `setLaunchWindowingMode`, pengaturan *float apps inside their window frame*, dan *apps follow their
+  window*.
+- **Kotak jendela di desktop**: pindah, resize 8 arah, minimize, maximize/restore, tiling, edge
+  snapping, cascade, dan tombol "place here".
+- Tombol daftar jendela di panel Linux, taskbar Windows, dan strip macOS - tidak ada jendela untuk
+  didaftar. Terminal: `wmctrl`, `tiling`, `floating`, `appframe`, `wsmove` ikut hilang.
+- Yang **tetap** ada: desktop per workspace (sekarang halaman ikon & widget), dock pintar
+  pinned/most-used, quick panel, widget, icon grid, dan seluruh chrome cyberdeck.
+
 ### Perbaikan penting: quick panel benar-benar bekerja saat aplikasi lain di depan
 - Sebelumnya tombol-tombol panel (brightness, rotate, night, mode dock, aturan app) dikirim lewat
   broadcast ke activity launcher, dan receiver-nya hanya terdaftar saat launcher **di depan** -

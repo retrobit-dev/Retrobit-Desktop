@@ -34,7 +34,6 @@ class Settings(context: Context) {
     var showWidgets: Boolean by boolPref("showWidgets", true)
     var bootSequence: Boolean by boolPref("bootSequence", true)
     var hideSystemBars: Boolean by boolPref("hideSystemBars", true)
-    var tiling: Boolean by boolPref("tiling", false)
     /** Where the desktop background comes from: generated pattern, the device wallpaper, or a picture. */
     var wallpaperSource: String by stringPref("wallpaperSource", dev.retrobit.desktop.data.WallpaperSource.PATTERN.name)
     /** Content URI of the picture chosen by the user. */
@@ -72,16 +71,10 @@ class Settings(context: Context) {
         appUsage = dev.retrobit.desktop.data.AppUsage.bump(appUsage, pkg)
     }
 
-    /**
-     * Move a floating app with its desktop window: after a frame is dragged or resized, the app is
-     * sent to the new rectangle again. Off means the frame and the app move independently (then use
-     * "place here" in the window by hand).
-     */
-    var appWindowFollow: Boolean by boolPref("appWindowFollow", true)
 
     /**
-     * Cyberdeck chrome: draw the desktop frame, the title rail and the dock **over** an app that the
-     * system opened full screen, so the desktop keeps its shape on tablets that cannot float windows.
+     * Cyberdeck chrome: draw the desktop frame, the title rail and the dock **over** the app that
+     * owns the screen - every app opens full screen and the chrome is what makes it a window.
      * Needs the "display over other apps" permission, which the Settings screen asks for.
      */
     var cyberdeckChrome: Boolean by boolPref("cyberdeckChrome", false)
@@ -118,18 +111,8 @@ class Settings(context: Context) {
 
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
-    /** Drag a window against a screen edge to snap it (half screen / maximize). */
-    var snapWindows: Boolean by boolPref("snapWindows", true)
     /** Virtual desktops (workspaces), 1..4. */
     var workspaceCount: Int by intPref("workspaceCount", 3)
-    /**
-     * Every app opened from the launcher is wrapped in its own desktop window — movable, resizable,
-     * minimizable, maximizable (and restorable) — exactly like Settings or Terminal. On: the app is
-     * also asked to float inside that frame, i.e. the frame's content rectangle is sent to the system
-     * with the launch. Off: the app itself opens full screen while the frame stays its entry in the
-     * taskbar and the workspaces (a fallback for tablets that mishandle floating windows).
-     */
-    var floatingApps: Boolean by boolPref("floatingApps", true)
     /** Keep the desktop chrome clear of the punch-hole camera and the rounded display corners. */
     var safeArea: Boolean by boolPref("safeArea", true)
     /** Radius of the display corner the chrome must stay out of, in dp. */

@@ -20,7 +20,6 @@ import dev.retrobit.desktop.shell.ChromeService
 import dev.retrobit.desktop.shell.CyberdeckChrome
 import dev.retrobit.desktop.ui.apps.TerminalShell
 import dev.retrobit.desktop.ui.components.MenuItem
-import dev.retrobit.desktop.ui.wm.WindowManager
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.delay
@@ -33,9 +32,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     val settings = Settings(app)
     val repo = AppRepository(app)
     val calendar = dev.retrobit.desktop.data.CalendarStore(app)
-    val wm = WindowManager(repo, settings)
-    /** Which desktop windows wrap a launched third-party app. */
-    val appWindows = dev.retrobit.desktop.ui.wm.AppWindows()
     val shell = TerminalShell(this)
 
     var snapshot by mutableStateOf(SystemInfo.snapshot(app))
@@ -59,17 +55,28 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Safe-area padding of the shell in px, kept up to date by the desktop (camera hole + corners). */
     var desktopInsets by mutableStateOf(dev.retrobit.desktop.ui.theme.DesktopInsets.Zero)
 
-    /** The rectangle the last app was placed at, shown in the app window for transparency. */
-    var placedRect by mutableStateOf<dev.retrobit.desktop.ui.wm.Placement?>(null)
+    /**
+     * The internal app that fills the screen - terminal, settings, notes, the app drawer... `null`
+     * means the desktop itself is showing. There are **no desktop windows any more**: an app (ours
+     * or somebody else's) either fills the screen with the cyberdeck frame around it, or it is not
+     * on screen at all.
+     */
+    var shellOpen: WinKind? by mutableStateOf(null)
+        private set
 
-    /** Bumped when a frame has been moved / resized; the UI debounces and re-places after it. */
-    var frameSettleTick by mutableStateOf(0)
+    /** Which page of desktop icons and widgets is showing (see [switchDesktop]). */
+    var desktop by mutableStateOf(0)
+        private set
+
+    /** Pages of desktop icons and widgets ("workspaces"). */
+    val desktopCount: Int get() = settings.workspaceCount.coerceIn(1, 4)
 
     /**
-     * The rectangle last sent to the system per window: an unchanged frame is never re-sent, so a
-     * re-layout or a tiling pass cannot drag an app back to the front for nothing.
+     * The app we opened last: while it owns the screen this is what the rails describe, and what
+     * the per-app rules are checked against.
      */
-    private val placedByWindow = HashMap<Int, dev.retrobit.desktop.ui.wm.Placement>()
+    var frontApp: AppEntry? by mutableStateOf(null)
+        private set
 
     fun selectIcon(app: AppEntry) {
         selectedApp = app
@@ -185,13 +192,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     // The frame drawn *over* an app that the system opened full screen: see shell/ChromeService.
     // The rails read their content from CyberdeckChrome, which is filled in by syncChrome().
 
-    /** The app whose window was opened last: it is the title the chrome shows. */
-    private var chromeApp: AppEntry? = null
-    private var chromeWinId = -1
-
-    /** When the last app was sent to a frame rectangle (evidence for the full-screen probe). */
-    private var lastFloatLaunchAt = 0L
-
     /** The package whose rails the user hid with the eye key (a "not now", not a setting). */
     private var chromeMutedFor: String? = null
 
@@ -206,13 +206,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         shell.print(message)
         syncChrome()
     }
-
-    /**
-     * The app that took the whole screen right after we asked for a floating rectangle — proof that
-     * this tablet would not float it. The window of that app says so instead of pretending.
-     */
-    var lastFullScreenApp: String? by mutableStateOf(null)
-        private set
 
     /**
      * Bumped whenever the chrome state may have changed (permission granted, service started or
@@ -234,12 +227,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             ChromeService.visible -> "chrome: drawing the frame now"
             else -> "chrome: ready"
         }
-        val dev = if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(appContext)) {
-            "this tablet can float windows, so the chrome stays out of the way"
-        } else {
-            "this tablet does not float windows, so the chrome is what keeps the frame visible"
-        }
-        return "$permitted | $service | $dev"
+        return "$permitted | $service | every app opens full screen and the frame is drawn over it"
     }
 
     /** Turns the chrome on or off; turning it on asks for the permission when it is missing. */
@@ -291,39 +279,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         )
     }
 
-    /** The rail's "fit frame" key: relaunch the app in front inside its desktop window. */
-    private fun refitChromeWindow() {
-        val win = wm.windows.firstOrNull { it.id == chromeWinId } ?: return
-        placeAppWindow(win, force = true)
-        goDesktop()
-    }
-
     /** Everything the rails draw, pushed into the shared chrome state. Cheap: a few list copies. */
     fun syncChrome() {
         val palette = dev.retrobit.desktop.ui.theme.Palettes.of(settings.palette)
-        val front = wm.windows.firstOrNull { it.id == chromeWinId }
-        val windows = wm.windows
-            .filter { it.kind == WinKind.APPWINDOW && appWindows.isRunning(it.id) }
-            .map { win ->
-                dev.retrobit.desktop.shell.CyberdeckChrome.Bar(
-                    label = win.app?.label ?: win.title,
-                    action = "win:${win.id}",
-                    active = win.id == chromeWinId,
-                    pkg = win.app?.pkg,
-                )
-            }
-        // what the dock shows: the pinned apps, or the ones this tablet actually uses
-        val usedPkgs = settings.pinnedDock.take(2) +
-            dev.retrobit.desktop.data.AppUsage.order(
-                items = apps,
-                counts = usageCounts(),
-                pkg = { it.pkg },
-                label = { it.label },
-            ).map { it.pkg } +
-            settings.pinnedDock.drop(2)
-        val dockPkgs = if (settings.railMode == "used") usedPkgs.distinct() else settings.pinnedDock
-        val dock = dockPkgs
-            .filterNot { settings.chromeNoApps.contains(it) }
+        val front = frontApp
+        val dock = dockPkgs()
             .take(6)
             .map { pkg ->
                 dev.retrobit.desktop.shell.CyberdeckChrome.Bar(
@@ -340,12 +300,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 mid = palette.mid.toArgb(),
                 accent = palette.accent.toArgb(),
             ),
-            title = front?.app?.label ?: "desktop",
+            title = front?.label ?: "desktop",
             inFrame = front != null,
-            canRefit = front != null && settings.floatingApps,
-            desktop = wm.desktop + 1,
-            desks = wm.desktopCount,
-            windows = windows,
+            desktop = desktop + 1,
+            desks = desktopCount,
             dock = dock,
             scale = settings.uiScale.coerceIn(0.6f, 2f),
             topRail = settings.chromeTopRail,
@@ -377,8 +335,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         dev.retrobit.desktop.shell.PanelChrome.onAction = { action -> onPanelAction(action) }
         CyberdeckChrome.onHome = { goDesktop() }
         CyberdeckChrome.onHideChrome = { setCyberdeck(false) }
-        CyberdeckChrome.onRefit = { refitChromeWindow() }
-        CyberdeckChrome.onOpenWindow = { id -> wm.windows.firstOrNull { it.id == id }?.let { focusAppWindow(it) } }
         CyberdeckChrome.onOpenPackage = { pkg ->
             val app = appByPackage(pkg)
             if (app != null) {
@@ -400,9 +356,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
      * brings them back, so this is a "not now" and never a setting.
      */
     private fun hideChromeNow() {
-        chromeMutedFor = chromeApp?.pkg
+        chromeMutedFor = frontApp?.pkg
         runCatching { ChromeService.hide(appContext) }
-        flashChrome("rails hidden for ${chromeApp?.label ?: "this app"}")
+        flashChrome("rails hidden for ${frontApp?.label ?: "this app"}")
     }
 
     /** A tap on an empty rail spot: bring the rails up, or take them down for this app. */
@@ -413,6 +369,36 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /**
+     * The dock list, in the order it is drawn: the pinned apps, or - in "most used" mode - whatever
+     * this tablet actually opens, always with the apps that asked for no chrome filtered out.
+     * Shared by the chrome overlay ([syncChrome]) and by our own full-screen shells (ShellHost dock).
+     */
+    fun dockPkgs(): List<String> {
+        val pinned = settings.pinnedDock
+        val order = if (settings.railMode == "used") {
+            (pinned.take(2) + appsByUsage().map { it.pkg } + pinned.drop(2)).distinct()
+        } else pinned
+        return order.filterNot { settings.chromeNoApps.contains(it) }
+    }
+
+    /** The drawer order: the apps launched most often first, the rest alphabetical (see AppUsage). */
+    fun appsByUsage(): List<AppEntry> = dev.retrobit.desktop.data.AppUsage.order(
+        items = apps,
+        counts = usageCounts(),
+        pkg = { it.pkg },
+        label = { it.label },
+    )
+
+    /** Launch counts per package, parsed once per read (the preference is a single string). */
+    fun usageCounts(): Map<String, Int> = dev.retrobit.desktop.data.AppUsage.parse(settings.appUsage)
+
+    /** How often [pkg] has been opened from this launcher. */
+    fun usageOf(pkg: String): Int = usageCounts()[pkg] ?: 0
+
+    /** The same dock list as app entries (up to [max]) - what our own full-screen dock draws. */
+    fun dockApps(max: Int = 12): List<AppEntry> = dockPkgs().take(max).mapNotNull { appByPackage(it) }
+
     /** The dock divider: the pinned apps, or the ones this tablet uses most. */
     private fun switchRailMode() {
         settings.railMode = if (settings.railMode == "used") "pinned" else "used"
@@ -421,16 +407,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         runCatching { dev.retrobit.desktop.shell.PanelService.sync(appContext) }
     }
 
-    /** A rail key was held: a window key opens that app's shell, a dock key pins or unpins it. */
+    /** A rail key was held: an app key pins or unpins that app in the dock. */
     private fun onRailHold(action: String) {
         when {
-            action.startsWith("win:") -> {
-                val id = action.removePrefix("win:").toIntOrNull() ?: return
-                val win = wm.windows.firstOrNull { it.id == id } ?: return
-                val app = win.app ?: return
-                focusAppWindow(win)
-                openShellFor(app)
-            }
             action.startsWith("app:") -> toggleDockPin(action.removePrefix("app:"))
         }
     }
@@ -452,13 +431,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
      */
     private fun openShellFor(app: AppEntry) {
         shell.print("app shell: ${app.label} (${app.pkg})")
-        shell.print("  uid  target=${app.user.hashCode()}  window=${winOf(app)?.let { "${it.width.toInt()}x${it.height.toInt()}" } ?: "-"}", TerminalShell.Kind.DIM)
+        shell.print("  uid  target=${app.user.hashCode()}  opens full screen", TerminalShell.Kind.DIM)
         shell.print("  use `info ${app.label}` for the full package record", TerminalShell.Kind.DIM)
         openWindow(WinKind.TERMINAL)
         goDesktop()
     }
-
-    private fun winOf(app: AppEntry) = wm.windows.firstOrNull { it.kind == WinKind.APPWINDOW && it.app?.pkg == app.pkg }
 
     /** The per-app rules: apps the chrome must keep away from. */
     fun toggleChromeRule(pkg: String) {
@@ -467,7 +444,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         val label = appByPackage(pkg)?.label ?: pkg
         flashChrome((if (settings.chromeNoApps.contains(pkg)) "no chrome for " else "chrome back for ") + label)
         // a rule for the app in front applies right away
-        if (settings.chromeNoApps.contains(pkg) && chromeApp?.pkg == pkg) {
+        if (settings.chromeNoApps.contains(pkg) && frontApp?.pkg == pkg) {
             runCatching { ChromeService.hide(appContext) }
         }
         syncChrome()
@@ -500,9 +477,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     fun syncPanel() {
         val palette = dev.retrobit.desktop.ui.theme.Palettes.of(settings.palette)
         panelOpen = dev.retrobit.desktop.shell.PanelChrome.visible
-        val refs = (settings.pinnedDock.take(4) + chromeApp?.pkg.orEmpty().let { if (it.isBlank()) emptyList() else listOf(it) })
-            .distinct()
-            .mapNotNull { pkg -> appByPackage(pkg)?.let { dev.retrobit.desktop.shell.PanelChrome.AppRef(it.label, it.pkg) } }
+        // the app in front first, then what this tablet opens most: tap to open, hold for its shell
+        val refs = (frontApp?.let { listOf(it) }.orEmpty() + appsByUsage())
+            .distinctBy { it.pkg }
+            .take(5)
+            .map { dev.retrobit.desktop.shell.PanelChrome.AppRef(it.label, it.pkg) }
         dev.retrobit.desktop.shell.PanelChrome.state = dev.retrobit.desktop.shell.PanelChrome.State(
             paper = palette.paper.toArgb(),
             ink = palette.ink.toArgb(),
@@ -581,21 +560,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 settings.chromeDock = !settings.chromeDock
                 syncChrome()
             }
-            action.startsWith("win:") -> {
-                val pkg = action.removePrefix("win:")
-                appByPackage(pkg)?.let { app ->
-                    val win = winOf(app)
-                    if (win != null && win.app != null) {
-                        wm.focus(win.id)
-                        appWindows.markLaunched(win.id)
-                        chromeApp = app
-                        chromeWinId = win.id
-                        sendAppToWindow(app, win, force = true, quiet = true, float = true)
-                    } else {
-                        launch(app)
-                    }
-                }
-            }
+            action.startsWith("win:") -> appByPackage(action.removePrefix("win:"))?.let { launch(it) }
             action.startsWith("rule:") -> toggleChromeRule(action.removePrefix("rule:"))
             action == "close" -> closePanel()
         }
@@ -652,23 +617,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Another app owns the screen: draw the frame over it when the user asked for the chrome. */
     fun onLauncherHidden() {
-        val pkg = chromeApp?.pkg
+        val pkg = frontApp?.pkg
         val excluded = pkg != null && settings.chromeNoApps.contains(pkg)
-        val muted = chromeMutedFor != null && chromeMutedFor == pkg
+        val muted = pkg != null && chromeMutedFor == pkg
         if (settings.cyberdeckChrome && chromeAllowed() && !excluded && !muted) {
-            lastFullScreenApp = pkg
             runCatching { ChromeService.show(appContext) }
         } else if (settings.cyberdeckChrome && chromeAllowed() && excluded) {
             // "no chrome for this app" must not be a dead end: the rails fade in for a few seconds
             // with the reason and the way back
-            lastFullScreenApp = pkg
-            chromeFlash = "no chrome for ${chromeApp?.label ?: pkg} - the eye key turns it back on"
+            chromeFlash = "no chrome for ${frontApp?.label ?: pkg} - the eye key turns it back on"
             chromeFlashAt = System.currentTimeMillis()
             syncChrome()
             runCatching { ChromeService.preview(appContext, 4) }
-        } else if (lastFloatLaunchAt > 0L && System.currentTimeMillis() - lastFloatLaunchAt < 12_000L) {
-            // we asked the system to float this app and it owns the whole screen a moment later
-            lastFullScreenApp = chromeApp?.pkg
         }
         syncChrome()
     }
@@ -694,9 +654,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     private var seeded = false
 
     init {
-        // every move, resize, maximize or re-layout of a frame ends up here: that is the single
-        // place where the app inside the frame has to follow (see onAppFrameSettled)
-        wm.onGeometrySettled = { win -> onAppFrameSettled(win) }
         wireChrome()
         repo.registerChanges { viewModelScope.launch { repo.reload() } }
         viewModelScope.launch { repo.reload(); seedDefaults() }
@@ -745,213 +702,29 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── launching ────────────────────────────────────────────────────────────────
     /**
-     * Opens an app **wrapped in its own desktop window** — the same way Settings, Terminal, Notes and
-     * the calendar open: a frame with a title bar that can be moved, resized, minimized, maximized
-     * and restored. The app is sent to the frame's content rectangle, so on a tablet that can float
-     * windows it really sits inside the box. With "float apps inside their frame" turned off the app
-     * itself opens full screen while the frame stays its entry in the taskbar and the workspaces.
+     * Opens an app the way this desktop works now: it fills the screen and the cyberdeck chrome
+     * draws its frame (border, title rail, dock) on top of it. No floating windows, no desktop
+     * boxes - one app, one full screen, one frame.
      */
     fun launch(app: AppEntry) {
         selectedApp = null
-        openAppWindow(app)
+        shellOpen = null
+        // the launch counts drive the drawer order: most used first, then A-Z
+        settings.noteLaunch(app.pkg)
+        frontApp = app
+        val ok = repo.launch(app)
+        if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
         startMenu = false
         launchpad = false
         spotlight = false
+        syncChrome()
     }
 
     /** The application context, used by the windowed-launch helpers. */
     val appContext: android.content.Context get() = getApplication()
 
-    /**
-     * Opens the wrapper window for [app] and sends the app to that rectangle when possible. An app
-     * that already has a window is brought back to the front instead of opening a second twin.
-     */
-    fun openAppWindow(app: AppEntry) {
-        // the launch counts drive the drawer order: most used first, then A-Z
-        settings.noteLaunch(app.pkg)
-        val existing = wm.windows.firstOrNull {
-            it.kind == WinKind.APPWINDOW && it.app?.pkg == app.pkg && it.desktop == wm.desktop
-        }
-        if (existing != null) {
-            wm.focus(existing.id)
-            appWindows.markLaunched(existing.id)
-            chromeApp = app
-            chromeWinId = existing.id
-            sendAppToWindow(app, existing)
-            syncChrome()
-            return
-        }
-        val win = wm.openAppWindow(app) ?: return
-        appWindows.markLaunched(win.id)
-        chromeApp = app
-        chromeWinId = win.id
-        sendAppToWindow(app, win)
-        syncChrome()
-    }
-
-    /** The drawer order: the apps launched most often first, the rest alphabetical (see AppUsage). */
-    fun appsByUsage(): List<AppEntry> = dev.retrobit.desktop.data.AppUsage.order(
-        items = apps,
-        counts = usageCounts(),
-        pkg = { it.pkg },
-        label = { it.label },
-    )
-
-    /**
-     * The dock list every surface draws: the launcher's dock, the sidebar, the taskbar, the launcher
-     * widget and the cyberdeck dock. With [dev.retrobit.desktop.data.Settings.railMode] on "used",
-     * the two first pinned apps stay put and the apps this tablet actually uses follow - the dock
-     * then answers "what do I open every day" without any arranging.
-     */
-    fun dockApps(limit: Int = 12): List<AppEntry> {
-        val pinned = appsByPackages(settings.pinnedDock)
-        if (settings.railMode != "used") return pinned.take(limit)
-        val used = appsByUsage().take(limit * 2)
-        return (pinned.take(2) + used + pinned.drop(2)).distinctBy { it.pkg }.take(limit)
-    }
-
-    /** How often [pkg] has been opened from this launcher. */
-    fun usageOf(pkg: String): Int = usageCounts()[pkg] ?: 0
-
-    /** Launch counts per package, parsed once per read (the preference is a single string). */
-    fun usageCounts(): Map<String, Int> = dev.retrobit.desktop.data.AppUsage.parse(settings.appUsage)
-
-    /**
-     * "Place here": asks the system to put the app of [win] inside the frame's content area.
-     *
-     * [force] clears and recreates the app's task, which is the only public way to move an app that
-     * is already running into a new rectangle (Android offers no API to move another app's task).
-     */
-    fun placeAppWindow(win: dev.retrobit.desktop.ui.wm.WinState, force: Boolean = false) {
-        val app = win.app ?: return
-        appWindows.markLaunched(win.id)
-        placedRect = null
-        // an explicit press of "place here" always asks for the floating rectangle
-        sendAppToWindow(app, win, force = force, quiet = false, float = true)
-    }
-
-    /** Brings the app of an app window back to the front, inside its frame when possible. */
-    fun focusAppWindow(win: dev.retrobit.desktop.ui.wm.WinState) {
-        val app = win.app ?: return
-        appWindows.markLaunched(win.id)
-        sendAppToWindow(app, win, quiet = true)
-    }
-
-    /** Screen size in px, used to clamp the rectangle we send to the system. */
-    private fun screenSize(): Pair<Int, Int> {
-        val dm = appContext.resources.displayMetrics
-        return dm.widthPixels to dm.heightPixels
-    }
-
-    /**
-     * The screen rectangle the app should occupy for [win]: the frame's content area — below the
-     * title bar, inside the border — plus the safe-area padding of the launcher. In screen pixels,
-     * which is what `ActivityOptions.setLaunchBounds` expects.
-     */
-    fun placementFor(win: dev.retrobit.desktop.ui.wm.WinState): dev.retrobit.desktop.ui.wm.Placement? {
-        val density = appContext.resources.displayMetrics.density
-        val (sw, sh) = screenSize()
-        return dev.retrobit.desktop.ui.wm.AppWindowMath.contentRect(
-            frameX = win.x,
-            frameY = win.y,
-            frameW = win.width,
-            frameH = win.height,
-            titlePx = dev.retrobit.desktop.ui.wm.AppWindowMath.titleHeightPx(
-                TITLE_BAR_DP, settings.uiScale, density,
-            ),
-            borderPx = dev.retrobit.desktop.ui.wm.AppWindowMath.borderPx(FRAME_BORDER_DP, density),
-            insetLeft = desktopInsets.left,
-            insetTop = desktopInsets.top,
-            screenW = sw,
-            screenH = sh,
-        )
-    }
-
-    /** Launches the app into the rectangle of its desktop window. */
-    private fun sendAppToWindow(
-        app: AppEntry,
-        win: dev.retrobit.desktop.ui.wm.WinState,
-        force: Boolean = false,
-        quiet: Boolean = false,
-        float: Boolean = settings.floatingApps,
-        onlyIfChanged: Boolean = false,
-    ) {
-        if (!float) {
-            // the frame is there either way; with floating off the app itself opens full screen
-            repo.launch(app)
-            placedRect = null
-            if (!quiet) shell.print("${app.label}: opened full screen (floating windows are off)")
-            return
-        }
-        val placement = placementFor(win)
-        if (onlyIfChanged && placement != null && placedByWindow[win.id] == placement) return
-        val options = dev.retrobit.desktop.data.WindowedLaunch.activityOptionsFor(placement)
-        placedRect = placement
-        if (placement == null) {
-            // the frame itself is too small (or too much of it is chrome): no window to ask for
-            repo.launch(app)
-            if (!quiet) shell.print("${app.label}: window frame is too small, opened full screen")
-            return
-        }
-        val ok = repo.launch(app, placement.toRect(), options, force)
-        if (!ok) {
-            shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
-            return
-        }
-        placedByWindow[win.id] = placement
-        // evidence for the chrome: this app was sent to a frame a moment ago, so an app that owns
-        // the screen right after this was opened full screen by the system
-        lastFloatLaunchAt = System.currentTimeMillis()
-        chromeApp = app
-        chromeWinId = win.id
-        if (quiet) return
-        shell.print(
-            (if (force) "${app.label}: restarting into " else "${app.label}: placed at ") +
-                "$placement px (frame ${win.x.toInt()},${win.y.toInt()})",
-        )
-    }
-
-    /**
-     * Called when a window frame has been dragged or resized: the app inside it follows the frame
-     * (when "keep the app in its frame" is on and the device can float windows).
-     */
-    fun onAppFrameSettled(win: dev.retrobit.desktop.ui.wm.WinState) {
-        if (win.kind != dev.retrobit.desktop.model.WinKind.APPWINDOW) return
-        if (!settings.appWindowFollow) return
-        if (!appWindows.isRunning(win.id)) return
-        frameSettleTick++
-    }
-
-    /** Runs the debounced re-placement after a frame drag / resize (see [onAppFrameSettled]). */
-    fun refitAppWindows() {
-        // nothing to place when the tablet is not asked to float apps inside their frames
-        if (!settings.floatingApps) return
-        wm.windows
-            .filter {
-                it.kind == dev.retrobit.desktop.model.WinKind.APPWINDOW &&
-                    !it.minimized && appWindows.isRunning(it.id)
-            }
-            .forEach { win ->
-                val app = win.app ?: return@forEach
-                // only frames that really changed are sent again (see placedByWindow)
-                sendAppToWindow(app, win, quiet = true, onlyIfChanged = true)
-            }
-    }
-
-    /**
-     * Keeps the app-window bookkeeping in sync with the open windows: called by the desktop whenever
-     * a window is closed, so a recycled window id can never inherit an old rectangle.
-     */
-    fun retainAppWindows(ids: Set<Int>) {
-        appWindows.retain(ids)
-        placedByWindow.keys.retainAll(ids)
-    }
-
-    /** Plain launch, no window involved. */
-    fun launchFullScreen(app: AppEntry) {
-        val ok = repo.launch(app)
-        if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
-    }
+    /** Same thing, under the name the menus and the terminal use. */
+    fun launchFullScreen(app: AppEntry) = launch(app)
 
     fun launchResolved(query: String): Boolean {
         val q = query.trim().lowercase()
@@ -964,19 +737,25 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         return true
     }
 
+    /** Opens one of our own apps (terminal, settings, the drawer, ...) full screen. */
     fun openWindow(kind: WinKind) {
-        wm.open(kind)
+        shellOpen = kind
+        selectedApp = null
+        menu = null
         startMenu = false
         launchpad = false
         spotlight = false
     }
 
-    /** Opens the Applications window showing [app]'s entry (used by the app context menu). */
+    /** Back to the desktop (the shell host's "desktop" key). */
+    fun closeShell() {
+        shellOpen = null
+    }
+
+    /** Opens the app drawer (used by the app context menu). */
     fun openAppDrawerWindow(app: AppEntry) {
-        wm.openApp(app)
-        startMenu = false
-        launchpad = false
-        spotlight = false
+        selectedApp = app
+        openWindow(WinKind.APPS)
     }
 
     // ── pinning ──────────────────────────────────────────────────────────────────
@@ -1024,13 +803,16 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** Invert the current palette (paper <-> ink), e-paper style dark mode. */
     fun invertTheme() { invertRequested++ }
 
-    fun setTiling(on: Boolean) { wm.retile(on) }
+    /** Switches page: the desktop here is a page of icons and widgets, with no windows to move. */
+    fun switchDesktop(index: Int) {
+        desktop = index.coerceIn(0, desktopCount - 1)
+        closeShell()
+        shell.print("desktop ${desktop + 1} of $desktopCount")
+    }
 
-    fun switchDesktop(index: Int) { wm.switchDesktop(index) }
-    fun moveFocusedToDesktop(index: Int) { wm.moveFocusedToDesktop(index) }
     fun setWorkspaceCount(count: Int) {
         settings.workspaceCount = count.coerceIn(1, 4)
-        if (wm.desktop > settings.workspaceCount - 1) wm.switchDesktop(settings.workspaceCount - 1)
+        if (desktop > desktopCount - 1) desktop = desktopCount - 1
     }
 
     // ── menus ────────────────────────────────────────────────────────────────────
@@ -1047,8 +829,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 subtitle = app.pkg + if (app.isWorkProfile) "  [work profile]" else "",
                 anchors = anchor,
                 items = listOf(
-                    MenuItem("Open in its window", GlyphOpen(), onSelect = { launch(app) }),
-                    MenuItem("Open full screen", GlyphOpen(), onSelect = { launchFullScreen(app) }),
+                    MenuItem("Open", GlyphOpen(), onSelect = { launch(app) }),
                     MenuItem("Show in app drawer", null, onSelect = { openAppDrawerWindow(app) }),
                     MenuItem(if (inDock) "Remove from dock" else "Add to dock", GlyphPin(), onSelect = { toggleDockPin(app) }),
                     MenuItem("Add apps or widgets to the desktop…", GlyphPin(), onSelect = { appPicker = true }),
@@ -1082,16 +863,6 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     MenuItem("Notes", dev.retrobit.desktop.ui.components.Glyph.NOTES, onSelect = { openWindow(WinKind.NOTES) }),
                     MenuItem("Calendar", dev.retrobit.desktop.ui.components.Glyph.CALENDAR, onSelect = { openWindow(WinKind.CALENDAR) }),
                     MenuItem("Settings", dev.retrobit.desktop.ui.components.Glyph.SETTINGS, onSelect = { openWindow(WinKind.SETTINGS) }),
-                    MenuItem(
-                        if (settings.tiling) "Disable tiling (Linux style)" else "Enable tiling (Linux style)",
-                        dev.retrobit.desktop.ui.components.Glyph.GRID,
-                        onSelect = { setTiling(!settings.tiling) },
-                    ),
-                    MenuItem(
-                        if (settings.snapWindows) "Disable edge snapping" else "Enable edge snapping",
-                        dev.retrobit.desktop.ui.components.Glyph.COMPUTER,
-                        onSelect = { settings.snapWindows = !settings.snapWindows },
-                    ),
                     MenuItem("Desktops / workspaces…", dev.retrobit.desktop.ui.components.Glyph.GRID, onSelect = {
                         workspaceMenu(Offset(150f, 220f))
                     }),
@@ -1125,27 +896,20 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     MenuItem("Wallpaper & icons…", dev.retrobit.desktop.ui.components.Glyph.SETTINGS, onSelect = {
                         openWindow(WinKind.SETTINGS)
                     }),
-                    MenuItem("Close all windows on this desktop", null, onSelect = { wm.closeAll() }),
                 ),
             )
         )
     }
 
     fun workspaceMenu(anchor: Offset) {
-        val items = (0 until wm.desktopCount).map { index ->
+        val items = (0 until desktopCount).map { index ->
             MenuItem(
-                label = "Desktop ${index + 1}" + if (index == wm.desktop) "   (current)" else "",
-                glyph = if (index == wm.desktop) dev.retrobit.desktop.ui.components.Glyph.GRID else null,
+                label = "Desktop ${index + 1}" + if (index == desktop) "   (current)" else "",
+                glyph = if (index == desktop) dev.retrobit.desktop.ui.components.Glyph.GRID else null,
                 onSelect = { switchDesktop(index) },
             )
-        } + (0 until wm.desktopCount).map { index ->
-            MenuItem(
-                label = "   send window to desktop ${index + 1}",
-                enabled = wm.focused != null && index != wm.desktop,
-                onSelect = { moveFocusedToDesktop(index) },
-            )
         }
-        openMenu(MenuRequest("Desktops", "${wm.onScreen.size} windows on desktop ${wm.desktop + 1}", anchor, items))
+        openMenu(MenuRequest("Desktops", "workspace ${desktop + 1} of $desktopCount - icons & widgets", anchor, items))
     }
 
     // ── boot ─────────────────────────────────────────────────────────────────────
@@ -1208,9 +972,3 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         private var bootedThisProcess = false
     }
 }
-
-/** Height of the window title bar in dp, matching WindowFrame's titleH (24 dp bar + 6 dp grip). */
-private const val TITLE_BAR_DP = 30f
-
-/** Frame border in dp (2.4 dp while focused, 1.4 dp otherwise). */
-private const val FRAME_BORDER_DP = 2.4f

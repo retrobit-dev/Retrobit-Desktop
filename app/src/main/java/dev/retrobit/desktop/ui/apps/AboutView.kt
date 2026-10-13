@@ -61,7 +61,7 @@ fun AboutView(vm: LauncherViewModel) {
         kv("palette", vm.settings.palette.label)
         kv("wallpaper", vm.settings.wallpaper.label)
         kv("icon mode", vm.settings.iconMode.label)
-        kv("windows open", vm.wm.onScreen.size.toString())
+        kv("screen", vm.shellOpen?.name?.lowercase() ?: "desktop")
         kv("calendar", "${vm.calendar.entries.size} entries")
         kv("applications", vm.apps.size.toString())
         Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink.copy(alpha = 0.4f)))

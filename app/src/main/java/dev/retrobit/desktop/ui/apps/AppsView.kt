@@ -35,7 +35,6 @@ import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.rememberAppIcon
 import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
-import dev.retrobit.desktop.ui.wm.WinState
 
 /**
  * The "Applications" window — the app drawer.
@@ -46,9 +45,9 @@ import dev.retrobit.desktop.ui.wm.WinState
  * launchpad ([AppDrawerList]), so both drawers always behave the same way.
  */
 @Composable
-fun AppsView(vm: LauncherViewModel, win: WinState) {
+fun AppsView(vm: LauncherViewModel) {
     val p = LocalPalette.current
-    var query by remember(win.id) { mutableStateOf("") }
+    var query by remember { mutableStateOf("") }
     val shown = remember(query, vm.apps, vm.settings.appUsage) { matchingApps(vm, query) }
 
     Column(

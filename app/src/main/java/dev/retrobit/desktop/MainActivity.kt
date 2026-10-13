@@ -122,8 +122,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         super.onStop()
-        // An app owns the screen now. If the window manager could not float it, the chrome is what
-        // keeps the frame visible around it. (A floating app only pauses us, so no chrome then.)
+        // Another app owns the screen now. It opened full screen (this launcher never asks for a
+        // floating window), so the chrome is what draws the frame around it.
         vm.onLauncherHidden()
     }
 
@@ -187,7 +187,7 @@ private fun Root(vm: LauncherViewModel) {
             vm.spotlight -> vm.spotlight = false
             vm.launchpad -> vm.launchpad = false
             vm.startMenu -> vm.startMenu = false
-            vm.wm.windows.any { !it.minimized } -> vm.wm.minimizeAll()
+            vm.shellOpen != null -> vm.closeShell()
             else -> Unit
         }
     }
