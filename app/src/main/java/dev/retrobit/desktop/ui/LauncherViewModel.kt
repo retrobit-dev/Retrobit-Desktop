@@ -370,6 +370,10 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         CyberdeckChrome.onPanel = { openPanel() }
         dev.retrobit.desktop.shell.PanelChrome.onRefresh = { syncPanel() }
         dev.retrobit.desktop.shell.PanelChrome.onClose = { panelOpen = false }
+        // the panel runs in this same process: it calls straight into the view model, so its keys
+        // work while another app owns the screen (a broadcast receiver could not: this activity is
+        // stopped exactly then, which is when the panel is used)
+        dev.retrobit.desktop.shell.PanelChrome.onAction = { action -> onPanelAction(action) }
         CyberdeckChrome.onHome = { goDesktop() }
         CyberdeckChrome.onHideChrome = { setCyberdeck(false) }
         CyberdeckChrome.onRefit = { refitChromeWindow() }

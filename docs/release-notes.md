@@ -10,6 +10,17 @@
 ## Yang baru di {{TAG}}
 
 
+### Perbaikan penting: quick panel benar-benar bekerja saat aplikasi lain di depan
+- Sebelumnya tombol-tombol panel (brightness, rotate, night, mode dock, aturan app) dikirim lewat
+  broadcast ke activity launcher, dan receiver-nya hanya terdaftar saat launcher **di depan** -
+  persis kebalikan dari keadaan saat panel dipakai (launcher sedang di belakang, app lain yang
+  memegang layar). Akibatnya tap di panel bisa tidak melakukan apa-apa.
+- Sekarang panel memanggil launcher **langsung**: panel dan launcher berada di proses yang sama
+  (`PanelChrome.onAction` → `vm.onPanelAction`), jadi tidak ada lagi broadcast yang bisa "mati".
+  Kalau launcher memang sudah tidak ada, panel menutup diri daripada pura-pura berhasil.
+- Kelas `PanelSwitch` (bus broadcast) dan receiver di `MainActivity` dihapus - satu jalur saja,
+  dan jalur itu hidup selama chrome hidup.
+
 ### Hemat baterai: chrome berhenti saat layar mati
 - Service chrome memantau layar: saat **layar mati** tick per detik dihentikan dan rail diturunkan ke
   handle (bingkainya tetap, karena bingkai tidak digambar ulang); saat layar hidup lagi tick jalan

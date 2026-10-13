@@ -177,7 +177,7 @@ class PanelService : Service() {
             }
             action == "rails:toggle" -> {
                 // "hide the rails for now": the launcher decides what that means
-                PanelSwitch.send(this, action)
+                dispatch(action)
                 dismiss()
                 true
             }
@@ -185,7 +185,22 @@ class PanelService : Service() {
         }
         if (handledHere) return
         // every other action goes to the launcher; the panel is repainted when it changes state
-        PanelSwitch.send(this, action)
+        dispatch(action)
+    }
+
+    /**
+     * Hands one action to the launcher. Both live in the same process, so this is a direct call -
+     * no broadcast, no registered receiver, nothing that goes quiet while the launcher sits in the
+     * background (which is exactly when the panel is used). If the launcher is really gone, the
+     * panel closes instead of pretending it did something.
+     */
+    private fun dispatch(action: String) {
+        val target = PanelChrome.onAction
+        if (target == null) {
+            dismiss()
+            return
+        }
+        runCatching { target(action) }
     }
 
 }

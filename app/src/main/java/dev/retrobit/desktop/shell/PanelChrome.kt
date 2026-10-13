@@ -44,7 +44,7 @@ object PanelChrome {
     @Volatile
     var state: State = State()
 
-    /** Called by the panel for every tap: see [dev.retrobit.desktop.shell.PanelSwitch.send]. */
+    /** Called by the panel for every tap: one action string, handled by the launcher. */
     @Volatile
     var onAction: ((String) -> Unit)? = null
 
