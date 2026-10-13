@@ -110,6 +110,8 @@ fun Modifier.desktopClick(
     val secondaryState = rememberUpdatedState(secondary)
     val longPressState = rememberUpdatedState(longPressMs)
     val holdTouchState = rememberUpdatedState(holdTouch)
+    val selectState = rememberUpdatedState(select)
+    val doubleClickState = rememberUpdatedState(doubleClick)
     val routerState = rememberUpdatedState(router)
     return this.pointerInput(key) {
         coroutineScope {
