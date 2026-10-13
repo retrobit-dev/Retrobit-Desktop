@@ -222,9 +222,14 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 ## Instalasi di tablet
 
-1. Unduh APK **release** dari salah satu sumber:
-   - halaman **Releases** → tag `nightly` (selalu build terbaru), atau
+1. Unduh **APK release** (nama file berakhiran `-release.apk`) dari salah satu sumber:
+   - halaman **Releases** → tag versi terbaru (mis. `v1.6.0`) atau tag `nightly` (selalu build terbaru), atau
    - tab **Actions** → run terakhir → artifact `retrobit-desktop-apk-*`.
+
+   Di setiap rilis ada dua file: `-release.apk` (yang dipakai — sudah diminifikasi, di-sign,
+   **tidak** debuggable, package `dev.retrobit.desktop`) dan `-debug-only-for-testing.apk`
+   (build debug untuk pelacakan masalah, package `dev.retrobit.desktop.debug`, terpasang sebagai
+   aplikasi terpisah dan **tidak** menimpa yang rilis). Ambil yang **release**.
 2. Buka file APK di tablet, izinkan *Install unknown apps* untuk aplikasi pengelola file.
 3. Tekan tombol **Home** → pilih **Retrobit Desktop** → pilih *Always*.
    Di tablet Huawei dengan gesture navigation: swipe up dari bawah, lalu pilih launcher ini.

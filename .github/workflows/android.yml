@@ -70,7 +70,7 @@ jobs:
         run: |
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk dist/retrobit-desktop-${{ github.run_number }}-release.apk
-          cp app/build/outputs/apk/debug/app-debug.apk dist/retrobit-desktop-${{ github.run_number }}-debug.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/retrobit-desktop-${{ github.run_number }}-debug-only-for-testing.apk
           ls -la dist
 
       - name: Verify APKs
@@ -80,13 +80,14 @@ jobs:
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           AAPT=$(ls "$SDK"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
           REL=$(ls dist/*release.apk | head -1)
-          DBG=$(ls dist/*debug.apk | head -1)
+          DBG=$(ls dist/*debug*.apk | head -1)
           {
             echo "### APK verification"
             echo '```'
             for f in "$REL" "$DBG"; do
               echo "== $(basename "$f")  $(du -h "$f" | cut -f1)"
-              [ -n "$AAPT" ] && "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package:|launchable-activity:|sdkVersion:|targetSdkVersion:|uses-permission:)" || true
+              [ -n "$AAPT" ] && "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package:|launchable-activity:|sdkVersion:|targetSdkVersion:|uses-permission:|application-debuggable)" || true
+              [ -n "$AAPT" ] && { "$AAPT" dump badging "$f" 2>/dev/null | grep -q "^application-debuggable" && echo "   debuggable: YES (test build)" || echo "   debuggable: no (release build)"; }
               unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font|META-INF/.*\.(RSA|SF|MF)" || true
             done
             echo '```'
@@ -106,6 +107,9 @@ jobs:
           echo "::notice title=release APK entry activity::$(printf '%s' "$ACT" | sed 's/%/%25/g')"
           echo "::notice title=release APK contents::${DEX:-0} dex files, ${FONTS:-0} font files"
           echo "::notice title=release APK signature::$(printf '%s' "$SIG" | sed 's/%/%25/g')"
+          DBGPKG=$([ -n "$AAPT" ] && "$AAPT" dump badging "$DBG" 2>/dev/null | grep -m1 '^package:' || echo "package: (aapt2 unavailable)")
+          echo "::notice title=install this one::$(basename "$REL") - signed release build, not debuggable, installs over previous versions"
+          echo "::notice title=testing only::$(basename "$DBG") - ${DBGPKG#package: } (installs next to the release build)"
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
@@ -174,6 +178,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
@@ -188,17 +193,18 @@ jobs:
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
             TITLE="Retrobit Desktop ${TAG}"
-            NOTES="Signed release build of Retrobit Desktop ${TAG}. Install the release APK on the tablet (allow install from unknown sources)."
+            sed -e "s/{{TAG}}/${TAG}/g" -e "s/{{BUILD}}/${GITHUB_RUN_NUMBER}/g" docs/release-notes.md > /tmp/notes.md
             PRERELEASE=""
           else
             TAG="nightly"
-            TITLE="Retrobit Desktop — nightly (build #${GITHUB_RUN_NUMBER})"
-            NOTES="Rolling pre-release built from \`${GITHUB_REF_NAME}\` (commit ${GITHUB_SHA::7}). Always the newest installable APK."
+            TITLE="Retrobit Desktop - nightly (build #${GITHUB_RUN_NUMBER})"
+            sed -e "s/{{BUILD}}/${GITHUB_RUN_NUMBER}/g" -e "s/{{REF}}/${GITHUB_REF_NAME}/g" -e "s/{{SHA}}/${GITHUB_SHA::7}/g" \
+              docs/release-notes-nightly.md > /tmp/notes.md
             PRERELEASE="--prerelease"
           fi
           if gh release view "$TAG" -R "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
-            gh release edit "$TAG" -R "${GITHUB_REPOSITORY}" --title "$TITLE" --notes "$NOTES"
+            gh release edit "$TAG" -R "${GITHUB_REPOSITORY}" --title "$TITLE" --notes-file /tmp/notes.md
           else
-            gh release create "$TAG" -R "${GITHUB_REPOSITORY}" --title "$TITLE" --notes "$NOTES" $PRERELEASE
+            gh release create "$TAG" -R "${GITHUB_REPOSITORY}" --title "$TITLE" --notes-file /tmp/notes.md $PRERELEASE
           fi
           gh release upload "$TAG" dist/*.apk -R "${GITHUB_REPOSITORY}" --clobber
