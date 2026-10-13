@@ -32,7 +32,7 @@ class AppRepository(private val context: Context) {
         val profiles: List<UserHandle> = runCatching { userManager?.userProfiles }.getOrNull()
             ?.takeIf { it.isNotEmpty() } ?: listOf(me)
         for (user in profiles) {
-            val serial = runCatching { userManager.getSerialNumberForUser(user) }.getOrDefault(0L)
+            val serial = runCatching { userManager?.getSerialNumberForUser(user) }.getOrNull() ?: 0L
             val list = runCatching { launcher.getActivityList(null, user) }.getOrDefault(emptyList())
             for (info in list) {
                 val cn = info.componentName
