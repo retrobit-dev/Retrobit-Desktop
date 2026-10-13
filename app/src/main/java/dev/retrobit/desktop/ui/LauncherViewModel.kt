@@ -341,7 +341,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             }
     }
 
-    /** Plain launch, no window involved. */    /** Plain launch, no window involved. */
+    /** Plain launch, no window involved. */
     fun launchFullScreen(app: AppEntry) {
         val ok = repo.launch(app)
         if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)

@@ -111,6 +111,8 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
     val scale = LocalUiScale.current
     val density = LocalDensity.current
     val titleH = dp(24f + 6f)
+    // dragging / resizing finished: let the floating app follow the frame (see DesktopApp)
+    val settled = { vm.onAppFrameSettled(win) }
 
     // the outer box is the window plus a grab margin, so every edge can be dragged from outside
     val grab = rawPx(HandleGrabDp, density)
@@ -132,16 +134,16 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
         ) {
         Column(Modifier.fillMaxSize()) {
             when (style) {
-                DesktopStyle.MACOS -> MacTitleBar(win, wm, focused, titleH)
-                DesktopStyle.WINDOWS -> Win95TitleBar(win, wm, focused, titleH)
-                DesktopStyle.LINUX -> LinuxTitleBar(win, wm, focused, titleH)
+                DesktopStyle.MACOS -> MacTitleBar(win, wm, focused, titleH, settled)
+                DesktopStyle.WINDOWS -> Win95TitleBar(win, wm, focused, titleH, settled)
+                DesktopStyle.LINUX -> LinuxTitleBar(win, wm, focused, titleH, settled)
             }
             Box(Modifier.fillMaxSize().background(p.paper)) {
                 WindowContent(win, wm)
             }
         }
         }
-        if (!win.maximized) ResizeHandles(win, wm, grab)
+        if (!win.maximized) ResizeHandles(win, wm, grab, settled)
     }
 }
 
@@ -173,7 +175,13 @@ private fun TitleLabel(win: WinState, focused: Boolean, color: Color? = null) {
 }
 
 @Composable
-private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, height: androidx.compose.ui.unit.Dp) {
+private fun LinuxTitleBar(
+    win: WinState,
+    wm: WindowManager,
+    focused: Boolean,
+    height: androidx.compose.ui.unit.Dp,
+    onSettled: () -> Unit,
+) {
     val p = LocalPalette.current
     Row(
         Modifier
@@ -187,7 +195,7 @@ private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
                     onDragCancel = { wm.cancelDrag() },
                     onDragEnd = {
                         wm.endDrag(win.id)
-                        vm.onAppFrameSettled(win)
+                        onSettled()
                     },
                     onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                 )
@@ -207,7 +215,13 @@ private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
 }
 
 @Composable
-private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, height: androidx.compose.ui.unit.Dp) {
+private fun Win95TitleBar(
+    win: WinState,
+    wm: WindowManager,
+    focused: Boolean,
+    height: androidx.compose.ui.unit.Dp,
+    onSettled: () -> Unit,
+) {
     val p = LocalPalette.current
     val cells = with(LocalDensity.current) { (win.width / 3f).roundToInt().coerceAtLeast(8) }
     val hCells = with(LocalDensity.current) { height.toPx().roundToInt().coerceAtLeast(6) }
@@ -232,7 +246,7 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
                         onDragCancel = { wm.cancelDrag() },
                         onDragEnd = {
                         wm.endDrag(win.id)
-                        vm.onAppFrameSettled(win)
+                        onSettled()
                     },
                         onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                     )
@@ -278,7 +292,7 @@ private fun rawPx(value: Float, density: androidx.compose.ui.unit.Density): Floa
  * under the pointer. A small grip is printed in the bottom-right corner like on a classic desktop.
  */
 @Composable
-private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float) {
+private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float, onSettled: () -> Unit) {
     val p = LocalPalette.current
     val density = LocalDensity.current
     val corner = rawPx(HandleCornerDp, density)
@@ -300,7 +314,7 @@ private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float
             Modifier
                 .offset { IntOffset(strip.x.roundToInt(), strip.y.roundToInt()) }
                 .size(with(density) { strip.w.toDp() }, with(density) { strip.h.toDp() })
-                .resizeHandle(win, wm, strip.edge),
+                .resizeHandle(win, wm, strip.edge, onSettled),
         )
     }
 
@@ -328,7 +342,7 @@ private fun BoxScope.ResizeHandles(win: WinState, wm: WindowManager, grab: Float
 }
 
 /** Turns any composable into a resize grip for one window edge. */
-private fun Modifier.resizeHandle(win: WinState, wm: WindowManager, edge: ResizeEdge): Modifier =
+private fun Modifier.resizeHandle(win: WinState, wm: WindowManager, edge: ResizeEdge, onSettled: () -> Unit): Modifier =
     this.pointerInput(win.id, edge) {
         awaitEachGesture {
             val down = awaitFirstDown(requireUnconsumed = false)
@@ -345,12 +359,18 @@ private fun Modifier.resizeHandle(win: WinState, wm: WindowManager, edge: Resize
                 wm.updateResize(win.id, delta.x, delta.y)
             }
             wm.endResize()
-            vm.onAppFrameSettled(win)
+            onSettled()
         }
     }
 
 @Composable
-private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, height: androidx.compose.ui.unit.Dp) {
+private fun MacTitleBar(
+    win: WinState,
+    wm: WindowManager,
+    focused: Boolean,
+    height: androidx.compose.ui.unit.Dp,
+    onSettled: () -> Unit,
+) {
     val p = LocalPalette.current
     Column {
         Box(
@@ -366,7 +386,7 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
                         onDragCancel = { wm.cancelDrag() },
                         onDragEnd = {
                         wm.endDrag(win.id)
-                        vm.onAppFrameSettled(win)
+                        onSettled()
                     },
                         onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                     )
