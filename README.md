@@ -77,13 +77,25 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - **Setiap aplikasi yang dibuka dari launcher mendapat jendela desktop**: punya title bar dengan
   nama + ikon aplikasi, tombol minimize / maximize / close, bisa digeser, di-resize dari 8 arah,
   di-snap ke tepi, dipindah antar-workspace, dan muncul di taskbar / task list / `ps`.
-- **Floating window sungguhan di tablet yang mendukung**: `data/WindowedLaunch.kt` memeriksa fitur
-  `android.software.freeform_window_management`, lalu mengirim aplikasi ke persis segi empat jendela
-  kita (`ActivityOptions.setLaunchBounds` via `LauncherApps.startMainActivity`). Aplikasi berjalan
-  mengapung di atas desktop, dan tombol **place here** memindahkannya saat jendela digeser/di-resize.
-- **Kalau perangkat tidak mendukung**: aplikasi terbuka penuh (seperti launcher biasa), sementara
-  jendela tetap menjadi "wakil"-nya di taskbar, daftar jendela dan workspace — plus tombol
-  **open app / bring it back**. Status perangkat ditampilkan di *Settings - apps & windows*.
+- **Aplikasi diletakkan di dalam kotak jendela** dengan `ActivityOptions.setLaunchBounds` (via
+  `LauncherApps.startMainActivity`). Rect yang dikirim adalah **daerah isi jendela**, bukan seluruh
+  bingkai: di bawah title bar, di dalam border, dan **ditambah safe area** (kamera + sudut
+  melengkung) — dalam **piksel layar**, karena itulah yang diminta API-nya. Matematikanya murni di
+  `ui/wm/AppWindowMath.kt` dengan 9 unit test supaya tidak ada lagi selisih beberapa puluh piksel.
+- **Tiga tombol di jendela aplikasi**:
+  - **`place here`** — minta sistem meletakkan aplikasi di rect jendela sekarang (dipakai saat
+    aplikasi belum berjalan, atau setelah jendela digeser/di-resize);
+  - **`restart into frame`** — aplikasi dijalankan ulang (task-nya di-clear) supaya benar-benar
+    mendarat di rect baru. Android **tidak punya API publik** untuk memindahkan task aplikasi lain
+    yang sedang berjalan, jadi inilah satu-satunya cara yang pasti;
+  - **`bring it back`** / **open full screen**.
+- **Aplikasi mengikuti jendelanya**: setelah title bar digeser atau tepi di-resize, rect otomatis
+  dikirim ulang (debounce 420 ms) — bisa dimatikan di *Settings - apps & windows → Apps follow their
+  window*, atau terminal `appframe follow on|off`. Cek rect yang dikirim dari terminal:
+  `appframe place <app>`.
+- **Kalau perangkat tidak mendukung floating**: aplikasi terbuka penuh (seperti launcher biasa),
+  sementara jendela tetap menjadi "wakil"-nya di taskbar, daftar jendela dan workspace. Rect tetap
+  dikirim (tidak berbahaya), dan status perangkat ditampilkan di *Settings - apps & windows*.
   Cara mengaktifkan floating window: *developer options* → *force activities to be resizable*, atau
   `adb shell settings put global enable_freeform_support 1`.
 - Android sendiri **tidak mengizinkan** satu aplikasi menggambar UI aplikasi lain di dalam view-nya
@@ -185,8 +197,10 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
 - Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
   `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
-  `ui/wm/DockMath.kt` (urutan dock) dan `ui/wm/WidgetMath.kt` (ukuran + daftar widget) — **63 test**:
-  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 16 `WidgetMathTest`.
+  `ui/wm/DockMath.kt` (urutan dock), `ui/wm/WidgetMath.kt` (ukuran + daftar widget) dan
+  `ui/wm/AppWindowMath.kt` (penempatan aplikasi di kotak jendela) — **72 test**:
+  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 16 `WidgetMathTest` +
+  9 `AppWindowMathTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -319,7 +333,7 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 Setiap push menjalankan workflow [`.github/workflows/android.yml`](.github/workflows/android.yml):
 
-1. **job `test`** — `./gradlew :app:testDebugUnitTest` (63 unit test untuk matematika tiling &
+1. **job `test`** — `./gradlew :app:testDebugUnitTest` (72 unit test untuk matematika tiling &
    edge-snapping); jumlah test/failure muncul di job summary dan sebagai check annotation
 2. **job `build`** — checkout → JDK 17 → Android SDK (platform 35, build-tools 35.0.0) → Gradle (cache),
    lalu `./gradlew :app:assembleDebug :app:assembleRelease`

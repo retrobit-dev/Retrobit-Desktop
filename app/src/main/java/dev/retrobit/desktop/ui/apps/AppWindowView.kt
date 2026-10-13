@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -37,18 +36,23 @@ import dev.retrobit.desktop.ui.wm.WinState
  *
  * Android does not let one app draw another app's UI inside its own view, so the wrapper owns the
  * chrome (title bar, minimize / maximize / close, resize, snapping, workspace) and tells the system
- * where the app should live: on freeform-capable tablets the app opens in a real floating window at
- * exactly these bounds, and the buttons below move / re-open it there. On tablets without freeform
- * the app opens full screen and this window stays as its entry in the taskbar and window list.
+ * where the app should live: the frame's **content rectangle**, in screen pixels, is sent with
+ * `ActivityOptions.setLaunchBounds`, so on a device that can float windows the app sits exactly
+ * inside this box — below the title bar and inside the border. "Place here" sends the rectangle
+ * again, "restart into frame" recreates the app's task (the only public way to move a running app).
  */
 @Composable
 fun AppWindowView(vm: LauncherViewModel, win: WinState) {
     val p = LocalPalette.current
     val app = win.app
-    val freeform = WindowedLaunch.supportsFreeform(vm.appContext)
-    val icon = app?.let { rememberAppIcon(it) }
     val bounds = win.rect
     val live = vm.appWindows.isRunning(win.id)
+    val icon = app?.let { rememberAppIcon(it) }
+    val freeform = WindowedLaunch.supportsFreeform(vm.appContext)
+    val mayWork = WindowedLaunch.boundsMayBeHonoured(vm.appContext)
+    val placement = vm.placementFor(win)
+    val placed = vm.placedRect
+    val density = vm.appContext.resources.displayMetrics.density
 
     Column(
         Modifier.fillMaxSize().background(p.paper).verticalScroll(rememberScrollState()).padding(dp(12f)),
@@ -69,8 +73,12 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
                 RetroText(app?.label ?: win.title, size = 14f, display = true, weight = FontWeight.Bold, maxLines = 1)
                 RetroText(app?.pkg ?: "android", size = 10f, color = p.mid, maxLines = 1)
                 RetroText(
-                    if (vm.settings.floatingApps) "floating app window" else "full screen mode",
-                    size = 10f, color = p.mid, maxLines = 1,
+                    when {
+                        !vm.settings.floatingApps -> "full screen mode"
+                        live -> "placed in this frame - the app runs in its own floating window"
+                        else -> "floating app window - tap place here to put the app inside"
+                    },
+                    size = 10f, color = p.mid, maxLines = 2,
                 )
             }
         }
@@ -79,44 +87,78 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
 
         // window geometry, kept in sync so the app can be moved onto it
         Column(verticalArrangement = Arrangement.spacedBy(dp(4f))) {
-            RetroText("window bounds", size = 11f, weight = FontWeight.Bold)
+            RetroText("frame", size = 11f, weight = FontWeight.Bold)
             RetroText(
-                "x ${bounds.left.toInt()}  y ${bounds.top.toInt()}  ${bounds.width.toInt()} x ${bounds.height.toInt()}",
+                "x ${bounds.left.toInt()}  y ${bounds.top.toInt()}  ${bounds.width.toInt()} x ${bounds.height.toInt()}" +
+                    "  (desktop px)",
                 size = 11f, color = p.mid, maxLines = 1,
             )
             RetroText(
-                if (freeform) {
-                    "this tablet supports floating windows: the app is launched into this rectangle"
+                "safe area kept clear: ${vm.desktopInsets.left.toInt()}, ${vm.desktopInsets.top.toInt()} px  " +
+                    "|  ui scale ${vm.settings.uiScale}  |  density ${"%.2f".format(density)}",
+                size = 10f, color = p.mid, maxLines = 2,
+            )
+            RetroText(
+                if (placement != null) {
+                    "app rectangle sent to the system: ${placement.left}, ${placement.top}  " +
+                        "${placement.width} x ${placement.height} px  (screen space, below the title bar)"
                 } else {
-                    "this tablet does not support floating windows, so the app opens full screen; " +
-                        "this window keeps its place in the taskbar, window list and workspaces"
+                    "this frame is too small for an app window - resize it, then place again"
+                },
+                size = 10.5f, color = p.mid, maxLines = 3,
+            )
+            if (placed != null && placement != placed) {
+                RetroText(
+                    "the frame moved since the app was placed - place here again to match",
+                    size = 10f, color = p.ink, maxLines = 2,
+                )
+            }
+            RetroText(
+                if (freeform) {
+                    "this tablet supports floating windows: the app is launched into the rectangle above"
+                } else if (mayWork) {
+                    "no freeform flag, but this device can float windows (PiP capable): the rectangle is " +
+                        "requested and is used when the system allows it"
+                } else {
+                    "this device does not report floating-window support, so the system may open the " +
+                        "app full screen; this window keeps its place in the taskbar and workspaces"
                 },
                 size = 10f, color = p.mid, maxLines = 4,
             )
         }
 
-        if (freeform) {
-            Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
-                RetroButton(
-                    label = "place here",
-                    glyph = Glyph.GRID,
-                    modifier = Modifier.weight(1f),
-                    onClick = { vm.placeAppWindow(win) },
-                )
-                RetroButton(
-                    label = "open full screen",
-                    modifier = Modifier.weight(1f),
-                    onClick = { app?.let { vm.launchFullScreen(it) } },
-                )
-            }
-        } else {
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
             RetroButton(
-                label = if (live) "app is running - bring it back" else "open app",
+                label = if (live) "place here again" else "place here",
                 glyph = Glyph.GRID,
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { app?.let { vm.focusAppWindow(win) } },
+                modifier = Modifier.weight(1f),
+                onClick = { vm.placeAppWindow(win) },
+            )
+            RetroButton(
+                label = "restart into frame",
+                modifier = Modifier.weight(1f),
+                onClick = { vm.placeAppWindow(win, force = true) },
             )
         }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            RetroButton(
+                label = "bring it back",
+                modifier = Modifier.weight(1f),
+                onClick = { vm.focusAppWindow(win) },
+            )
+            RetroButton(
+                label = "open full screen",
+                modifier = Modifier.weight(1f),
+                onClick = { app?.let { vm.launchFullScreen(it) } },
+            )
+        }
+        RetroText(
+            "android has no public api to move another app's task, so \"place here\" works when the app " +
+                "is not running yet, and \"restart into frame\" recreates the app at the new rectangle. " +
+                "Moving or resizing this frame re-places the app automatically while \"apps follow their " +
+                "window\" is on (terminal: appframe follow on|off).",
+            size = 10f, color = p.mid, maxLines = 6,
+        )
 
         Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
         Column(verticalArrangement = Arrangement.spacedBy(dp(5f))) {

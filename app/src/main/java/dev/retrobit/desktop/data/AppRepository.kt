@@ -61,13 +61,29 @@ class AppRepository(private val context: Context) {
     }
 
     /**
-     * Launches an app. [bounds] is the rectangle the app should occupy when the device supports
-     * floating / freeform windows ([activityOptionsFor]); the outer Rect is also passed as the
-     * launch source bounds so the system animates it from our window.
+     * Launches an app.
+     *
+     * [bounds] is the rectangle the app should occupy on devices that support floating windows
+     * ([WindowedLaunch.activityOptionsFor]); it is also passed as the launch source bounds so the
+     * system animates from our window. With `force = true` the app's task is cleared and recreated,
+     * which is the only public way to move an app that is *already* running into a new rectangle.
      */
-    fun launch(app: AppEntry, bounds: Rect? = null, options: android.os.Bundle? = null): Boolean = try {
-        launcherApps.startMainActivity(app.component, app.user, bounds, options)
-        true
+    fun launch(
+        app: AppEntry,
+        bounds: Rect? = null,
+        options: android.os.Bundle? = null,
+        force: Boolean = false,
+    ): Boolean = try {
+        if (force) {
+            val i = WindowedLaunch.launchIntent(context, app.pkg) ?: throw IllegalStateException("no launch intent")
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            if (options != null) context.startActivity(i, options) else context.startActivity(i)
+            true
+        } else {
+            launcherApps.startMainActivity(app.component, app.user, bounds, options)
+            true
+        }
     } catch (t: Throwable) {
         // Fallback: plain launch intent, with the floating bounds when we have them.
         runCatching {

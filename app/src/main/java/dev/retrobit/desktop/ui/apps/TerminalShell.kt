@@ -95,6 +95,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
             "app" -> appCmd(args)
+            "appframe", "appframes" -> appFrameCmd(args)
             "doubleclick", "dblclick" -> {
                 val arg = args.firstOrNull()?.lowercase()
                 vm.settings.doubleClickOpen = when (arg) {
@@ -150,6 +151,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             floating on|off        apps open in floating desktop windows
             app add|remove <name>  put an app on the desktop / take it off
             doubleclick on|off     apps open with a double click (tap selects) or a single tap
+            appframe follow on|off  re-place a floating app after its desktop window moved
+            appframe place <app>    send an app to its window rectangle now
             widgets                widgets (widget add|remove <name> | widget width <dp> | widget size <name> <w> <h> |
                                    widget reset | widget edit on|off | widget hold on|off | widget layout)
             workspace 1..4         switch virtual desktop (also: ws)
@@ -337,6 +340,46 @@ class TerminalShell(private val vm: LauncherViewModel) {
     private fun freeformNote(): String =
         if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(vm.appContext)) " (this device supports floating windows)"
         else " (this device has no floating-window support: apps open full screen)"
+
+    /**
+     * `appframe follow on|off` — whether a floating app is re-placed after its desktop window moved.
+     * `appframe place <app>` — send the selected app to its window rectangle right now.
+     */
+    private fun appFrameCmd(args: List<String>) {
+        val s = vm.settings
+        val action = args.getOrNull(0)?.lowercase()
+        when {
+            action == "follow" || action == "f" -> {
+                val arg = args.getOrNull(1)?.lowercase()
+                s.appWindowFollow = when (arg) {
+                    null -> !s.appWindowFollow
+                    "on", "1", "true" -> true
+                    else -> false
+                }
+                print("apps follow their window -> ${if (s.appWindowFollow) "on" else "off"}")
+            }
+            action == "place" || action == "p" -> {
+                val name = args.drop(1).joinToString(" ")
+                val win = vm.wm.windows.firstOrNull {
+                    it.kind == dev.retrobit.desktop.model.WinKind.APPWINDOW &&
+                        (it.app?.label.equals(name, true) || it.app?.pkg.equals(name, true))
+                }
+                val placement = win?.let { vm.placementFor(it) }
+                if (win == null) {
+                    print("usage: appframe place <app>  (open its window first)", Kind.ERR)
+                } else if (placement == null) {
+                    print("the frame is too small to hold an app window", Kind.ERR)
+                } else {
+                    vm.placeAppWindow(win, force = true)
+                    print("${win.app?.label} -> ${placement.left},${placement.top} ${placement.width}x${placement.height} px")
+                }
+            }
+            else -> {
+                print("usage: appframe follow on|off | appframe place <app>", Kind.ERR)
+                print("apps follow their window -> ${if (s.appWindowFollow) "on" else "off"}")
+            }
+        }
+    }
 
     /** `app add <name>` puts an app on the desktop, `app remove <name>` takes it off. */
     private fun appCmd(args: List<String>) {

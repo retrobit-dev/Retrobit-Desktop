@@ -30,17 +30,14 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import dev.retrobit.desktop.model.DesktopStyle
-import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.apps.WindowContent
 import dev.retrobit.desktop.ui.components.DitherTitleBar
 import dev.retrobit.desktop.ui.components.Glyph
@@ -48,12 +45,10 @@ import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.LocalUiScale
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
-import dev.retrobit.desktop.ui.components.sp
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.ditherGradient
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 import dev.retrobit.desktop.ui.theme.ChromePattern
-import androidx.compose.foundation.Image
 import kotlin.math.roundToInt
 
 
@@ -109,6 +104,7 @@ private fun key(id: Int, content: @Composable () -> Unit) = androidx.compose.run
 
 @Composable
 fun WindowFrame(win: WinState, wm: WindowManager) {
+    val vm = dev.retrobit.desktop.ui.LocalViewModel.current
     val p = LocalPalette.current
     val style = dev.retrobit.desktop.ui.theme.LocalDesktopStyle.current
     val focused = wm.focusedId == win.id
@@ -189,7 +185,10 @@ private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
                 detectDragGestures(
                     onDragStart = { wm.focus(win.id) },
                     onDragCancel = { wm.cancelDrag() },
-                    onDragEnd = { wm.endDrag(win.id) },
+                    onDragEnd = {
+                        wm.endDrag(win.id)
+                        vm.onAppFrameSettled(win)
+                    },
                     onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                 )
             }
@@ -231,7 +230,10 @@ private fun Win95TitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
                         onDragCancel = { wm.cancelDrag() },
-                        onDragEnd = { wm.endDrag(win.id) },
+                        onDragEnd = {
+                        wm.endDrag(win.id)
+                        vm.onAppFrameSettled(win)
+                    },
                         onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                     )
                 }
@@ -343,6 +345,7 @@ private fun Modifier.resizeHandle(win: WinState, wm: WindowManager, edge: Resize
                 wm.updateResize(win.id, delta.x, delta.y)
             }
             wm.endResize()
+            vm.onAppFrameSettled(win)
         }
     }
 
@@ -361,7 +364,10 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
                     detectDragGestures(
                         onDragStart = { wm.focus(win.id) },
                         onDragCancel = { wm.cancelDrag() },
-                        onDragEnd = { wm.endDrag(win.id) },
+                        onDragEnd = {
+                        wm.endDrag(win.id)
+                        vm.onAppFrameSettled(win)
+                    },
                         onDrag = { change, amount -> change.consume(); wm.move(win.id, amount) },
                     )
                 }

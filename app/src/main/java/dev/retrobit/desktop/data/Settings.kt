@@ -61,6 +61,13 @@ class Settings(context: Context) {
      */
     var doubleClickOpen: Boolean by boolPref("doubleClickOpen", true)
 
+    /**
+     * Move a floating app with its desktop window: after a frame is dragged or resized, the app is
+     * sent to the new rectangle again. Off means the frame and the app move independently (then use
+     * "place here" in the window by hand).
+     */
+    var appWindowFollow: Boolean by boolPref("appWindowFollow", true)
+
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
     /** Drag a window against a screen edge to snap it (half screen / maximize). */

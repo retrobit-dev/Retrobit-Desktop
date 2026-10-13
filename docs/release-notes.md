@@ -9,32 +9,32 @@
 
 ## Yang baru di {{TAG}}
 
-- **Hold = menu, tap = pilih, dobel klik = buka.** Di desktop, app drawer, dan launchpad: satu tap
-  hanya **memilih** ikon (ikon dicetak terbalik + namanya tercetak), **dobel klik / dobel tap**
-  membuka aplikasi, dan **hold** membuka menu aplikasi — persis kebiasaan desktop. `Enter` juga
-  membuka ikon yang sedang terpilih, dan tap di area kosong melepas pilihan.
-- **App drawer tidak lagi langsung membuka app**: menggulir daftar tidak pernah dihitung sebagai
-  klik (gestur yang melewati touch slop tidak memicu aksi apa pun), jadi daftar bisa digulir dengan
-  tenang walaupun jarinya berhenti di atas ikon.
-- **Menambah app atau widget ke desktop**: panel baru **`add to desktop`** (menu desktop →
-  `Add apps or widgets to the desktop…`, atau dari menu aplikasi) berisi daftar aplikasi yang bisa
-  dicari — tap sekali memasang ke desktop, tap lagi melepas — plus delapan tombol widget, tombol
-  `arrange`, dan penghitung `n apps on the desktop`. Menu aplikasi juga punya `Add to desktop` /
-  `Add to dock`, dan terminal: `app add <nama>`, `app remove <nama>`.
-- **Bisa dikembalikan ke satu klik**: *Settings - input & devices → Apps open with a double click /
-  double tap (tap selects)*, atau terminal `doubleclick on|off`. Dock, sidebar, taskbar, start menu,
-  dan widget `launcher` tetap satu klik seperti biasa.
-- Aplikasi yang ditambahkan ke desktop langsung menempati sel kosong pertama, jadi tidak menimpa
-  atau menumpuk ikon yang sudah ada.
+- **"Place here" benar-benar bekerja sekarang.** Tiga sebab kenapa dulu tidak jalan:
+  1. rect yang dikirim adalah **seluruh bingkai jendela**, bukan daerah isinya — jadi aplikasi
+     menutupi title bar dan terlihat "tidak berada di dalam kotak";
+  2. rect dikirim dalam **koordinat desktop**, tanpa **safe area** (kamera + sudut melengkung) dan
+     tanpa konversi ke **piksel layar**, padahal `ActivityOptions.setLaunchBounds` meminta piksel
+     layar;
+  3. ditambah lagi, rect hanya dikirim kalau perangkat melaporkan fitur freeform; di tablet yang
+     bisa mengapung lewat PiP/PC mode, permintaannya tidak pernah dikirim sama sekali.
+- Sekarang rect = **daerah isi jendela di bawah title bar, di dalam border, ditambah safe area,
+  dalam piksel layar**, dan selalu dikirim. Matematikanya ada di `ui/wm/AppWindowMath.kt`
+  (**9 unit test**: title bar, border, safe area, jendela keluar layar, jendela lebih besar dari
+  layar, bingkai terlalu kecil, skala UI).
+- **Tiga tombol baru di jendela aplikasi**: `place here` (letakkan di rect sekarang),
+  `restart into frame` (jalankan ulang aplikasi sehingga pasti mendarat di rect baru — satu-satunya
+  cara publik karena Android tidak mengizinkan launcher memindahkan task aplikasi lain), dan
+  `bring it back`. Jendela juga menampilkan **rect frame**, **rect yang dikirim ke sistem**, safe
+  area, skala UI, dan density, jadi kalau ada selisih kita bisa lihat angkanya.
+- **Aplikasi mengikuti jendelanya**: geser title bar atau resize tepi → setelah 420 ms rect dikirim
+  ulang otomatis. Matikan lewat *Settings - apps & windows → Apps follow their window* atau terminal
+  `appframe follow on|off`; paksa sekali lewat terminal `appframe place <app>`.
 
-### Fitur dari v1.8.0 (kalau kamu melompat dari v1.7.x)
+### Fitur dari v1.9.x (kalau kamu melompat dari v1.8.x)
 
-- Desktop bersih tanpa teks bantuan, detik jam sejajar dengan menit (`13:37:09`), widget kalender
-  jauh lebih ringkas (grid tanpa kotak, 3 entri, tanpa editor di dalam widget).
-- Empat widget baru: `agenda`, `tasks`, `launcher`, `power` (total delapan).
-- Widget bisa ditambah / dihapus dari homescreen dan diubah ukurannya dengan hold.
-- Ikon aplikasi mengikuti palet (bug "ikon tidak berubah" diperbaiki) + pratinjau ikon hidup.
-- Stylus: klik kanan = hold; tap tidak lagi tertunda.
+- Tap = pilih, dobel klik/tap = buka, hold = menu; app drawer bisa digulir tanpa membuka aplikasi.
+- Panel `add to desktop` untuk menambah app maupun widget ke homescreen.
+- Desktop bersih tanpa teks bantuan, detik jam sejajar dengan menit, kalender ringkas, delapan widget.
 
 ## Cara pasang
 

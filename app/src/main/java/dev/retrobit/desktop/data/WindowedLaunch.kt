@@ -2,22 +2,31 @@ package dev.retrobit.desktop.data
 
 import android.app.ActivityOptions
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Rect
 import android.os.Build
 import android.os.Bundle
+import dev.retrobit.desktop.ui.wm.AppWindowMath
+import dev.retrobit.desktop.ui.wm.Placement
 
 /**
  * Floating ("windowed") app launching.
  *
- * Android has no public API that lets a normal app draw another app inside its own view — the only
- * way an app can genuinely float above the desktop is a **freeform window**, which the system
- * creates for us. We ask for one with [ActivityOptions.setLaunchBounds] plus
- * [ActivityOptions.setLaunchWindowingMode] semantics: on tablets that support freeform (or when the
- * user enabled it — developer options "force activities to be resizable" / `adb shell settings put
- * global enable_freeform_support 1`), the app opens in a real floating window at exactly the
- * rectangle our desktop window occupies. Where the feature is missing the system simply ignores the
- * bounds and opens the app full screen, which is why [supportsFreeform] is reported in Settings.
+ * Android has no public API that lets a normal app draw another app inside its own view, so the only
+ * way an app can genuinely sit inside a desktop window frame is a **freeform window**: the system
+ * creates the window, we only get to say where.
+ *
+ * How we ask ([activityOptionsFor]): [ActivityOptions.setLaunchBounds] with the rectangle of the
+ * frame's *content area*, in **screen pixels** — the position Must include the safe-area padding and
+ * must start below the title bar, otherwise the app lands slightly off and covers the frame's own
+ * chrome (which is exactly what "Place here" used to do wrong).
+ *
+ * Notes straight from the framework: `setLaunchBounds` is honoured on devices that have
+ * `FEATURE_FREEFORM_WINDOW_MANAGEMENT` or `FEATURE_PICTURE_IN_PICTURE` enabled and is *ignored*
+ * elsewhere, so the request is always sent — it is harmless on devices that cannot honour it, and
+ * some OEM desktop modes honour it without advertising the feature flag. There is no public API to
+ * move an already-running task, so re-placing a running app is done by relaunching it with the fresh
+ * bounds ([AppRepository.launch] with `force = true`).
  */
 object WindowedLaunch {
 
@@ -28,30 +37,50 @@ object WindowedLaunch {
                 context.packageManager.hasSystemFeature(PackageManager.FEATURE_FREEFORM_WINDOW_MANAGEMENT)
         }.getOrDefault(false)
 
-    /** Android 12+ reports freeform through "PC mode"-style desktop features too. */
-    fun supportsDesktopMode(context: Context): Boolean =
+    /** Android also honours launch bounds on picture-in-picture capable devices. */
+    fun supportsPictureInPicture(context: Context): Boolean =
         runCatching {
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-                context.packageManager.hasSystemFeature("android.software.freeform_window_management")
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                context.packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
         }.getOrDefault(false)
+
+    /** Best guess before launching: the device may actually place windows for us. */
+    fun boundsMayBeHonoured(context: Context): Boolean =
+        supportsFreeform(context) || supportsPictureInPicture(context)
 
     /** Human readable status line for the Settings screen. */
     fun statusLine(context: Context): String = when {
-        supportsFreeform(context) -> "this device supports floating windows: apps open in real windows"
-        else -> "this device does not support floating windows: apps open full screen"
+        supportsFreeform(context) ->
+            "floating windows are supported: apps are placed in exactly the frame rectangle"
+        supportsPictureInPicture(context) ->
+            "no freeform flag, but this device supports floating/PiP windows: the frame rectangle is " +
+                "requested anyway and is used when the system allows it"
+        else ->
+            "this device does not report floating-window support: the rectangle is still requested, " +
+                "but the system may open the app full screen"
     }
 
     /**
-     * Launch options requesting the given rectangle. Returns null when the platform has no freeform
-     * support at all, so callers can skip the request and just launch normally.
+     * Launch options requesting [placement]. Always built when we have a rectangle: the system ignores
+     * it when it cannot place windows, and uses it when it can.
      */
-    fun activityOptionsFor(context: Context, bounds: Rect?): Bundle? {
-        if (bounds == null || bounds.width() <= 0 || bounds.height() <= 0) return null
-        if (!supportsFreeform(context)) return null
+    fun activityOptionsFor(placement: Placement?): Bundle? {
+        if (placement == null || !placement.isUsable) return null
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return null
         return runCatching {
-            ActivityOptions.makeBasic().apply {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) setLaunchBounds(bounds)
-            }.toBundle()
+            ActivityOptions.makeBasic()
+                .setLaunchBounds(placement.toRect())
+                .toBundle()
         }.getOrNull()
     }
+
+    /**
+     * True when [placement] is worth sending: a real rectangle smaller than the screen.
+     */
+    fun worthPlacing(placement: Placement?, screenW: Int, screenH: Int): Boolean =
+        AppWindowMath.isWindowed(placement, screenW, screenH)
+
+    /** The plain launch intent of [pkg], used for the "restart into this frame" path. */
+    fun launchIntent(context: Context, pkg: String): Intent? =
+        runCatching { context.packageManager.getLaunchIntentForPackage(pkg) }.getOrNull()
 }

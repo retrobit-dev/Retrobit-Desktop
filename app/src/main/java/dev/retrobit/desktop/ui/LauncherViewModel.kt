@@ -53,6 +53,15 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
     /** True while the "add app or widget to the desktop" panel is open. */
     var appPicker by mutableStateOf(false)
 
+    /** Safe-area padding of the shell in px, kept up to date by the desktop (camera hole + corners). */
+    var desktopInsets by mutableStateOf(dev.retrobit.desktop.ui.theme.DesktopInsets.Zero)
+
+    /** The rectangle the last app was placed at, shown in the app window for transparency. */
+    var placedRect by mutableStateOf<dev.retrobit.desktop.ui.wm.Placement?>(null)
+
+    /** Bumped when a frame has been moved / resized; the UI debounces and re-places after it. */
+    var frameSettleTick by mutableStateOf(0)
+
     fun selectIcon(app: AppEntry) {
         selectedApp = app
     }
@@ -230,40 +239,109 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         sendAppToWindow(app, win)
     }
 
-    /** Re-places the app of an existing window at the window's current bounds. */
-    fun placeAppWindow(win: dev.retrobit.desktop.ui.wm.WinState) {
+    /**
+     * "Place here": asks the system to put the app of [win] inside the frame's content area.
+     *
+     * [force] clears and recreates the app's task, which is the only public way to move an app that
+     * is already running into a new rectangle (Android offers no API to move another app's task).
+     */
+    fun placeAppWindow(win: dev.retrobit.desktop.ui.wm.WinState, force: Boolean = false) {
         val app = win.app ?: return
         appWindows.markLaunched(win.id)
-        sendAppToWindow(app, win)
+        placedRect = null
+        sendAppToWindow(app, win, force = force, quiet = false)
     }
 
-    /** Brings the app of an app window back to the front (floating where supported). */
+    /** Brings the app of an app window back to the front, inside its frame when possible. */
     fun focusAppWindow(win: dev.retrobit.desktop.ui.wm.WinState) {
         val app = win.app ?: return
-        if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(appContext)) {
-            sendAppToWindow(app, win)
-        } else {
-            launchFullScreen(app)
-        }
+        appWindows.markLaunched(win.id)
+        sendAppToWindow(app, win, quiet = true)
+    }
+
+    /** Screen size in px, used to clamp the rectangle we send to the system. */
+    private fun screenSize(): Pair<Int, Int> {
+        val dm = appContext.resources.displayMetrics
+        return dm.widthPixels to dm.heightPixels
+    }
+
+    /**
+     * The screen rectangle the app should occupy for [win]: the frame's content area — below the
+     * title bar, inside the border — plus the safe-area padding of the launcher. In screen pixels,
+     * which is what `ActivityOptions.setLaunchBounds` expects.
+     */
+    fun placementFor(win: dev.retrobit.desktop.ui.wm.WinState): dev.retrobit.desktop.ui.wm.Placement? {
+        val density = appContext.resources.displayMetrics.density
+        val (sw, sh) = screenSize()
+        return dev.retrobit.desktop.ui.wm.AppWindowMath.contentRect(
+            frameX = win.x,
+            frameY = win.y,
+            frameW = win.width,
+            frameH = win.height,
+            titlePx = dev.retrobit.desktop.ui.wm.AppWindowMath.titleHeightPx(
+                TITLE_BAR_DP, settings.uiScale, density,
+            ),
+            borderPx = dev.retrobit.desktop.ui.wm.AppWindowMath.borderPx(FRAME_BORDER_DP, density),
+            insetLeft = desktopInsets.left,
+            insetTop = desktopInsets.top,
+            screenW = sw,
+            screenH = sh,
+        )
     }
 
     /** Launches the app into the rectangle of its desktop window. */
-    private fun sendAppToWindow(app: AppEntry, win: dev.retrobit.desktop.ui.wm.WinState) {
-        val bounds = android.graphics.Rect(
-            win.x.toInt(),
-            win.y.toInt(),
-            (win.x + win.width).toInt(),
-            (win.y + win.height).toInt(),
-        )
-        val options = dev.retrobit.desktop.data.WindowedLaunch.activityOptionsFor(appContext, bounds)
-        val ok = repo.launch(app, bounds, options)
-        if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
-        if (options == null) {
-            shell.print("${app.label}: opened full screen (no floating window support on this device)")
+    private fun sendAppToWindow(
+        app: AppEntry,
+        win: dev.retrobit.desktop.ui.wm.WinState,
+        force: Boolean = false,
+        quiet: Boolean = false,
+    ) {
+        val placement = placementFor(win)
+        val options = dev.retrobit.desktop.data.WindowedLaunch.activityOptionsFor(placement)
+        placedRect = placement
+        if (placement == null) {
+            // the frame itself is too small (or too much of it is chrome): no window to ask for
+            repo.launch(app)
+            if (!quiet) shell.print("${app.label}: window frame is too small, opened full screen")
+            return
         }
+        val ok = repo.launch(app, placement.toRect(), options, force)
+        if (!ok) {
+            shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
+            return
+        }
+        if (quiet) return
+        shell.print(
+            (if (force) "${app.label}: restarting into " else "${app.label}: placed at ") +
+                "$placement px (frame ${win.x.toInt()},${win.y.toInt()})",
+        )
     }
 
-    /** Plain launch, no window involved. */
+    /**
+     * Called when a window frame has been dragged or resized: the app inside it follows the frame
+     * (when "keep the app in its frame" is on and the device can float windows).
+     */
+    fun onAppFrameSettled(win: dev.retrobit.desktop.ui.wm.WinState) {
+        if (win.kind != dev.retrobit.desktop.model.WinKind.APPWINDOW) return
+        if (!settings.appWindowFollow) return
+        if (!appWindows.isRunning(win.id)) return
+        frameSettleTick++
+    }
+
+    /** Runs the debounced re-placement after a frame drag / resize (see [onAppFrameSettled]). */
+    fun refitAppWindows() {
+        wm.windows
+            .filter {
+                it.kind == dev.retrobit.desktop.model.WinKind.APPWINDOW &&
+                    !it.minimized && appWindows.isRunning(it.id)
+            }
+            .forEach { win ->
+                val app = win.app ?: return@forEach
+                sendAppToWindow(app, win, quiet = true)
+            }
+    }
+
+    /** Plain launch, no window involved. */    /** Plain launch, no window involved. */
     fun launchFullScreen(app: AppEntry) {
         val ok = repo.launch(app)
         if (!ok) shell.print("error: unable to launch ${app.label}", TerminalShell.Kind.ERR)
@@ -520,3 +598,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         private var bootedThisProcess = false
     }
 }
+
+/** Height of the window title bar in dp, matching WindowFrame's titleH (24 dp bar + 6 dp grip). */
+private const val TITLE_BAR_DP = 30f
+
+/** Frame border in dp (2.4 dp while focused, 1.4 dp otherwise). */
+private const val FRAME_BORDER_DP = 2.4f

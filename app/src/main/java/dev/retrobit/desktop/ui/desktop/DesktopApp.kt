@@ -72,6 +72,14 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
     // pen / mouse behaviour follows the settings section "input & devices"
+    // the floating-app rectangles are computed in screen px, so the shell's safe area has to be known
+    androidx.compose.runtime.SideEffect { vm.desktopInsets = insets }
+    // keep a placed app inside its window: re-send the rectangle once the drag / resize has settled
+    LaunchedEffect(vm.frameSettleTick) {
+        if (vm.frameSettleTick == 0) return@LaunchedEffect
+        kotlinx.coroutines.delay(420)
+        vm.refitAppWindows()
+    }
     LaunchedEffect(settings.penRightClick, settings.showCursor, settings.penHoldMs) {
         pointer.penRightClick = settings.penRightClick
         pointer.showCursor = settings.showCursor

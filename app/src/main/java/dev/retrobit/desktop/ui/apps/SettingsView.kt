@@ -194,8 +194,12 @@ fun SettingsView(vm: LauncherViewModel) {
         Section("apps & windows")
         ToggleRow("Open apps as floating windows", s.floatingApps, onGlyph = Glyph.GRID) { s.floatingApps = it }
         RetroText(
-            dev.retrobit.desktop.data.WindowedLaunch.statusLine(ctx),
-            size = 10.5f, color = p.mid, maxLines = 2,
+            dev.retrobit.desktop.data.WindowedLaunch.statusLine(ctx) + ".\n" +
+                "Apps are placed at the frame's content rectangle - below the title bar, inside the " +
+                "border, plus the safe area - in screen pixels, and \"Apps follow their window\" is " +
+                (if (s.appWindowFollow) "on: moving or resizing a frame takes the app with it."
+                else "off: place the app by hand from its window."),
+            size = 10.5f, color = p.mid, maxLines = 5,
         )
         RetroText(
             "Every app you open gets a desktop window you can move, resize, minimize, snap and send to " +
@@ -437,6 +441,9 @@ fun SettingsView(vm: LauncherViewModel) {
         ToggleRow("Show pointer cursor for pen & mouse", s.showCursor, onGlyph = Glyph.CURSOR) { s.showCursor = it }
         ToggleRow("Apps open with a double click / double tap (tap selects)", s.doubleClickOpen, onGlyph = Glyph.GRID) {
             s.doubleClickOpen = it
+        }
+        ToggleRow("Apps follow their window (re-place after moving a frame)", s.appWindowFollow, onGlyph = Glyph.COMPUTER) {
+            s.appWindowFollow = it
         }
         RetroText(
             "Desktop style: one tap marks the icon (it is printed inverted) and shows its name, the " +
