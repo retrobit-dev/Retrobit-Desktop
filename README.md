@@ -128,6 +128,12 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Chrome hanya muncul saat launcher tidak terlihat; kalau aplikasi berhasil mengapung, chrome tidak
   ikut tampil (tidak ada bingkai dobel). Tengah layar tidak ditutup overlay apa pun, dan dock diberi
   jarak dari gesture bar supaya swipe-naik (home) tetap jalan.
+- **Bingkai selalu hitam**, judul rail dimulai setelah lubang kamera, dan **rail auto-hide**:
+  setelah beberapa detik title rail + dock menyusut jadi handle tipis di tepi layar (sentuh untuk
+  memunculkan; rail juga muncul sebentar tiap ganti aplikasi). Atur di *Settings - cyberdeck chrome*
+  atau lewat terminal `cyberdeck autohide on|off|6`.
+- Tulisan rail/dock di-snap ke grid font 16 px dan ikon dock memakai **ikon asli aplikasi**
+  (grayscale), jadi mudah dibaca.
 - Selain itu, permintaan freeform sekarang dikirim lebih tegas: selain rect, launcher juga memanggil
   `setLaunchWindowingMode(FREEFORM)` (reflection) supaya tablet yang mendukung benar-benar
   mengapungkan aplikasinya di dalam kotak.

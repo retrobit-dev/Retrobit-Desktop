@@ -91,6 +91,11 @@ class Settings(context: Context) {
 
     /** Draw the dock strip at the bottom while the chrome is up. */
     var chromeDock: Boolean by boolPref("chromeDock", true)
+    /** Slide the rails away after a few seconds, leaving the frame and a small handle. */
+    var chromeAutoHide: Boolean by boolPref("chromeAutoHide", true)
+
+    /** How long the rails stay up before they slide away (seconds). */
+    var chromeAutoHideSecs: Int by intPref("chromeAutoHideSecs", 6)
 
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)

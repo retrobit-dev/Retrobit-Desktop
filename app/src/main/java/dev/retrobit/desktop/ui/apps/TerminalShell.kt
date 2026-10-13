@@ -91,7 +91,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "safearea" -> safeArea(args.firstOrNull())
             "dock" -> dock(args)
             "floating" -> floating(args.firstOrNull())
-            "cyberdeck", "chrome" -> cyberdeck(args.firstOrNull())
+            "cyberdeck", "chrome" -> cyberdeck(args.firstOrNull(), args.getOrNull(1))
             "widgets", "widget" -> widgets(args)
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
@@ -152,6 +152,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
             floating on|off        ask the system to float an app inside its window frame
             cyberdeck on|off       draw the desktop frame over apps that open full screen
+            cyberdeck autohide on|off|<3..60>   slide the rails away after a few seconds
             cyberdeck preview|grant  show it for a few seconds / ask for the overlay permission
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
@@ -331,11 +332,39 @@ class TerminalShell(private val vm: LauncherViewModel) {
         }
     }
 
-    private fun cyberdeck(arg: String?) {
+    private fun cyberdeck(arg: String?, arg2: String? = null) {
         when (arg?.lowercase()) {
             "on", "1", "true" -> vm.setCyberdeck(true)
             "off", "0", "false" -> vm.setCyberdeck(false)
             "preview" -> vm.previewChrome(8)
+            "autohide" -> {
+                val sub = arg2
+                when (sub?.lowercase()) {
+                    "off", "0", "false" -> {
+                        vm.settings.chromeAutoHide = false
+                        vm.syncChrome()
+                        print("chrome auto-hide -> off (rails stay up)")
+                    }
+                    "on", "1", "true" -> {
+                        vm.settings.chromeAutoHide = true
+                        vm.syncChrome()
+                        print("chrome auto-hide -> on")
+                    }
+                    null -> print("auto-hide: ${if (vm.settings.chromeAutoHide) "on" else "off"}, " +
+                        "after ${vm.settings.chromeAutoHideSecs}s", Kind.DIM)
+                    else -> {
+                        val secs = sub.toIntOrNull()
+                        if (secs == null || secs !in 3..60) {
+                            print("usage: cyberdeck autohide on|off|<3..60>", Kind.ERR)
+                        } else {
+                            vm.settings.chromeAutoHide = true
+                            vm.settings.chromeAutoHideSecs = secs
+                            vm.syncChrome()
+                            print("chrome hides after ${secs}s")
+                        }
+                    }
+                }
+            }
             "grant", "permission" -> {
                 vm.requestChromePermission()
                 print("opening the \"display over other apps\" screen", Kind.DIM)
@@ -343,7 +372,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             else -> {
                 print("cyberdeck chrome: ${if (vm.settings.cyberdeckChrome) "on" else "off"}", Kind.HEAD)
                 print("  ${vm.chromeStatusLine()}", Kind.DIM)
-                print("usage: cyberdeck on|off|preview|grant", Kind.DIM)
+                print("usage: cyberdeck on|off|preview|grant|autohide [on|off|<3..60>]", Kind.DIM)
             }
         }
     }

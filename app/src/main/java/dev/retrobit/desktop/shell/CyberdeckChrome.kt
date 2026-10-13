@@ -24,6 +24,8 @@ object CyberdeckChrome {
         val label: String,
         val action: String,
         val active: Boolean = false,
+        /** Package of the app, so the dock can print its real icon instead of a name only. */
+        val pkg: String? = null,
     )
 
     data class State(
@@ -44,6 +46,10 @@ object CyberdeckChrome {
         val scale: Float = 1f,
         val topRail: Boolean = true,
         val bottomDock: Boolean = true,
+        /** Hide the rails after a few seconds of no use, leaving only the frame and a handle. */
+        val autoHide: Boolean = true,
+        val autoHideSecs: Int = 6,
+        val net: String = "",
     )
 
     @Volatile

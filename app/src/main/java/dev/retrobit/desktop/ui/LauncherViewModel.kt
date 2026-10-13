@@ -294,11 +294,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                     label = win.app?.label ?: win.title,
                     action = "win:${win.id}",
                     active = win.id == chromeWinId,
+                    pkg = win.app?.pkg,
                 )
             }
         val dock = settings.pinnedDock
-            .take(7)
-            .map { pkg -> dev.retrobit.desktop.shell.CyberdeckChrome.Bar(appByPackage(pkg)?.label ?: pkg, "app:$pkg") }
+            .take(6)
+            .map { pkg ->
+                dev.retrobit.desktop.shell.CyberdeckChrome.Bar(
+                    appByPackage(pkg)?.label ?: pkg,
+                    "app:$pkg",
+                    pkg = pkg,
+                )
+            }
         CyberdeckChrome.state = dev.retrobit.desktop.shell.CyberdeckChrome.State(
             ink = dev.retrobit.desktop.shell.CyberdeckChrome.Ink(
                 paper = palette.paper.toArgb(),
@@ -316,6 +323,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             scale = settings.uiScale.coerceIn(0.6f, 2f),
             topRail = settings.chromeTopRail,
             bottomDock = settings.chromeDock,
+            autoHide = settings.chromeAutoHide,
+            autoHideSecs = settings.chromeAutoHideSecs.coerceIn(3, 60),
+            net = snapshot.net,
         )
     }
 

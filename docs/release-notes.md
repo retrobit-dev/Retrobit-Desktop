@@ -49,6 +49,24 @@ Cara memakainya:
   tablet has no floating windows"** dan mengarahkan ke cyberdeck chrome.
 - Baris status di *Settings - apps & windows* menyebutkan apakah build ini menjawab permintaan
   freeform window.
+### Cyberdeck chrome: lebih mudah dibaca, bingkai hitam, rail bisa sembunyi
+- **Tulisan dan ikon di rail & dock diperbesar** dan tidak lagi buram: ukuran teks di-snap ke
+  kelipatan 16 px (grid em font Pixel Operator) dan glyph/ikon ke kelipatan 8 px, jadi huruf dan
+  ikon tergambar tajam berapa pun skala UI-nya. Judul aplikasi di title rail sekarang memakai
+  Pixel Operator **bold**, tinggi rail 40 dp, dock 54 dp.
+- **Dock sekarang menampilkan ikon aplikasi aslinya** (dicetak grayscale, di dalam kotak paper
+  berbingkai hitam) dengan namanya di bawah - bukan cuma teks. Ikon di-cache per paket.
+- **Bingkai hitam polos.** Sebelumnya bingkai memakai warna ink palet (di palet Ink jadi terang);
+  sekarang selalu **hitam**, jadi tepi jendela selalu terbaca di atas aplikasi apa pun.
+- **Judul rail menghindari lubang kamera**: kalau ada cutout di kiri, judul dimulai setelah cutout.
+- **Rail auto-hide**: setelah 4/6/10/20 detik (pilihan di Settings, default 6 detik) title rail dan
+  dock menyusut jadi **handle tipis** di tepi atas/bawah - hanya bingkai hitam yang selalu ada.
+  Sentuh handle-nya untuk memunculkan kembali; rail juga otomatis muncul sebentar setiap kali
+  aplikasi di depan berganti. Bisa dimatikan: *Settings - cyberdeck chrome → hide the rails*, atau
+  terminal `cyberdeck autohide on|off|6`.
+- Status di title rail sekarang menampilkan **jam + baterai + jaringan**.
+
+
 ### Terminal: tombol cepat jadi ikon
 - Empat tombol cepat di bawah terminal (`help`, `previous`, `next`, `clear`) sekarang **hanya ikon**,
   bukan kata: tanda tanya, panah atas, panah bawah, dan tanda silang. Tidak ada lagi label teks yang

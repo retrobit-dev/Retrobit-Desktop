@@ -239,6 +239,23 @@ fun SettingsView(vm: LauncherViewModel) {
             s.chromeDock = it
             vm.syncChrome()
         }
+        ToggleRow("hide the rails after a few seconds (tap the edge to bring them back)", s.chromeAutoHide, onGlyph = Glyph.UP) {
+            s.chromeAutoHide = it
+            vm.syncChrome()
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f)), verticalAlignment = Alignment.CenterVertically) {
+            RetroText("stay up for", size = 12f, modifier = Modifier.weight(1f))
+            listOf(4, 6, 10, 20).forEach { secs ->
+                RetroButton(
+                    label = "${secs}s",
+                    active = s.chromeAutoHideSecs == secs,
+                    onClick = {
+                        s.chromeAutoHideSecs = secs
+                        vm.syncChrome()
+                    },
+                )
+            }
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
             RetroButton(
                 label = if (vm.chromeAllowed()) "permission granted" else "grant permission",
@@ -256,10 +273,11 @@ fun SettingsView(vm: LauncherViewModel) {
         RetroText(
             "While the chrome is up the rails answer to the pen: desktop brings this launcher back, " +
                 "fit frame relaunches the app in front inside its old window, the dock opens another " +
-                "app or an open window, and x hides the chrome for good. The middle of the screen has " +
-                "no overlay at all, so the app keeps its own gestures, and the dock stays clear of " +
-                "the navigation gesture bar.",
-            size = 10f, color = p.mid, maxLines = 7,
+                "app or an open window (with the app's real icon), and x hides the chrome for good. " +
+                "The frame is plain black, its title starts after the camera hole, and the middle of " +
+                "the screen has no overlay at all, so the app keeps its own gestures - the dock also " +
+                "stays clear of the navigation gesture bar.",
+            size = 10f, color = p.mid, maxLines = 8,
         )
         ToggleRow("Apps open with a double click / double tap (tap selects)", s.doubleClickOpen, onGlyph = Glyph.GRID) {
             s.doubleClickOpen = it

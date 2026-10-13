@@ -106,7 +106,14 @@ class ChromeService : Service() {
     private var previewLeft = 0
     private var ticks = 0
     private var battery = ""
+    private var notchLeft = 0
+    private var railsShown = true
+    private var railsHiddenAt = 0L
+    private var lastTitle = ""
     private val clock = SimpleDateFormat("HH:mm", Locale.US)
+
+    /** App icons for the dock, loaded once per package (64 px, printed in grayscale). */
+    private val iconCache = HashMap<String, android.graphics.Bitmap?>()
 
     private val tick = object : Runnable {
         override fun run() {
@@ -114,6 +121,7 @@ class ChromeService : Service() {
             runCatching { CyberdeckChrome.onRefresh?.invoke() }
             updateBattery()
             applyState()
+            autoHideTick()
             if (previewLeft > 0) {
                 previewLeft--
                 if (previewLeft == 0) hide()
@@ -217,12 +225,15 @@ class ChromeService : Service() {
                 WindowInsets.Type.statusBars() or WindowInsets.Type.displayCutout(),
             ).top
             navInset = insets.getInsetsIgnoringVisibility(WindowInsets.Type.navigationBars()).bottom
+            // the punch-hole camera: the title of the rail has to start after it
+            notchLeft = insets.getInsetsIgnoringVisibility(WindowInsets.Type.displayCutout()).left
         } else {
             val dm = resources.displayMetrics
             sizeW = dm.widthPixels
             sizeH = dm.heightPixels
             statusInset = (24f * dm.density).toInt()
             navInset = (24f * dm.density).toInt()
+            notchLeft = 0
         }
     }
 
@@ -244,20 +255,29 @@ class ChromeService : Service() {
             if (ink.topRail) {
                 val t = RailView(this, topRail = true).apply {
                     inset = statusInset
+                    notchLeft = notchLeft
+                    icons = { pkg -> appIcon(pkg) }
                     onAction = { action -> onAction(action) }
+                    onInteract = { keepAwake() }
                 }
-                wm.addView(t, params(sizeW, t.totalHeight(), Gravity.TOP or Gravity.START))
+                wm.addView(t, params(sizeW, barsHeight(t), Gravity.TOP or Gravity.START))
                 top = t
             }
             if (ink.bottomDock) {
                 val d = RailView(this, topRail = false).apply {
                     inset = navInset
+                    notchLeft = 0
+                    icons = { pkg -> appIcon(pkg) }
                     onAction = { action -> onAction(action) }
+                    onInteract = { keepAwake() }
                 }
-                wm.addView(d, params(sizeW, d.totalHeight(), Gravity.BOTTOM or Gravity.START))
+                wm.addView(d, params(sizeW, barsHeight(d), Gravity.BOTTOM or Gravity.START))
                 dock = d
             }
             visible = true
+            railsShown = true
+            railsHiddenAt = 0L
+            lastTitle = CyberdeckChrome.state.title
             updateBattery(force = true)
             applyState()
         }.onFailure {
@@ -271,6 +291,7 @@ class ChromeService : Service() {
     }
 
     private fun remove() {
+        hideAt = 0L
         border?.let { runCatching { wm.removeView(it) } }
         top?.let { runCatching { wm.removeView(it) } }
         dock?.let { runCatching { wm.removeView(it) } }
@@ -304,27 +325,98 @@ class ChromeService : Service() {
         if (visible && (border == null)) return
         // a rail the user just turned off (or on) has to follow while the chrome is up
         if (visible && (state.topRail != (top != null) || state.bottomDock != (dock != null))) {
+            val wasShown = railsShown
             remove()
             show()
+            if (!wasShown) setRailsShown(false)
             return
+        }
+        // a new app came to the front: show the title rail for a moment so the user sees its name
+        if (visible && state.title != lastTitle) {
+            lastTitle = state.title
+            keepAwake()
         }
         val clockText = clockText()
         border?.let {
             it.state = state
             it.invalidate()
         }
-        top?.let {
+        listOfNotNull(top, dock).forEach {
             it.state = state
             it.clock = clockText
             it.battery = battery
+            it.net = state.net
             it.invalidate()
         }
-        dock?.let {
-            it.state = state
-            it.clock = clockText
-            it.battery = battery
-            it.invalidate()
+    }
+
+    // ── auto-hide ───────────────────────────────────────────────────────────────
+    /** Height of a rail window: the full rail, or the handle it shrinks to when hidden. */
+    private fun barsHeight(view: RailView): Int = if (railsShown) view.totalHeight() else view.handleHeight()
+
+    /** Puts the rails back (and starts their countdown again) — used by the handle and by presses. */
+    private fun keepAwake() {
+        val secs = CyberdeckChrome.state.autoHideSecs.coerceIn(3, 60)
+        railsHiddenAt = 0L
+        if (!railsShown) setRailsShown(true)
+        hideAt = System.currentTimeMillis() + secs * 1000L
+    }
+
+    private var hideAt = 0L
+
+    private fun setRailsShown(shown: Boolean) {
+        if (shown == railsShown) return
+        railsShown = shown
+        listOfNotNull(top, dock).forEach { view ->
+            view.handlesOnly = !shown
+            val p = view.layoutParams as? WindowManager.LayoutParams ?: return@forEach
+            p.height = barsHeight(view)
+            runCatching { wm.updateViewLayout(view, p) }
+            view.invalidate()
         }
+    }
+
+    /** Slides the rails away after their countdown; the frame itself always stays. */
+    private fun autoHideTick() {
+        val state = CyberdeckChrome.state
+        val wanted = state.autoHide
+        val now = System.currentTimeMillis()
+        if (!wanted) {
+            hideAt = 0L
+            if (!railsShown) setRailsShown(true)
+            return
+        }
+        if (!railsShown) {
+            railsHiddenAt = now
+            return
+        }
+        if (hideAt == 0L) hideAt = now + state.autoHideSecs.coerceIn(3, 60) * 1000L
+        // never hide while the user is watching a preview or has just brought us back
+        if (previewLeft > 0) {
+            hideAt = now + state.autoHideSecs.coerceIn(3, 60) * 1000L
+            return
+        }
+        if (now >= hideAt) {
+            hideAt = 0L
+            setRailsShown(false)
+        }
+    }
+
+    /** One 64 px icon per package, printed in grayscale by the dock. */
+    private fun appIcon(pkg: String?): android.graphics.Bitmap? {
+        if (pkg == null || pkg.isBlank()) return null
+        if (iconCache.containsKey(pkg)) return iconCache[pkg]
+        val bitmap = runCatching {
+            val drawable = packageManager.getApplicationIcon(pkg)
+            val size = (64 * resources.displayMetrics.density / 3f).toInt().coerceIn(48, 128)
+            val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+            val canvas = android.graphics.Canvas(bmp)
+            drawable.setBounds(0, 0, size, size)
+            drawable.draw(canvas)
+            bmp
+        }.getOrNull()
+        iconCache[pkg] = bitmap
+        return bitmap
     }
 
     // ── the readouts ────────────────────────────────────────────────────────────
@@ -344,6 +436,7 @@ class ChromeService : Service() {
 
     // ── what the rails do ───────────────────────────────────────────────────────
     private fun onAction(action: String) {
+        hideAt = 0L
         when {
             action == "home" -> {
                 val home = CyberdeckChrome.onHome
