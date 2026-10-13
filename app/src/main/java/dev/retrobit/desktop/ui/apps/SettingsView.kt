@@ -216,6 +216,51 @@ fun SettingsView(vm: LauncherViewModel) {
                 "enable_freeform_support 1, apps really sit inside their frame.",
             size = 10f, color = p.mid, maxLines = 5,
         )
+
+        Section("cyberdeck chrome")
+        // subscribes this section to the chrome state, so the line below is fresh after a return
+        vm.chromeRev.let { }
+        RetroText(
+            "Most tablets will not float an app, so it opens full screen and the frame behind it is " +
+                "never seen. With this on, the launcher draws the frame itself - the border, the " +
+                "title rail and the dock - over whatever app owns the screen, so every app reads as " +
+                "a window of this desktop. Needs the \"display over other apps\" permission, and a " +
+                "small notification while it runs.",
+            size = 10.5f, color = p.mid, maxLines = 7,
+        )
+        ToggleRow("Draw the desktop frame over full-screen apps", s.cyberdeckChrome, onGlyph = Glyph.GRID) { on ->
+            vm.setCyberdeck(on)
+        }
+        ToggleRow("title rail (app name, clock, battery, keys)", s.chromeTopRail, onGlyph = Glyph.SYSMON) {
+            s.chromeTopRail = it
+            vm.syncChrome()
+        }
+        ToggleRow("dock strip (desktop, pinned apps, open windows)", s.chromeDock, onGlyph = Glyph.HDD) {
+            s.chromeDock = it
+            vm.syncChrome()
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            RetroButton(
+                label = if (vm.chromeAllowed()) "permission granted" else "grant permission",
+                modifier = Modifier.weight(1f),
+                active = vm.chromeAllowed(),
+                onClick = { vm.requestChromePermission() },
+            )
+            RetroButton(
+                label = "preview 8s",
+                modifier = Modifier.weight(1f),
+                onClick = { vm.previewChrome(8) },
+            )
+        }
+        RetroText(vm.chromeStatusLine(), size = 10f, color = p.mid, maxLines = 3)
+        RetroText(
+            "While the chrome is up the rails answer to the pen: desktop brings this launcher back, " +
+                "fit frame relaunches the app in front inside its old window, the dock opens another " +
+                "app or an open window, and x hides the chrome for good. The middle of the screen has " +
+                "no overlay at all, so the app keeps its own gestures, and the dock stays clear of " +
+                "the navigation gesture bar.",
+            size = 10f, color = p.mid, maxLines = 7,
+        )
         ToggleRow("Apps open with a double click / double tap (tap selects)", s.doubleClickOpen, onGlyph = Glyph.GRID) {
             s.doubleClickOpen = it
         }

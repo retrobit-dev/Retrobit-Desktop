@@ -48,6 +48,26 @@ object WindowedLaunch {
     fun boundsMayBeHonoured(context: Context): Boolean =
         supportsFreeform(context) || supportsPictureInPicture(context)
 
+    /**
+     * `ActivityOptions.setLaunchWindowingMode` is hidden, yet it is the only way to *ask* for a
+     * freeform window instead of hoping the system turns a rectangle into one. It is looked up once,
+     * through reflection, and simply stays null on builds that refuse access to it (hidden-API
+     * enforcement on release builds) — nothing here is required for the launcher to work.
+     */
+    private val windowingMode: java.lang.reflect.Method? by lazy {
+        runCatching {
+            ActivityOptions::class.java
+                .getDeclaredMethod("setLaunchWindowingMode", Int::class.javaPrimitiveType)
+                .apply { isAccessible = true }
+        }.getOrNull()
+    }
+
+    /** `WINDOWING_MODE_FREEFORM` from the framework: a real, movable, resizable system window. */
+    private const val WINDOWING_MODE_FREEFORM = 5
+
+    /** True when this build lets us ask for the freeform windowing mode explicitly. */
+    fun canAskForFreeform(): Boolean = windowingMode != null
+
     /** Human readable status line for the Settings screen. */
     fun statusLine(context: Context): String = when {
         supportsFreeform(context) ->
@@ -58,6 +78,11 @@ object WindowedLaunch {
         else ->
             "this device does not report floating-window support: the rectangle is still requested, " +
                 "but the system may open the app full screen"
+    } + if (canAskForFreeform()) {
+        " (this build also answers the hidden \"launch as a freeform window\" call, which is asked " +
+            "for first)"
+    } else {
+        ""
     }
 
     /**
@@ -68,9 +93,12 @@ object WindowedLaunch {
         if (placement == null || !placement.isUsable) return null
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return null
         return runCatching {
-            ActivityOptions.makeBasic()
-                .setLaunchBounds(placement.toRect())
-                .toBundle()
+            val options = ActivityOptions.makeBasic().setLaunchBounds(placement.toRect())
+            // ask for a freeform window explicitly: with a plain rectangle the system is free to
+            // decide that the app belongs in the fullscreen stack instead (which is what most
+            // tablets do), while the windowing mode is what actually makes it float
+            windowingMode?.let { mode -> runCatching { mode.invoke(options, WINDOWING_MODE_FREEFORM) } }
+            options.toBundle()
         }.getOrNull()
     }
 

@@ -79,6 +79,19 @@ class Settings(context: Context) {
      */
     var appWindowFollow: Boolean by boolPref("appWindowFollow", true)
 
+    /**
+     * Cyberdeck chrome: draw the desktop frame, the title rail and the dock **over** an app that the
+     * system opened full screen, so the desktop keeps its shape on tablets that cannot float windows.
+     * Needs the "display over other apps" permission, which the Settings screen asks for.
+     */
+    var cyberdeckChrome: Boolean by boolPref("cyberdeckChrome", false)
+
+    /** Draw the title rail (app name, clock, battery, window keys) while the chrome is up. */
+    var chromeTopRail: Boolean by boolPref("chromeTopRail", true)
+
+    /** Draw the dock strip at the bottom while the chrome is up. */
+    var chromeDock: Boolean by boolPref("chromeDock", true)
+
     /** Draw an e-paper pointer arrow while a pen or mouse is in use. */
     var showCursor: Boolean by boolPref("showCursor", true)
     /** Drag a window against a screen edge to snap it (half screen / maximize). */

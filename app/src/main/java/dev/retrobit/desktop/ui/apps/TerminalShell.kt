@@ -91,6 +91,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "safearea" -> safeArea(args.firstOrNull())
             "dock" -> dock(args)
             "floating" -> floating(args.firstOrNull())
+            "cyberdeck", "chrome" -> cyberdeck(args.firstOrNull())
             "widgets", "widget" -> widgets(args)
             "wsmove" -> wsMove(args.firstOrNull())
             "invert" -> vm.invertTheme()
@@ -150,6 +151,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             safearea on|off [dp]   keep the desktop clear of the camera hole and rounded corners
             dock list | dock move <app> <n>   pinned dock apps, reorder them by hand
             floating on|off        ask the system to float an app inside its window frame
+            cyberdeck on|off       draw the desktop frame over apps that open full screen
+            cyberdeck preview|grant  show it for a few seconds / ask for the overlay permission
             usage [top|clear]      launch counts that order the app drawer (most used first)
             app add|remove <name>  put an app on the desktop / take it off
             doubleclick on|off     apps open with a double click (tap selects) or a single tap
@@ -325,6 +328,23 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "on", "1", "true" -> { vm.settings.showSeconds = true; print("seconds -> on") }
             "off", "0", "false" -> { vm.settings.showSeconds = false; print("seconds -> off") }
             else -> { vm.settings.showSeconds = !vm.settings.showSeconds; print("seconds -> ${if (vm.settings.showSeconds) "on" else "off"}") }
+        }
+    }
+
+    private fun cyberdeck(arg: String?) {
+        when (arg?.lowercase()) {
+            "on", "1", "true" -> vm.setCyberdeck(true)
+            "off", "0", "false" -> vm.setCyberdeck(false)
+            "preview" -> vm.previewChrome(8)
+            "grant", "permission" -> {
+                vm.requestChromePermission()
+                print("opening the \"display over other apps\" screen", Kind.DIM)
+            }
+            else -> {
+                print("cyberdeck chrome: ${if (vm.settings.cyberdeckChrome) "on" else "off"}", Kind.HEAD)
+                print("  ${vm.chromeStatusLine()}", Kind.DIM)
+                print("usage: cyberdeck on|off|preview|grant", Kind.DIM)
+            }
         }
     }
 

@@ -114,6 +114,19 @@ class MainActivity : ComponentActivity() {
         vm.setAppForeground(false)
     }
 
+    override fun onStart() {
+        super.onStart()
+        // the desktop is on screen: its own frames are visible, so the overlay chrome steps aside
+        vm.onLauncherVisible()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // An app owns the screen now. If the window manager could not float it, the chrome is what
+        // keeps the frame visible around it. (A floating app only pauses us, so no chrome then.)
+        vm.onLauncherHidden()
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)

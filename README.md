@@ -115,6 +115,23 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   (cadangan untuk tablet yang rewel soal floating). Menu konteks ikon aplikasi juga punya
   **Open in its window** dan **Open full screen**.
 
+### Cyberdeck chrome: kotak jendela tetap terlihat di atas aplikasi
+- Kalau tablet **tidak** bisa memunculkan jendela freeform (kebanyakan EMUI/HarmonyOS, walau *force
+  activities to be resizable* sudah dinyalakan), aplikasi akan membuka full screen dan kotak jendela
+  di belakangnya tidak pernah kelihatan. Untuk itu launcher bisa **menggambar sendiri kotak itu di
+  atas aplikasi**: bingkai 3dp, **title rail** (nama aplikasi, jam, baterai, tombol `fit frame` /
+  `desktop` / `x`) dan **dock** di bawah (desktop, app yang dipin, jendela yang terbuka, tombol
+  sembunyikan). Jadi aplikasi full screen pun terlihat sebagai jendela dari desktop ini.
+- Menyalakannya: *Settings - cyberdeck chrome → Draw the desktop frame over full-screen apps*
+  (butuh izin **display over other apps**, ada tombol `grant permission`), tombol `preview 8s` untuk
+  mencoba tanpa keluar dari desktop, atau terminal: `cyberdeck on|off|preview|grant`.
+- Chrome hanya muncul saat launcher tidak terlihat; kalau aplikasi berhasil mengapung, chrome tidak
+  ikut tampil (tidak ada bingkai dobel). Tengah layar tidak ditutup overlay apa pun, dan dock diberi
+  jarak dari gesture bar supaya swipe-naik (home) tetap jalan.
+- Selain itu, permintaan freeform sekarang dikirim lebih tegas: selain rect, launcher juga memanggil
+  `setLaunchWindowingMode(FREEFORM)` (reflection) supaya tablet yang mendukung benar-benar
+  mengapungkan aplikasinya di dalam kotak.
+
 ### App drawer: daftar yang bisa digulir, yang paling sering dipakai di atas
 - **Bukan fullscreen, dan bukan grid ikon**: *Applications* adalah jendela biasa (bisa digeser,
   di-resize, di-maximize seperti jendela lain) berisi **daftar** satu baris per aplikasi yang bisa
@@ -246,11 +263,11 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   tanggal tidak dibuat ulang tiap detik.
 
 ### Aplikasi bawaan
-- **Terminal** (`rb-sh`) — 28+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
+- **Terminal** (`rb-sh`) — 30+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
   `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`, `tiling on|off`,
   `workspace 1..4` (`ws`), `wsmove 1..4`, `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
-  `floating on|off`, `usage [top|clear]`, `widgets` / `widget width <dp>` /
+  `floating on|off`, `cyberdeck on|off|preview|grant`, `usage [top|clear]`, `widgets` / `widget width <dp>` /
   `widget size <name> <w> <h>` / `widget reset`,
   `invert`, `wmctrl`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.

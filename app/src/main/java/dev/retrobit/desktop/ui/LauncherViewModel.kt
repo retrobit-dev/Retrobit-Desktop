@@ -16,10 +16,13 @@ import dev.retrobit.desktop.model.IconMode
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.model.WinKind
+import dev.retrobit.desktop.shell.ChromeService
+import dev.retrobit.desktop.shell.CyberdeckChrome
 import dev.retrobit.desktop.ui.apps.TerminalShell
 import dev.retrobit.desktop.ui.components.MenuItem
 import dev.retrobit.desktop.ui.wm.WindowManager
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -178,6 +181,191 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    // ── cyberdeck chrome ─────────────────────────────────────────────────────────
+    // The frame drawn *over* an app that the system opened full screen: see shell/ChromeService.
+    // The rails read their content from CyberdeckChrome, which is filled in by syncChrome().
+
+    /** The app whose window was opened last: it is the title the chrome shows. */
+    private var chromeApp: AppEntry? = null
+    private var chromeWinId = -1
+
+    /** When the last app was sent to a frame rectangle (evidence for the full-screen probe). */
+    private var lastFloatLaunchAt = 0L
+
+    /**
+     * The app that took the whole screen right after we asked for a floating rectangle — proof that
+     * this tablet would not float it. The window of that app says so instead of pretending.
+     */
+    var lastFullScreenApp: String? by mutableStateOf(null)
+        private set
+
+    /**
+     * Bumped whenever the chrome state may have changed (permission granted, service started or
+     * stopped). The Settings section reads it, so its status line is fresh the moment the user comes
+     * back from the system permission screen.
+     */
+    var chromeRev: Int by mutableStateOf(0)
+        private set
+
+    /** True when the overlay ("display over other apps") permission is granted. */
+    fun chromeAllowed(): Boolean =
+        runCatching { android.provider.Settings.canDrawOverlays(appContext) }.getOrDefault(false)
+
+    /** One line for the Settings screen: permission + service state + what the rails will draw. */
+    fun chromeStatusLine(): String {
+        val permitted = if (chromeAllowed()) "display over other apps: granted" else "display over other apps: NOT granted"
+        val service = when {
+            !ChromeService.running -> "chrome: stopped"
+            ChromeService.visible -> "chrome: drawing the frame now"
+            else -> "chrome: ready"
+        }
+        val dev = if (dev.retrobit.desktop.data.WindowedLaunch.supportsFreeform(appContext)) {
+            "this tablet can float windows, so the chrome stays out of the way"
+        } else {
+            "this tablet does not float windows, so the chrome is what keeps the frame visible"
+        }
+        return "$permitted | $service | $dev"
+    }
+
+    /** Turns the chrome on or off; turning it on asks for the permission when it is missing. */
+    fun setCyberdeck(on: Boolean) {
+        settings.cyberdeckChrome = on
+        if (on) {
+            if (chromeAllowed()) {
+                ChromeService.start(appContext)
+                shell.print("cyberdeck chrome on - the frame follows apps that open full screen")
+            } else {
+                shell.print("cyberdeck chrome needs the \"display over other apps\" permission", TerminalShell.Kind.ERR)
+                requestChromePermission()
+            }
+        } else {
+            ChromeService.stop(appContext)
+            shell.print("cyberdeck chrome off")
+        }
+        chromeRev++
+        syncChrome()
+    }
+
+    /** Opens the system screen where the overlay permission is granted. */
+    fun requestChromePermission() = runCatching {
+        appContext.startActivity(
+            android.content.Intent(
+                android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                android.net.Uri.parse("package:" + appContext.packageName),
+            ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+
+    /** Shows the chrome for a few seconds while the desktop is on screen, so it can be seen. */
+    fun previewChrome(seconds: Int = 8) {
+        if (!chromeAllowed()) {
+            requestChromePermission()
+            shell.print("grant \"display over other apps\", then press preview again", TerminalShell.Kind.ERR)
+            return
+        }
+        ChromeService.preview(appContext, seconds)
+        shell.print("cyberdeck chrome preview - ${seconds}s")
+    }
+
+    /** The rail's "desktop" key: back to the launcher (which also takes the chrome down). */
+    fun goDesktop() = runCatching {
+        appContext.startActivity(
+            android.content.Intent(android.content.Intent.ACTION_MAIN)
+                .addCategory(android.content.Intent.CATEGORY_HOME)
+                .addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK),
+        )
+    }
+
+    /** The rail's "fit frame" key: relaunch the app in front inside its desktop window. */
+    private fun refitChromeWindow() {
+        val win = wm.windows.firstOrNull { it.id == chromeWinId } ?: return
+        placeAppWindow(win, force = true)
+        goDesktop()
+    }
+
+    /** Everything the rails draw, pushed into the shared chrome state. Cheap: a few list copies. */
+    fun syncChrome() {
+        val palette = dev.retrobit.desktop.ui.theme.Palettes.of(settings.palette)
+        val front = wm.windows.firstOrNull { it.id == chromeWinId }
+        val windows = wm.windows
+            .filter { it.kind == WinKind.APPWINDOW && appWindows.isRunning(it.id) }
+            .map { win ->
+                dev.retrobit.desktop.shell.CyberdeckChrome.Bar(
+                    label = win.app?.label ?: win.title,
+                    action = "win:${win.id}",
+                    active = win.id == chromeWinId,
+                )
+            }
+        val dock = settings.pinnedDock
+            .take(7)
+            .map { pkg -> dev.retrobit.desktop.shell.CyberdeckChrome.Bar(appByPackage(pkg)?.label ?: pkg, "app:$pkg") }
+        CyberdeckChrome.state = dev.retrobit.desktop.shell.CyberdeckChrome.State(
+            ink = dev.retrobit.desktop.shell.CyberdeckChrome.Ink(
+                paper = palette.paper.toArgb(),
+                ink = palette.ink.toArgb(),
+                mid = palette.mid.toArgb(),
+                accent = palette.accent.toArgb(),
+            ),
+            title = front?.app?.label ?: "desktop",
+            inFrame = front != null,
+            canRefit = front != null && settings.floatingApps,
+            desktop = wm.desktop + 1,
+            desks = wm.desktopCount,
+            windows = windows,
+            dock = dock,
+            scale = settings.uiScale.coerceIn(0.6f, 2f),
+            topRail = settings.chromeTopRail,
+            bottomDock = settings.chromeDock,
+        )
+    }
+
+    /** Wired once: keeps the chrome state fresh and routes the rail buttons back into the launcher. */
+    private fun wireChrome() {
+        CyberdeckChrome.onRefresh = { syncChrome() }
+        CyberdeckChrome.onHome = { goDesktop() }
+        CyberdeckChrome.onHideChrome = { setCyberdeck(false) }
+        CyberdeckChrome.onRefit = { refitChromeWindow() }
+        CyberdeckChrome.onOpenWindow = { id -> wm.windows.firstOrNull { it.id == id }?.let { focusAppWindow(it) } }
+        CyberdeckChrome.onOpenPackage = { pkg ->
+            val app = appByPackage(pkg)
+            if (app != null) {
+                launch(app)
+            } else {
+                runCatching {
+                    appContext.packageManager.getLaunchIntentForPackage(pkg)?.let {
+                        it.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                        appContext.startActivity(it)
+                    }
+                }
+            }
+        }
+        syncChrome()
+    }
+
+    /** The launcher is in front again: the chrome is not needed while our own frames are visible. */
+    fun onLauncherVisible() {
+        chromeRev++
+        runCatching { ChromeService.hide(appContext) }
+        // the service can be killed by the system (or by the user), and the user may have just come
+        // back from granting the permission: make sure the chrome is running when it is wanted
+        if (settings.cyberdeckChrome && chromeAllowed() && !ChromeService.running) {
+            runCatching { ChromeService.start(appContext) }
+        }
+        syncChrome()
+    }
+
+    /** Another app owns the screen: draw the frame over it when the user asked for the chrome. */
+    fun onLauncherHidden() {
+        if (settings.cyberdeckChrome && chromeAllowed()) {
+            lastFullScreenApp = chromeApp?.pkg
+            runCatching { ChromeService.show(appContext) }
+        } else if (lastFloatLaunchAt > 0L && System.currentTimeMillis() - lastFloatLaunchAt < 12_000L) {
+            // we asked the system to float this app and it owns the whole screen a moment later
+            lastFullScreenApp = chromeApp?.pkg
+        }
+        syncChrome()
+    }
+
     /** Wired by the activity: summon or hide the internal (on-screen) keyboard. */
     var toggleKeyboard: (() -> Unit)? = null
 
@@ -202,6 +390,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         // every move, resize, maximize or re-layout of a frame ends up here: that is the single
         // place where the app inside the frame has to follow (see onAppFrameSettled)
         wm.onGeometrySettled = { win -> onAppFrameSettled(win) }
+        wireChrome()
         repo.registerChanges { viewModelScope.launch { repo.reload() } }
         viewModelScope.launch { repo.reload(); seedDefaults() }
         viewModelScope.launch {
@@ -276,12 +465,18 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
         if (existing != null) {
             wm.focus(existing.id)
             appWindows.markLaunched(existing.id)
+            chromeApp = app
+            chromeWinId = existing.id
             sendAppToWindow(app, existing)
+            syncChrome()
             return
         }
         val win = wm.openAppWindow(app) ?: return
         appWindows.markLaunched(win.id)
+        chromeApp = app
+        chromeWinId = win.id
         sendAppToWindow(app, win)
+        syncChrome()
     }
 
     /** The drawer order: the apps launched most often first, the rest alphabetical (see AppUsage). */
@@ -381,6 +576,11 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             return
         }
         placedByWindow[win.id] = placement
+        // evidence for the chrome: this app was sent to a frame a moment ago, so an app that owns
+        // the screen right after this was opened full screen by the system
+        lastFloatLaunchAt = System.currentTimeMillis()
+        chromeApp = app
+        chromeWinId = win.id
         if (quiet) return
         shell.print(
             (if (force) "${app.label}: restarting into " else "${app.label}: placed at ") +

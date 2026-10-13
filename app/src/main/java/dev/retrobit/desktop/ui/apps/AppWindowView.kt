@@ -74,7 +74,10 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
                 RetroText(app?.pkg ?: "android", size = 10f, color = p.mid, maxLines = 1)
                 RetroText(
                     when {
-                        !vm.settings.floatingApps -> "floating is off - the app opens full screen, this frame keeps its place in the taskbar"
+                        !vm.settings.floatingApps ->
+                            "floating is off - the app opens full screen, this frame keeps its place in the taskbar"
+                        vm.lastFullScreenApp == app?.pkg ->
+                            "the system opened this app full screen - this tablet has no floating windows"
                         live -> "placed in this frame - the app runs in its own floating window"
                         else -> "app window - tap place here to put the app inside the frame"
                     },
@@ -124,6 +127,17 @@ fun AppWindowView(vm: LauncherViewModel, win: WinState) {
                         "app full screen; this window keeps its place in the taskbar and workspaces"
                 },
                 size = 10f, color = p.mid, maxLines = 4,
+            )
+            RetroText(
+                if (vm.settings.cyberdeckChrome && vm.chromeAllowed()) {
+                    "cyberdeck chrome is on: while the app owns the screen, the launcher draws this " +
+                        "frame (border, title rail and dock) over it, so the window stays visible."
+                } else {
+                    "cyberdeck chrome is off. If this tablet opens the app full screen instead of " +
+                        "floating it, turn the chrome on (Settings, or `cyberdeck on` in the " +
+                        "terminal): the frame is then drawn over the app while it runs."
+                },
+                size = 10f, color = p.mid, maxLines = 5,
             )
         }
 

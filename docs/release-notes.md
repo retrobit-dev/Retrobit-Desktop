@@ -9,6 +9,46 @@
 
 ## Yang baru di {{TAG}}
 
+
+### Cyberdeck: kotak jendela sekarang tetap terlihat di atas aplikasi
+
+**Masalahnya:** Android hanya mengizinkan aplikasi biasa menaruh aplikasi lain di dalam kotaknya lewat
+**freeform window** (jendela sistem yang bisa digeser). Banyak tablet - termasuk yang memakai
+EMUI/HarmonyOS - tidak punya mode jendela itu: walau opsi pengembang *force activities to be
+resizable* sudah dinyalakan, rect yang kita kirim diabaikan dan aplikasi membuka **full screen**,
+sehingga kotak jendela yang ada di belakangnya tidak pernah terlihat.
+
+**Jalan keluarnya sekarang ada dua, dipakai bersama-sama:**
+
+1. **Meminta jendela freeform secara eksplisit.** Selain rect (`setLaunchBounds`), launcher sekarang
+   juga memanggil `setLaunchWindowingMode(FREEFORM)` (lewat reflection; kalau build-nya menolak, tidak
+   apa-apa). Pada tablet yang mendukung freeform, aplikasi benar-benar mengapung di dalam kotaknya.
+2. **Kalau tablet memang tidak bisa: cyberdeck chrome.** Launcher *menggambar sendiri* kotak itu di
+   atas aplikasi yang full screen — bingkai 3dp, **title rail** (nama aplikasi, jam, baterai, tombol
+   `fit frame` / `desktop` / `x`), dan **dock** di bawah (tombol desktop, app yang dipin, jendela yang
+   sedang terbuka, dan tombol sembunyikan). Jadi setiap aplikasi tetap terlihat seperti jendela dari
+   desktop ini, apa pun yang dilakukan sistem.
+
+Cara memakainya:
+- *Settings - cyberdeck chrome* → **Draw the desktop frame over full-screen apps** (butuh izin
+  "display over other apps" - ada tombol **grant permission**), plus **preview 8s** untuk melihat
+  hasilnya tanpa keluar dari desktop.
+- Terminal: `cyberdeck on` / `cyberdeck off` / `cyberdeck preview` / `cyberdeck grant`, dan
+  `cyberdeck` tanpa argumen untuk status.
+- Saat chrome aktif, launcher berjalan sebagai foreground service kecil (dengan notifikasi
+  importance MIN yang bisa ditutup lewat tombol `x` di rail) supaya bingkai tidak hilang saat
+  launcher di belakang. Tengah layar **tidak** ditutup overlay apa pun, jadi aplikasi tetap menerima
+  semua gesturnya, dan dock sengaja diberi jarak dari gesture bar supaya "swipe naik = home" tetap
+  bisa.
+- Chrome hanya muncul saat launcher benar-benar tidak terlihat (`onStop`). Kalau aplikasi berhasil
+  mengapung (hanya `onPause`), chrome tidak ikut muncul - tidak ada bingkai dobel.
+
+### Yang lain di {{TAG}}
+- Jendela aplikasi sekarang jujur soal apa yang terjadi: kalau sistem membuka aplikasinya full screen
+  padahal rect sudah dikirim, jendelanya menulis **"the system opened this app full screen - this
+  tablet has no floating windows"** dan mengarahkan ke cyberdeck chrome.
+- Baris status di *Settings - apps & windows* menyebutkan apakah build ini menjawab permintaan
+  freeform window.
 ### Terminal: tombol cepat jadi ikon
 - Empat tombol cepat di bawah terminal (`help`, `previous`, `next`, `clear`) sekarang **hanya ikon**,
   bukan kata: tanda tanya, panah atas, panah bawah, dan tanda silang. Tidak ada lagi label teks yang
