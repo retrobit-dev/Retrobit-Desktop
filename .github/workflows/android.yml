@@ -76,31 +76,30 @@ jobs:
       - name: Verify APKs
         if: steps.compile.outcome == 'success'
         run: |
+          set -uo pipefail
           SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
           AAPT=$(ls "$SDK"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+          REL=$(ls dist/*release.apk | head -1)
+          DBG=$(ls dist/*debug.apk | head -1)
           {
             echo "### APK verification"
             echo '```'
-            for f in dist/*.apk; do
-              echo "== $(basename "$f") ($(du -h "$f" | cut -f1))"
-              if [ -n "$AAPT" ]; then
-                "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package|launchable-activity|application-label|sdkVersion|targetSdkVersion|uses-permission|native-code)" | head -20 || true
-              fi
-              unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font|META-INF/" | head -12 || true
+            for f in "$REL" "$DBG"; do
+              echo "== $(basename "$f")  $(du -h "$f" | cut -f1)"
+              [ -n "$AAPT" ] && "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package:|launchable-activity:|sdkVersion:|targetSdkVersion:|uses-permission:)" || true
+              unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font|META-INF/.*\.(RSA|SF|MF)" || true
             done
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          for f in dist/*.apk; do
-            echo "::notice title=$(basename "$f")::$(du -h "$f" | cut -f1)"
-            if [ -n "$AAPT" ]; then
-              "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package|launchable-activity|application-label|sdkVersion|targetSdkVersion)" | head -6 | while IFS= read -r line; do
-                echo "::notice title=$(basename "$f")::$(printf '%s' "$line" | head -c 500 | sed 's/%/%25/g')"
-              done || true
-            fi
-            unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font" | head -8 | while IFS= read -r line; do
-              echo "::notice title=$(basename "$f") zip::$(printf '%s' "$line" | head -c 300 | sed 's/%/%25/g')"
-            done || true
-          done
+          # GitHub keeps only a limited number of annotations per step, so emit just the essentials.
+          PKG=$([ -n "$AAPT" ] && "$AAPT" dump badging "$REL" 2>/dev/null | grep -m1 '^package:' || echo "package: (aapt2 unavailable)")
+          ACT=$([ -n "$AAPT" ] && "$AAPT" dump badging "$REL" 2>/dev/null | grep -m1 '^launchable-activity:' || echo "launchable-activity: (aapt2 unavailable)")
+          DEX=$(unzip -l "$REL" | grep -Ec 'classes[0-9]*\.dex' || true)
+          FONTS=$(unzip -l "$REL" | grep -c 'res/font' || true)
+          echo "::notice title=release APK size::$(du -h "$REL" | cut -f1)"
+          echo "::notice title=release APK package::$(printf '%s' "$PKG" | sed 's/%/%25/g')"
+          echo "::notice title=release APK entry activity::$(printf '%s' "$ACT" | sed 's/%/%25/g')"
+          echo "::notice title=release APK contents::${DEX:-0} dex files, ${FONTS:-0} font resources, signed=$(unzip -l "$REL" | grep -c 'META-INF.*\.RSA' || true)"
 
       - name: Upload APK artifacts
         uses: actions/upload-artifact@v4
