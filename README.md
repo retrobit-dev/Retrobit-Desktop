@@ -113,7 +113,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 - Ukuran bisa diatur dari mana saja: `Settings - display widgets`, terminal `widgets`,
   `widget width 300`, `widget size calendar 280 420`, `widget reset`. Tinggi 0 = setinggi isinya;
   kalau lebih pendek, isi widget bisa di-scroll. Matematikanya murni di `ui/wm/WidgetMath.kt`
-  (**15 unit test**).
+  (**16 unit test**).
 - **Widget kalender** di desktop: grid bulan, penanda titik pada hari yang ada acaranya, panel
   agenda hari terpilih, dan tombol `+` untuk menambah entri **langsung dari desktop**.
 - Empat jenis entri: **event**, **task**, **agenda**, dan **birthday** (birthday otomatis berulang
@@ -159,8 +159,8 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   ke susunan otomatis, *Show placement grid* untuk memunculkan garis pandu saat men-drag.
 - Matematika layout dipisah ke file murni Kotlin tanpa Android supaya bisa di-unit-test:
   `ui/wm/LayoutMath.kt` (snap, tiling, **resize**), `ui/wm/GridMath.kt` (grid ikon) dan
-  `ui/wm/DockMath.kt` (urutan dock) dan `ui/wm/WidgetMath.kt` (ukuran + daftar widget) — **62 test**:
-  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 15 `WidgetMathTest`.
+  `ui/wm/DockMath.kt` (urutan dock) dan `ui/wm/WidgetMath.kt` (ukuran + daftar widget) — **63 test**:
+  23 `LayoutMathTest` + 15 `GridMathTest` + 9 `DockMathTest` + 16 `WidgetMathTest`.
 
 ### Input: pena, mouse, keyboard
 - M-Pencil diperlakukan sebagai mouse: tap = klik kiri, **tap 2× = klik kanan**, barrel button = klik kanan.
@@ -276,7 +276,7 @@ Animasi BIOS singkat (bisa dimatikan di Settings) plus layar boot bergaya e-pape
 
 Setiap push menjalankan workflow [`.github/workflows/android.yml`](.github/workflows/android.yml):
 
-1. **job `test`** — `./gradlew :app:testDebugUnitTest` (62 unit test untuk matematika tiling &
+1. **job `test`** — `./gradlew :app:testDebugUnitTest` (63 unit test untuk matematika tiling &
    edge-snapping); jumlah test/failure muncul di job summary dan sebagai check annotation
 2. **job `build`** — checkout → JDK 17 → Android SDK (platform 35, build-tools 35.0.0) → Gradle (cache),
    lalu `./gradlew :app:assembleDebug :app:assembleRelease`

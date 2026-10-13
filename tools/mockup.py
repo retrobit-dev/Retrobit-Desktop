@@ -275,6 +275,65 @@ def widget_grip(d, x1, y1, size=11):
         d.line([x1 - size + o, y1 - 3, x1 - 3, y1 - size + o], fill=INK, width=1)
 
 
+def dashed_rect(d, box, dash=9, gap=6, width=2, color=INK):
+    """The edit-mode frame a held widget draws around itself."""
+    x0, y0, x1, y1 = box
+    x = x0
+    while x < x1:
+        d.line([x, y0, min(x + dash, x1), y0], fill=color, width=width)
+        d.line([x, y1, min(x + dash, x1), y1], fill=color, width=width)
+        x += dash + gap
+    y = y0
+    while y < y1:
+        d.line([x0, y, x0, min(y + dash, y1)], fill=color, width=width)
+        d.line([x1, y, x1, min(y + dash, y1)], fill=color, width=width)
+        y += dash + gap
+
+
+def edit_button(d, x, y, label, width=None, active=False):
+    """A RetroButton/RetroIconButton in the widget edit chrome."""
+    tw = d.textlength(label, font=mono_tiny)
+    bw = width if width else tw + 16
+    d.rectangle([x, y, x + bw, y + 24], fill=INK if active else PAPER, outline=INK, width=2)
+    d.text((x + (bw - tw) / 2, y + 5), label, font=mono_tiny, fill=PAPER if active else INK)
+    return x + bw
+
+
+def widget_edit_chrome(d, box, name, size_text):
+    """What a widget looks like while it is being edited: dashed frame, name chip, toolbar.
+
+    Mirrors ui/desktop/WidgetFrame.kt (WidgetSlot + WidgetToolbar).
+    """
+    x0, y0, x1, y1 = box
+    dashed_rect(d, box)
+    chip = f"{name} {size_text}"
+    cw = d.textlength(chip, font=mono_tiny)
+    d.rectangle([x0 - 4, y0 - 26, x0 - 4 + cw + 14, y0 - 4], fill=INK)
+    d.text((x0 + 2, y0 - 22), chip, font=mono_tiny, fill=PAPER)
+    bx = x1 - 4
+    for label, w in (("remove", 64), ("fit", 40), ("v", 22), ("^", 22)):
+        bx -= w + 5
+        edit_button(d, bx, y1 + 8, label, width=w)
+    return y1 + 40
+
+
+def add_widget_panel(d, box, marks=(True, False, True, False)):
+    """The `add or remove widgets` panel of the edit mode (DesktopWidgets / AddWidgetBar)."""
+    x0, y0, x1, y1 = box
+    d.rectangle([x0, y0, x1, y1], fill=PAPER, outline=INK, width=2)
+    d.text((x0 + 8, y0 + 8), "add or remove widgets", font=mono_bold, fill=INK)
+    names = ("chrono *", "calendar", "sysinfo *", "notes")
+    for i, name in enumerate(names):
+        bx = x0 + 8 + (i % 2) * ((x1 - x0 - 24) / 2 + 8)
+        by = y0 + 32 + (i // 2) * 30
+        bw = (x1 - x0 - 24) / 2
+        edit_button(d, bx, by, name, width=bw, active=marks[i] if i < len(marks) else False)
+    d.text((x0 + 8, y0 + 96), "marked * are on the desktop", font=mono_tiny, fill=INK)
+    bx = x0 + 8
+    for label, w in (("done", 54), ("reset sizes", 92), ("reset layout", 96)):
+        bx = edit_button(d, bx, y0 + 116, label, width=w) + 6
+
+
 def calendar_widget(d, box, mirror=False):
     """Compact calendar: month grid, dots on days with entries, agenda for the selected day.
 
@@ -423,7 +482,10 @@ def panel(caption, style):
         d.text((w - 240, 150), "Mon, 13 Oct 2026", font=mono, fill=INK)
         d.text((w - 240, 176), "uptime 2d 4h 12m", font=mono_tiny, fill=INK)
         widget_grip(d, w - 23, 207)
-        calendar_widget(d, (500, 300, w - 20, 690))
+        # widget edit mode: the user held the calendar, so it is framed, named and re-sizable
+        calendar_widget(d, (500, 320, w - 20, 690))
+        widget_edit_chrome(d, (500, 320, w - 20, 690), "calendar", "280x420")
+        add_widget_panel(d, (500, 730, w - 20, 890))
         window(d, (110, 300, 470, 700), "terminal", body_lines=[
             "operator@retrobit:~$ neofetch",
             "   .-----------.   OS: retrOS GNU/Linux",
@@ -434,8 +496,8 @@ def panel(caption, style):
         window_grip(d, (110, 300, 470, 700))
         cursor(d, 292, 700, cell=3)
         d.text((115, 720), "operator@retrobit:~$ tiling on", font=mono, fill=INK)
-        d.rectangle([110, 760, w - 40, 830], fill=PAPER, outline=INK, width=2)
-        d.text((122, 775), "± tiling master–stack aktif", font=mono, fill=INK)
+        d.rectangle([110, 760, 470, 830], fill=PAPER, outline=INK, width=2)
+        d.text((122, 775), "tiling master-stack on", font=mono, fill=INK)
     elif style == "macos":
         d.rectangle([0, 0, w, 40], fill=PAPER)
         d.line([0, 40, w, 40], fill=INK, width=2)
@@ -550,7 +612,7 @@ def panel(caption, style):
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     panels = [
-        panel("LINUX · retrOS GNU/Linux — panel, dock, calendar widget, resize grips", "linux"),
+        panel("LINUX · retrOS GNU/Linux — panel, dock, widget edit mode (hold a widget), resize grips", "linux"),
         panel("macOS · Retro System 9 — menu bar, dock, launchpad", "macos"),
         panel("WINDOWS · Retrodows 95 — start menu, taskbar, tray, desktop widget", "windows"),
     ]
@@ -560,7 +622,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · floating app windows you move and resize · manually sized widgets · m-pencil as a mouse · reorderable dock · palette-aware icons · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · add, remove and hold-to-resize widgets · icons follow the palette · hold the pen for right click · floating app windows · reorderable dock · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:
