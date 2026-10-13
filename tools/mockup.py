@@ -256,6 +256,148 @@ def shell_frame(d, box, title, clock="13:37:09", dock=("Terminal", "Files", "Not
     return content
 
 
+
+def window_box(d, box, title, kind="term", focused=True, readout=None, snap_layer=False):
+    """A floating window of one of our own apps (ui/wm/WindowFrame.kt).
+
+    A framed box with a title bar you drag, a glyph, the three buttons and a resize grip in the
+    bottom right corner. The focused window is drawn with an ink title bar, a heavier frame and a
+    dithered drop shadow, and prints its live size while it is being resized.
+    """
+    x0, y0, x1, y1 = box
+    if focused:
+        hard_shadow(d, box, offset=6, cell=3)
+    d.rectangle(box, fill=PAPER, outline=INK, width=3 if focused else 2)
+    th = 34
+    if focused:
+        d.rectangle([x0 + 3, y0 + 3, x1 - 3, y0 + th], fill=INK)
+    d.line([x0 + 2, y0 + th, x1 - 2, y0 + th], fill=INK, width=2)
+    # the title glyph, printed at 16x16 like the app's own pixel icons
+    gx, gy, fg = x0 + 10, y0 + 12, (PAPER if focused else INK)
+    if kind == "term":
+        for i in range(4):
+            d.rectangle([gx + i * 3, gy + i * 2, gx + i * 3 + 2, gy + 2 + i * 2], fill=fg)
+        d.rectangle([gx, gy + 11, gx + 13, gy + 13], fill=fg)
+    else:
+        for a in range(2):
+            for b in range(2):
+                d.rectangle([gx + a * 8, gy + b * 8, gx + a * 8 + 6, gy + b * 8 + 6], fill=fg)
+    d.text((x0 + 36, y0 + 11), title, font=mono_bold, fill=fg)
+    # the three title-bar keys, right to left: close, maximize, minimize
+    for i, sym in enumerate(("x", "max", "min")):
+        bx = x1 - 8 - (i + 1) * 26
+        d.rectangle([bx, y0 + 8, bx + 20, y0 + 28], fill=PAPER, outline=INK, width=2)
+        cx, cy = bx + 10, y0 + 18
+        if sym == "x":
+            d.line([cx - 5, cy - 5, cx + 5, cy + 5], fill=INK, width=2)
+            d.line([cx + 5, cy - 5, cx - 5, cy + 5], fill=INK, width=2)
+        elif sym == "max":
+            d.rectangle([cx - 6, cy - 6, cx + 6, cy + 6], outline=INK, width=2)
+        else:
+            d.line([cx - 6, cy + 5, cx + 6, cy + 5], fill=INK, width=2)
+    if readout:
+        tw = d.textlength(readout, font=mono_tiny)
+        d.text((x1 - 8 - 78 - tw, y0 + 11), readout, font=mono_tiny, fill=PAPER if focused else INK)
+    # the grip printed in the corner the window can be resized from
+    gx, gy = x1 - 18, y1 - 18
+    for i in range(3):
+        d.line([gx + i * 5, y1 - 6, x1 - 6, gy + i * 5], fill=INK, width=2)
+    return (x0 + 4, y0 + th + 4, x1 - 4, y1 - 4)
+
+
+def float_panel():
+    """The desktop with floating windows of our own apps: the terminal focused and being resized,
+    notes.txt behind it, a dashed snap preview against the right half, and the task list open."""
+    w, h = 780, 1060
+    img = Image.new("RGB", (w, h), PAPER)
+    d = ImageDraw.Draw(img)
+    grid(img)
+    for cx, cy, sx, sy in [(14, 14, 1, 1), (w - 14, 14, -1, 1), (14, h - 14, 1, -1), (w - 14, h - 14, -1, -1)]:
+        d.line([cx, cy, cx + sx * 26, cy], fill=INK, width=2)
+        d.line([cx, cy, cx, cy + sy * 26], fill=INK, width=2)
+
+    # ── the snap preview: dragging a window against the right edge fills half the desktop ──
+    snap = (400, 44, w - 8, h - 8)
+    fill_dither(d, snap, PATTERN, cell=4, level_max=3)
+    dashed_rect(d, snap, dash=12, gap=8, width=3)
+
+    # ── notes.txt, not focused: paper title bar, thinner frame ──
+    nx0, ny0, nx1, ny1 = 120, 470, 470, 900
+    content = window_box(d, (nx0, ny0, nx1, ny1), "notes.txt", kind="grid", focused=False)
+    for i, line in enumerate(["# todo", "", "- solder the new rail", "- print the e-paper case", "- flash 176 on the tablet", "", "# done", "- floating windows", "- keyboard overlay"]):
+        d.text((content[0] + 12, content[1] + 10 + i * 22), line, font=mono_tiny, fill=INK)
+    d.rectangle([content[0] + 8, content[3] - 34, content[2] - 8, content[3] - 6], fill=PAPER, outline=INK, width=2)
+    d.text((content[0] + 16, content[3] - 28), "new note…", font=mono_tiny, fill=PATTERN)
+
+    # ── the focused terminal window, with its live size readout while resizing ──
+    tx0, ty0, tx1, ty1 = 100, 90, 560, 560
+    content = window_box(d, (tx0, ty0, tx1, ty1), "terminal", kind="term", focused=True, readout="740x470")
+    lines = [
+        ("retrobit ~ $ win list", INK),
+        ("windows of our own apps - 2 open on desktop 1", INK),
+        ("  terminal  floating  1520x940 at 780,300", PATTERN),
+        ("  notes     minimized 1200x1100 at 120,470", PATTERN),
+        ("retrobit ~ $ keyboard overlay", INK),
+        ("keyboard -> floats over the desktop; nothing moves,", PATTERN),
+        ("            not even a window frame", PATTERN),
+        ("retrobit ~ $ _", INK),
+    ]
+    for i, (line, fill) in enumerate(lines):
+        d.text((content[0] + 10, content[1] + 8 + i * 22), line, font=mono_tiny, fill=fill)
+
+    cursor(d, tx1 - 26, ty1 - 40, cell=3, pressed=True)
+
+    # ── top panel with the new task list ──
+    d.rectangle([0, 0, w, 44], fill=PAPER)
+    bevel(d, [0, 0, w - 1, 44])
+    clock_w = d.textlength("13:37", font=px_small) + d.textlength(":09", font=mono_med)
+    sec_w = d.textlength(":09", font=mono_med)
+    d.text((w - 14 - d.textlength("13:37", font=px_small) - sec_w - 2, 6), "13:37", font=px_small, fill=INK)
+    d.text((w - 16 - sec_w, 20), ":09", font=mono_med, fill=INK)
+    rx = w - 24 - clock_w
+    for label in ("WIFI 92%", "KB"):
+        tw = d.textlength(label, font=mono_tiny)
+        if label == "KB":
+            d.rectangle([rx - tw - 18, 10, rx - 6, 32], fill=PAPER, outline=INK, width=2)
+            d.text((rx - tw - 12, 12), label, font=mono_tiny, fill=INK)
+            rx -= tw + 30
+        else:
+            d.text((rx - tw - 10, 12), label, font=mono_tiny, fill=INK)
+            rx -= tw + 20
+    rx = pager(d, rx - (3 * 27 + 12), 9, size=22, cells=3, active=0)
+    chip, cw = "[LINUX]", d.textlength("[LINUX]", font=mono_tiny)
+    d.rectangle([rx - cw - 12, 9, rx - 4, 35], fill=PAPER, outline=INK, width=2)
+    d.text((rx - cw - 8, 12), chip, font=mono_tiny, fill=INK)
+    pix_diamond(d, 14, 10, cell=5)
+    # "windows" is the panel's task list now
+    text_run(d, 48, 13, ["retrOS", "system", "apps", "term"], mono, gap=14)
+    tw = d.textlength("windows", font=mono)
+    d.rectangle([48 + tw + 60, 7, 48 + tw + 60 + d.textlength("windows", font=mono) + 12, 37], fill=INK)
+    d.text((48 + tw + 66, 13), "windows", font=mono, fill=PAPER)
+
+    # ── the task list the panel opens ──
+    mx0, my0 = 60, 60
+    mx1, my1 = 320, 216
+    d.rectangle([mx0, my0, mx1, my1], fill=PAPER, outline=INK, width=3)
+    d.rectangle([mx0, my0, mx1, my0 + 26], fill=PATTERN)
+    d.text((mx0 + 10, my0 + 6), "WINDOWS", font=mono_tiny, fill=INK)
+    d.text((mx0 + 10, my0 + 34), "floating windows of our own apps", font=mono_tiny, fill=PATTERN)
+    row = my0 + 58
+    for label, state in [("terminal   (resizing)", ""), ("notes.txt  (minimized)", ""), ("minimize all windows", ""), ("close all windows", ""), ("reset window sizes", "")]:
+        tw = d.textlength(label, font=mono_tiny)
+        d.rectangle([mx0 + 8, row - 4, mx1 - 8, row + 18], fill=PAPER, outline=INK, width=2)
+        d.text((mx0 + 16, row), label, font=mono_tiny, fill=INK)
+        row += 26
+
+    # ── left dock, under the windows ──
+    d.rectangle([0, 44, 78, h], fill=PAPER)
+    bevel(d, [0, 44, 78, h])
+    for i, label in enumerate(["apps", "shell", "mon", "note", "setup"]):
+        glyph_tile(d, 12, 60 + i * 84, 52, kind="grid" if i % 2 == 0 else "term", label="")
+        d.text((16, 116 + i * 84), label, font=mono_tiny, fill=INK)
+    return img
+
+
 def pager(d, x, y, size=26, cells=3, active=0):
     """Workspace switcher: one numbered square per page of desktop icons and widgets."""
     p = INK
@@ -638,7 +780,8 @@ def main():
         panel("LINUX · retrOS GNU/Linux — desktop of icons & widgets, one icon selected (double tap opens), widget edit mode", "linux"),
         panel("macOS · Retro System 9 — menu bar, widgets, dock (an app fills the screen, never a floating window)", "macos"),
         panel("WINDOWS · Retrodows 95 — desktop icons & widgets, start menu, workspace switcher, taskbar, tray", "windows"),
-        panel("APPS · one app, one screen — the drawer full screen in the launcher's frame; third-party apps get the same title rail & dock from the chrome overlay", "apps"),
+        panel("APPS · third-party apps fill the screen — the drawer in the launcher's frame; an installed app gets the same title rail & dock from the chrome overlay", "apps"),
+        float_panel(),
     ]
     w = sum(p.width for p in panels) + 40 * (len(panels) + 1)
     h = panels[0].height + 180
@@ -646,7 +789,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · eight everyday widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · icons follow the palette · hold the pen for right click · one app per screen: full screen, framed by the cyberdeck chrome (border + title rail + dock) · reorderable dock · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:

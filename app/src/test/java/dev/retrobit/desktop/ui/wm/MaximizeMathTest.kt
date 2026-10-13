@@ -123,7 +123,7 @@ class MaximizeMathTest {
     fun `two windows opened in a row are cascaded, not stacked`() {
         val first = open(null)
         val second = MaximizeMath.openRect(null, area, 0.62f to 0.60f, margin, cascade * 1, minW, minH)
-        assertEquals(first.left + cascade, second.left, 0.01f)
-        assertEquals(first.top + cascade, second.top, 0.01f)
+        assertEquals(first.left + cascade, second.left.toFloat(), 0.01f)
+        assertEquals(first.top + cascade, second.top.toFloat(), 0.01f)
     }
 }
