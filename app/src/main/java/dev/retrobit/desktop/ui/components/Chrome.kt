@@ -194,6 +194,9 @@ fun Modifier.retroShadow(offset: Dp = dp(4f), color: Color? = null): Modifier {
             steps.forEach { (off, alpha) ->
                 drawRect(shadow.copy(alpha = alpha), topLeft = Offset(off, off), size = Size(size.width, size.height))
             }
+        }
+    }
+}
 
 /**
  * A floating shell surface: the start menu, the Launchpad, the Spotlight panel, a dock strip, and
@@ -215,9 +218,6 @@ fun Modifier.shellPanel(borderDp: Float = 2.4f, shadowDp: Float = 0f, radiusCap:
         .clip(shape)
         .background(p.paper)
         .border(dp(if (p.isNative) 1f else borderDp), p.edge, shape)
-}
-        }
-    }
 }
 
 @Composable
