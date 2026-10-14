@@ -88,7 +88,7 @@ desktop native widget menggambar chrome desktop itu, bukan cetakan e-paper berwa
 | Bagian widget | Palet e-paper (tetap) | Tema native (baru) |
 | --- | --- | --- |
 | Badan kartu | kertas + bingkai tinta 1.6 dp, kotak, bayangan kotak keras | muka jendela tema, **sudut membulat** tema (0–12 dp), border tema, **bayangan lembut** |
-| Bar judul | strip **hatch** cetakan, judul tinta | **gradient judul asli tema** (Win95 navy `#000080` → biru `#1084D0`, Aqua `#F7F7F8` → `#DCDCDE`, Ubuntu `#3D3D3D` → `#2C2C2C`, Win11/Adwaita rata) dengan teks berwarna header, tinggi bar sedikit lebih besar (21–23 dp) |
+| Bar judul | strip **hatch** cetakan, judul tinta | **gradient judul asli tema** (Win95 navy `#000080` → biru `#1084D0`, Aqua `#F7F7F8` → `#DCDCDE`, Ubuntu `#3D3D3D` → `#2C2C2C`, Win11 rata, Adwaita gradient tipis) dengan teks berwarna header, tinggi bar sedikit lebih besar (21–23 dp) |
 | Meter (baterai/RAM/disk) | sel tinta padat di atas kertas, setengah sel `mid` | **track membulat** di muka lembut tema, isian **aksen tema** (navy / biru sistem / oranye) |
 | Kalender | hari terpilih = plat tinta | hari terpilih = **warna seleksi tema** (navy di Win95, biru sistem di Aqua, oranye di Ubuntu), sel membulat 4 dp |
 | Tag baris agenda | kotak tinta + teks kertas | kotak **highlight tema** + teks highlight-nya |
@@ -101,8 +101,9 @@ desktop native widget menggambar chrome desktop itu, bukan cetakan e-paper berwa
   keras, bingkai tinta mode edit.
 - Unit test baru (`WidgetSkinTest`, 6 ekspektasi): setiap palet native harus memetakan ke muka
   jendela/border/gradient/meter/plate miliknya, palet e-paper harus tetap tercetak, judul widget
-  wajib terbaca di kedua ujung bar, meter wajib terlihat di atas track-nya, dan palet rata
-  (Win11/Adwaita) wajib mendapat bar rata.
+  wajib terbaca di kedua ujung bar, meter wajib terlihat di atas track-nya, dan palet dengan bar
+  rata (Windows 11) wajib mendapat bar rata sementara yang bergradasi tipis (Adwaita) tetap
+  mendapat gradientnya.
 
 ### Jendela mengambang: aplikasi bawaan launcher tidak lagi langsung full screen
 Aplikasi **bawaan launcher** sekarang terbuka sebagai **jendela kotak di desktop**, bukan memenuhi

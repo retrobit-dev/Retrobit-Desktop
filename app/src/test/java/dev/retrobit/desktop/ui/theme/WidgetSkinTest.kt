@@ -90,8 +90,13 @@ class WidgetSkinTest {
         // the two dozen colours are not all the same, of course: Win95 and Aqua paint a gradient
         assertNotEquals(WidgetSkin.of(Palettes.of(PaletteId.WIN95)).headerTop, WidgetSkin.of(Palettes.of(PaletteId.WIN95)).headerBottom)
         assertNotEquals(WidgetSkin.of(Palettes.of(PaletteId.AQUA)).headerTop, WidgetSkin.of(Palettes.of(PaletteId.AQUA)).headerBottom)
+        // Windows 11 is the flat one; Adwaita and Ubuntu have a subtle gradient (0x30 > 0x24 etc.)
         assertTrue(WidgetSkin.of(Palettes.of(PaletteId.WIN11)).headerFlat)
-        assertTrue(WidgetSkin.of(Palettes.of(PaletteId.ADWAITA)).headerFlat)
+        assertTrue(!WidgetSkin.of(Palettes.of(PaletteId.ADWAITA)).headerFlat)
+        assertNotEquals(
+            WidgetSkin.of(Palettes.of(PaletteId.ADWAITA)).headerTop,
+            WidgetSkin.of(Palettes.of(PaletteId.ADWAITA)).headerBottom,
+        )
     }
 
     @Test

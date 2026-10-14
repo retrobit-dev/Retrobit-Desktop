@@ -86,7 +86,7 @@ fun SettingsView(vm: LauncherViewModel) {
                 "gets its silver chrome, the navy-to-blue title gradient, bevelled buttons and the " +
                 "teal desk; Aqua gets snow chrome, the red/amber/green traffic lights and the blue " +
                 "desk; Ubuntu gets the dark headerbar, orange accents and the aubergine wallpaper; " +
-                "Windows 11 and Adwaita get their flat dark chrome and rounded windows. Gradients " +
+                "Windows 11 and Adwaita get their dark chrome (Windows 11's is flat, Adwaita's a subtle gradient) and rounded windows. Gradients " +
                 "are real gradients here, shadows are real shadows, and the scanline overlay is off.\n" +
                 "**Widgets follow the theme as well**: they wear the window face of that desktop, its " +
                 "rounded corners, its border colour, a header bar in its own title gradient, and " +

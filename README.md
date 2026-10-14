@@ -63,7 +63,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
     memakai warna highlight desktop itu — navy di Win95, biru sistem di Aqua, oranye di Ubuntu).
   - **Widget ikut tema juga** (lihat bagian *Widget desktop* di bawah): di tema native widget
     memakai muka jendela tema, sudut membulatnya, warna border tema, **bar judul bergradasi tema**
-    (navy→biru di Win95, abu di Aqua, gelap di Ubuntu/Adwaita, rata di Win11/GNOME), **meter
+    (navy→biru di Win95, abu di Aqua, gelap di Ubuntu/Adwaita, rata di Win11, gradient tipis di Adwaita), **meter
     beraksen tema** di atas muka lembut, dan bayangan lembut. Di palet e-paper widget tetap
     tercetak: strip header ber-hatch, sel tinta, dan bayangan kotak keras.
   - Memilih tema bawaan sekaligus memindahkan **desktop style** yang cocok (Win95/Win11 → Windows,
