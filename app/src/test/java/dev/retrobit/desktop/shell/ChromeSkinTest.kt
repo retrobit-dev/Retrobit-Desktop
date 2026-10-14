@@ -67,7 +67,9 @@ class ChromeSkinTest {
         // Aqua (10 dp) and Adwaita (12 dp): smaller than the window, and never past the cap
         assertEquals(6f, skinOf(PaletteId.AQUA)!!.tile(), 0.001f)
         assertEquals(7.2f, skinOf(PaletteId.ADWAITA)!!.tile(), 0.001f)
-        assertEquals(10f, skinOf(PaletteId.ADWAITA)!!.tile(cap = 10f), 0.001f)
+        // the cap only bites once the share would push it past it
+        assertEquals(10f, skinOf(PaletteId.ADWAITA)!!.tile(share = 1.5f, cap = 10f), 0.001f)
+        // the surface itself uses the full radius of the theme
         assertEquals(12f, skinOf(PaletteId.ADWAITA)!!.tile(share = 1f, cap = 16f), 0.001f)
     }
 
@@ -78,9 +80,16 @@ class ChromeSkinTest {
             // the plate and its text are what "this key is on" looks like, so they have to contrast
             val ratio = contrastRatio(Color(skin.plateText), Color(skin.plate))
             assertTrue("${id.label}: on-plate text is too faint ($ratio)", ratio >= 3.5f)
-            // and the ink of the surface it sits on has to be visible against the face
-            val onFace = contrastRatio(Color(skin.titleText), Color(skin.face))
-            assertTrue("${id.label}: face text is too faint ($onFace)", onFace >= 2.5f)
+            // the title text is read against the title strip, which on Ubuntu is dark while the
+            // window face is light - so the strip is what it has to contrast with
+            val onTop = contrastRatio(Color(skin.titleText), Color(skin.titleTop))
+            val onBottom = contrastRatio(Color(skin.titleText), Color(skin.titleBottom))
+            assertTrue("${id.label}: title text is too faint on the strip ($onTop)", onTop >= 2.5f)
+            assertTrue("${id.label}: title text fades on the strip ($onBottom)", onBottom >= 2.5f)
+            // and the dock prints the palette ink on the window face, so that pair has to read
+            val p = Palettes.of(id)
+            val onFace = contrastRatio(p.ink, p.paper)
+            assertTrue("${id.label}: dock text is too faint on the face ($onFace)", onFace >= 4.5f)
         }
     }
 
