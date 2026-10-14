@@ -56,6 +56,44 @@ class PanelView(context: Context) : View(context) {
 
     private fun snap8(px: Float): Float = maxOf(8f, round(px / 8f) * 8f)
 
+    /** Window chrome of the active palette, or `null` while the panel is a printed sheet. */
+    private val skin: CyberdeckChrome.Skin? get() = state.skin
+
+    /** Foreground of the sheet: the theme's plate text on a key that is on, the ink otherwise. */
+    private fun fg(active: Boolean): Int {
+        val s = skin ?: return if (active) state.paper else state.ink
+        return if (active) s.plateText else state.ink
+    }
+
+    /** What a key sits on: the sheet itself, unless the key is on. */
+    private fun bg(active: Boolean): Int {
+        val s = skin ?: return if (active) state.ink else state.paper
+        return if (active) s.plate else Color.TRANSPARENT
+    }
+
+    /** Hairline of a key that is off. */
+    private fun hair(active: Boolean): Int {
+        val s = skin ?: return Color.BLACK
+        return if (active) s.border else SkinPaint.hairline(s.border, 0.55f)
+    }
+
+    /**
+     * One key or chip: a paper box with four ink rules on e-paper (inverted when it is on), the
+     * rounded outline of the theme otherwise, filled with the plate only while it is on.
+     */
+    private fun plate(canvas: Canvas, rect: RectF, active: Boolean) {
+        val s = this.skin
+        if (s != null) {
+            val r = s.tile()
+            if (active) SkinPaint.face(canvas, bar, rect, r, s.plate, s.plate)
+            SkinPaint.frame(canvas, bar, rect, r, maxOf(1f, dp(1f)), hair(active))
+            return
+        }
+        bar.color = bg(active)
+        canvas.drawRect(rect, bar)
+        border(canvas, rect, dp(1.6f), Color.BLACK)
+    }
+
     override fun onDraw(canvas: Canvas) {
         hits.clear()
         // scrim: the desktop behind the panel is dimmed, like a system sheet
@@ -70,9 +108,18 @@ class PanelView(context: Context) : View(context) {
         val top = (height - cardH) / 2f
         val card = RectF(left, top, left + cardW, top + cardH)
 
-        bar.color = state.paper
-        canvas.drawRect(card, bar)
-        border(canvas, card, dp(3f), Color.BLACK)
+        val skin = this.skin
+        if (skin != null) {
+            // a native desktop raises a sheet with its own radius, border and soft shadow
+            val r = skin.tile(1f, 16f)
+            SkinPaint.shadow(canvas, bar, card, r, dp(7f))
+            SkinPaint.face(canvas, bar, card, r, skin.face, skin.face)
+            SkinPaint.frame(canvas, bar, card, r, maxOf(1f, dp(1f)), skin.border)
+        } else {
+            bar.color = state.paper
+            canvas.drawRect(card, bar)
+            border(canvas, card, dp(3f), Color.BLACK)
+        }
 
         head.textSize = snap16(dp(17f))
         text.textSize = snap16(dp(13f))
@@ -108,12 +155,22 @@ class PanelView(context: Context) : View(context) {
         val plusW = snap8(dp(38f))
         val trackRight = right - autoW - minusW - plusW - dp(18f)
         track = RectF(x + dp(2f), y, trackRight, y + barH)
-        bar.color = state.paper
-        canvas.drawRect(track, bar)
-        border(canvas, track, dp(1.6f), Color.BLACK)
         val level = state.brightness ?: 0.5f
-        bar.color = state.ink
-        canvas.drawRect(track.left + dp(2f), track.top + dp(2f), track.left + dp(2f) + (track.width() - dp(4f)) * level, track.bottom - dp(2f), bar)
+        if (skin != null) {
+            // the theme's own groove: a rounded recess with an accent fill
+            val r = skin.tile(0.8f, 12f)
+            SkinPaint.face(canvas, bar, track, r, skin.soft, skin.soft)
+            SkinPaint.frame(canvas, bar, track, r, maxOf(1f, dp(1f)), skin.border)
+            val inner = RectF(track.left + dp(2f), track.top + dp(2f), track.right - dp(2f), track.bottom - dp(2f))
+            val filled = RectF(inner.left, inner.top, inner.left + inner.width() * level, inner.bottom)
+            if (filled.width() > 1f) SkinPaint.face(canvas, bar, filled, r, skin.accent, skin.accent)
+        } else {
+            bar.color = state.paper
+            canvas.drawRect(track, bar)
+            border(canvas, track, dp(1.6f), Color.BLACK)
+            bar.color = state.ink
+            canvas.drawRect(track.left + dp(2f), track.top + dp(2f), track.left + dp(2f) + (track.width() - dp(4f)) * level, track.bottom - dp(2f), bar)
+        }
         text.color = state.ink
         canvas.drawText("B", track.left + dp(6f), track.centerY() + text.textSize * 0.34f, text)
         hits += RectF(track) to "bright:drag"
@@ -221,8 +278,9 @@ class PanelView(context: Context) : View(context) {
     }
 
     private fun rule(canvas: Canvas, x: Float, right: Float, y: Float) {
-        bar.color = state.mid
-        canvas.drawRect(x, y, right, y + dp(1.4f), bar)
+        val s = skin
+        bar.color = if (s != null) SkinPaint.hairline(s.border, 0.6f) else state.mid
+        canvas.drawRect(x, y, right, y + dp(if (s != null) 1f else 1.4f), bar)
     }
 
     private fun section(canvas: Canvas, x: Float, y: Float, title: String, note: String?): Float {
@@ -259,9 +317,7 @@ class PanelView(context: Context) : View(context) {
     ) {
         val h = snap8(dp(30f))
         val rect = RectF(x, y, x + w, y + h)
-        bar.color = if (active) state.ink else state.paper
-        canvas.drawRect(rect, bar)
-        border(canvas, rect, dp(1.6f), Color.BLACK)
+        plate(canvas, rect, active)
         var tx = rect.left + dp(7f)
         var room = w - dp(14f)
         if (glyph != null) {
@@ -272,7 +328,7 @@ class PanelView(context: Context) : View(context) {
         }
         if (label != null && room > dp(10f)) {
             text.textSize = snap16(h * 0.42f)
-            text.color = if (active) state.paper else state.ink
+            text.color = fg(active)
             val shown = TextUtils.ellipsize(label, text, room, TextUtils.TruncateAt.END).toString()
             canvas.drawText(shown, tx, rect.centerY() + text.textSize * 0.34f, text)
             text.textSize = snap16(dp(13f))
@@ -283,9 +339,7 @@ class PanelView(context: Context) : View(context) {
     /** One app chip: a name plus a small mark. */
     private fun chip(canvas: Canvas, x: Float, y: Float, w: Float, h: Float, label: String, action: String, glyph: Glyph) {
         val rect = RectF(x, y, x + w, y + h)
-        bar.color = state.paper
-        canvas.drawRect(rect, bar)
-        border(canvas, rect, dp(1.6f), Color.BLACK)
+        plate(canvas, rect, active = false)
         val g = snap8(h * 0.56f)
         drawGlyph(canvas, glyph, rect.left + dp(6f), rect.top + (h - g) / 2f, g, false)
         text.textSize = snap16(h * 0.42f)
@@ -299,12 +353,15 @@ class PanelView(context: Context) : View(context) {
 
     private fun drawGlyph(canvas: Canvas, glyph: Glyph, x: Float, y: Float, size: Float, invert: Boolean) {
         val cell = size / 16f
+        val ink = fg(invert)
+        val paper = if (skin != null) bg(invert) else if (invert) state.ink else state.paper
+        val mid = if (skin != null) SkinPaint.hairline(state.ink, 0.55f) else state.mid
         glyph.rows.forEachIndexed { row, cols ->
             cols.forEachIndexed { col, ch ->
                 val color = when (ch) {
-                    '#' -> if (invert) state.paper else state.ink
-                    'o' -> if (invert) state.ink else state.paper
-                    '+' -> state.mid
+                    '#' -> ink
+                    'o' -> paper
+                    '+' -> mid
                     else -> Color.TRANSPARENT
                 }
                 if (color != Color.TRANSPARENT) {

@@ -81,10 +81,10 @@ class RailView(
     private val small = TextPaint(Paint.ANTI_ALIAS_FLAG).apply { typeface = mono }
     private val bar = Paint().apply { style = Paint.Style.FILL }
     private val glyphPaint = Paint().apply { style = Paint.Style.FILL }
-    private val iconPaint = Paint(Paint.FILTER_BITMAP_FLAG).apply {
-        // the dock prints app icons in grayscale, like the rest of the shell
-        colorFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
-    }
+    private val iconPaint = Paint(Paint.FILTER_BITMAP_FLAG)
+    // the dock prints app icons in grayscale, like the rest of the e-paper shell; a native theme
+    // shows them the way its own dock does - in colour
+    private val grayFilter = ColorMatrixColorFilter(ColorMatrix().apply { setSaturation(0f) })
     private val hits = ArrayList<Pair<RectF, String>>()
 
     /** Launcher scale × the chrome's own size: rail height, keys, text and icons all follow. */
@@ -96,6 +96,36 @@ class RailView(
     private fun snap16(px: Float): Float = maxOf(16f, round(px / 16f) * 16f)
 
     private fun snap8(px: Float): Float = maxOf(8f, round(px / 8f) * 8f)
+
+    /** Window chrome of the active palette, or `null` while the rails are printed in ink on paper. */
+    private val skin: CyberdeckChrome.Skin? get() = state.skin
+
+    /**
+     * Foreground of the surface being drawn. On a native theme the top rail is that desktop's
+     * title bar, so its text uses the theme's title colour; the dock sits on the window face, where
+     * the palette ink is already the right colour.
+     */
+    private fun fg(active: Boolean): Int {
+        val s = skin ?: return if (active) state.ink.paper else state.ink.ink
+        if (active) return s.plateText
+        return if (topRail) s.titleText else state.ink.ink
+    }
+
+    /** What a key or a tile sits on: the surface itself, unless it is switched on. */
+    private fun bg(active: Boolean): Int {
+        val s = skin ?: return if (active) state.ink.ink else state.ink.paper
+        return if (active) s.plate else Color.TRANSPARENT
+    }
+
+    /** Hairline of a key that is not switched on (a native key is an outline, not an ink box). */
+    private fun hair(active: Boolean): Int {
+        val s = skin ?: return Color.BLACK
+        return if (active) s.border else SkinPaint.hairline(fg(false), 0.35f)
+    }
+
+    /** Readouts riding the top rail: the theme's title colour on a native strip. */
+    private fun railText(): Int = skin?.titleText ?: state.ink.ink
+    private fun railSoft(): Int = skin?.soft ?: state.ink.mid
 
     /** Height of the drawn rail, without [inset]. */
     fun barHeight(): Int = (if (topRail) dp(40f) else dp(54f)).toInt().coerceAtLeast(48)
@@ -114,21 +144,39 @@ class RailView(
         }
         val h = height.toFloat()
         val y0 = (if (topRail) inset else 0).toFloat()
+        val skin = this.skin
         if (topRail && inset > 0) {
-            // the band the app under us uses for its status bar: paper and hatched, plus the clock,
-            // so no part of the app's own system chrome shows through the frame
-            bar.color = state.ink.paper
-            canvas.drawRect(0f, 0f, width.toFloat(), inset.toFloat(), bar)
-            bar.color = state.ink.mid
-            var x = 0f
-            while (x < width) {
-                canvas.drawRect(x, 0f, x + dp(1.4f), inset.toFloat(), bar)
-                x += dp(7f)
+            // the band the app under us uses for its status bar, plus the clock, so no part of the
+            // app's own system chrome shows through the frame: printed and hatched on paper, the
+            // plain face of the theme on a native desktop
+            if (skin != null) {
+                bar.color = skin.face
+                canvas.drawRect(0f, 0f, width.toFloat(), inset.toFloat(), bar)
+            } else {
+                bar.color = state.ink.paper
+                canvas.drawRect(0f, 0f, width.toFloat(), inset.toFloat(), bar)
+                bar.color = state.ink.mid
+                var x = 0f
+                while (x < width) {
+                    canvas.drawRect(x, 0f, x + dp(1.4f), inset.toFloat(), bar)
+                    x += dp(7f)
+                }
             }
         }
 
-        bar.color = state.ink.paper
-        canvas.drawRect(0f, y0, width.toFloat(), height.toFloat(), bar)
+        if (skin != null) {
+            // a native desktop: the top rail is its title bar (gradient or flat strip) and the dock
+            // is its bar - both run the full width, so only the face and the gradient matter here
+            val strip = RectF(0f, y0, width.toFloat(), height.toFloat())
+            SkinPaint.face(
+                canvas, bar, strip, 0f,
+                if (topRail) skin.titleTop else skin.face,
+                if (topRail) skin.titleBottom else skin.face,
+            )
+        } else {
+            bar.color = state.ink.paper
+            canvas.drawRect(0f, y0, width.toFloat(), height.toFloat(), bar)
+        }
         bar.color = Color.BLACK
         if (topRail) canvas.drawRect(0f, height - dp(2f), width.toFloat(), height.toFloat(), bar)
         else canvas.drawRect(0f, 0f, width.toFloat(), dp(2f), bar)
@@ -148,6 +196,18 @@ class RailView(
         val shown = TextUtils.ellipsize(state.flash, small, room, TextUtils.TruncateAt.END).toString()
         val w = small.measureText(shown) + dp(20f)
         val rect = RectF((width - w) / 2f, y0 + dp(4f), (width + w) / 2f, y0 + h - dp(4f))
+        val skin = this.skin
+        if (skin != null) {
+            // a native desktop raises a small rounded toast instead of printing an inverted bar
+            val r = skin.tile(1f, 12f)
+            SkinPaint.shadow(canvas, bar, rect, r, dp(3f))
+            SkinPaint.face(canvas, bar, rect, r, skin.plate, skin.plate)
+            SkinPaint.frame(canvas, bar, rect, r, maxOf(1f, dp(1f)), skin.border)
+            small.color = skin.plateText
+            small.textAlign = Paint.Align.LEFT
+            canvas.drawText(shown, rect.left + dp(10f), rect.centerY() + size * 0.34f, small)
+            return
+        }
         bar.color = state.ink.ink
         canvas.drawRect(rect, bar)
         bar.color = Color.BLACK
@@ -161,12 +221,13 @@ class RailView(
     /** What is left of an auto-hidden rail: a thin paper strip with a grip, still touchable. */
     private fun drawHandle(canvas: Canvas) {
         val h = height.toFloat()
-        bar.color = state.ink.paper
+        val skin = this.skin
+        bar.color = skin?.face ?: state.ink.paper
         canvas.drawRect(0f, 0f, width.toFloat(), h, bar)
         bar.color = Color.BLACK
         if (topRail) canvas.drawRect(0f, h - dp(2f), width.toFloat(), h, bar)
         else canvas.drawRect(0f, 0f, width.toFloat(), dp(2f), bar)
-        bar.color = state.ink.ink
+        bar.color = skin?.let { SkinPaint.hairline(it.border, 0.75f) } ?: state.ink.ink
         val cx = width / 2f
         val grip = dp(22f)
         val thick = maxOf(2f, dp(1.6f))
@@ -198,7 +259,7 @@ class RailView(
         // fill the rail: keep a strip for the app title and drop readouts that would eat into it.
         val titleStart = maxOf(notchLeft.toFloat(), 0f) + hPad
         val titleGuard = titleStart + dp(140f)
-        small.color = state.ink.ink
+        small.color = railText()
         if (clock.isNotBlank()) {
             small.textAlign = Paint.Align.RIGHT
             canvas.drawText(clock, right - dp(4f), baseline, small)
@@ -229,13 +290,13 @@ class RailView(
         var x = maxOf(notchLeft.toFloat(), 0f) + hPad
         if (state.inFrame) {
             val m = snap8(h * 0.20f)
-            bar.color = state.ink.accent
+            bar.color = skin?.accent ?: state.ink.accent
             canvas.drawRect(x, y0 + h / 2f - m / 2f, x + m, y0 + h / 2f + m / 2f, bar)
             x += m + dp(6f)
         }
         val room = (right - x - hPad).coerceAtLeast(dp(30f))
         val name = TextUtils.ellipsize(state.title, title, room, TextUtils.TruncateAt.END).toString()
-        title.color = state.ink.ink
+        title.color = fg(false)
         canvas.drawText(name, x, y0 + h / 2f + title.textSize * 0.34f, title)
     }
 
@@ -256,13 +317,7 @@ class RailView(
         val used = state.railMode == "used"
         val modeW = dp(34f)
         val modeRect = RectF(x, top, x + modeW, top + itemH)
-        bar.color = state.ink.paper
-        canvas.drawRect(modeRect, bar)
-        bar.color = Color.BLACK
-        canvas.drawRect(modeRect.left, modeRect.top, modeRect.right, modeRect.top + dp(1.6f), bar)
-        canvas.drawRect(modeRect.left, modeRect.bottom - dp(1.6f), modeRect.right, modeRect.bottom, bar)
-        canvas.drawRect(modeRect.left, modeRect.top, modeRect.left + dp(1.6f), modeRect.bottom, bar)
-        canvas.drawRect(modeRect.right - dp(1.6f), modeRect.top, modeRect.right, modeRect.bottom, bar)
+        tile(canvas, modeRect, active = false)
         val mg = snap8(itemH * 0.52f)
         drawGlyph(canvas, if (used) Glyph.STAR else Glyph.BARS, modeRect.centerX() - mg / 2f, modeRect.centerY() - mg / 2f, mg, false)
         hits += modeRect to "rail:mode"
@@ -305,7 +360,7 @@ class RailView(
         for (i in 0 until 4) {
             val barH = dp(3f) + dp(3f) * i
             val bx = x + i * (w + gap)
-            bar.color = if (i < bars) state.ink.ink else state.ink.mid
+            bar.color = if (i < bars) railText() else railSoft()
             canvas.drawRect(bx, bottom - barH, bx + w, bottom, bar)
         }
     }
@@ -315,7 +370,7 @@ class RailView(
         val w = dp(20f)
         val hgt = dp(10f)
         val top = cy - hgt / 2f
-        bar.color = state.ink.ink
+        bar.color = railText()
         // outline, 1.5 dp thick, plus the little nub on the right
         canvas.drawRect(x, top, x + w, top + dp(1.5f), bar)
         canvas.drawRect(x, top + hgt - dp(1.5f), x + w, top + hgt, bar)
@@ -332,6 +387,29 @@ class RailView(
             canvas.drawRect(bx - dp(1.5f), top - dp(5f), bx + dp(2.5f), top - dp(3.5f), bar)
             canvas.drawRect(bx - dp(3.5f), top - dp(3.5f), bx + dp(0.5f), top - dp(2f), bar)
         }
+    }
+
+    /**
+     * One key or tile: on e-paper a paper box with four ink rules (inverted when it is on), on a
+     * native theme the rounded outline that desktop would draw - filled with the selection plate
+     * only while it is on.
+     */
+    private fun tile(canvas: Canvas, rect: RectF, active: Boolean) {
+        val skin = this.skin
+        if (skin != null) {
+            val r = skin.tile()
+            if (active) SkinPaint.face(canvas, bar, rect, r, skin.plate, skin.plate)
+            val width = maxOf(1f, dp(if (skin.borderDp > 0f) skin.borderDp.coerceAtMost(1.6f) else 1f))
+            SkinPaint.frame(canvas, bar, rect, r, width, hair(active))
+            return
+        }
+        bar.color = bg(active)
+        canvas.drawRect(rect, bar)
+        bar.color = Color.BLACK
+        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + dp(1.6f), bar)
+        canvas.drawRect(rect.left, rect.bottom - dp(1.6f), rect.right, rect.bottom, bar)
+        canvas.drawRect(rect.left, rect.top, rect.left + dp(1.6f), rect.bottom, bar)
+        canvas.drawRect(rect.right - dp(1.6f), rect.top, rect.right, rect.bottom, bar)
     }
 
     /** Width of a dock item: the icon column, or the label when it is wider. */
@@ -396,14 +474,9 @@ class RailView(
         pinned: Boolean = false,
     ): Float {
         val rect = RectF(left, top, left + w, top + itemH)
-        // the tile: paper, ink frame, inverted when this is the window in front
-        bar.color = if (active) state.ink.ink else state.ink.paper
-        canvas.drawRect(rect, bar)
-        bar.color = Color.BLACK
-        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + dp(1.6f), bar)
-        canvas.drawRect(rect.left, rect.bottom - dp(1.6f), rect.right, rect.bottom, bar)
-        canvas.drawRect(rect.left, rect.top, rect.left + dp(1.6f), rect.bottom, bar)
-        canvas.drawRect(rect.right - dp(1.6f), rect.top, rect.right, rect.bottom, bar)
+        // the tile: paper with an ink frame on e-paper, a rounded plate on a native dock, filled
+        // with the theme's selection colour when this is the app in front
+        tile(canvas, rect, active)
 
         val cx = rect.centerX()
         val iconTop = rect.top + dp(3f)
@@ -411,6 +484,7 @@ class RailView(
         when {
             icon != null -> {
                 val dst = RectF(cx - iconSize / 2f, iconTop, cx + iconSize / 2f, iconTop + iconSize)
+                iconPaint.colorFilter = if (skin != null) null else grayFilter
                 canvas.drawBitmap(icon, null, dst, iconPaint)
             }
             glyph != null -> {
@@ -420,11 +494,11 @@ class RailView(
         }
         val textPaint = if (active) title else small
         textPaint.textSize = labelSize
-        textPaint.color = if (active) state.ink.paper else state.ink.ink
+        textPaint.color = fg(active)
         val room = w - dp(6f) - if (pinned) dp(9f) else 0f
         if (pinned) {
             // a small filled square marks "this one is pinned": a hold takes it off the dock
-            bar.color = if (active) state.ink.paper else state.ink.ink
+            bar.color = fg(active)
             val m = snap8(dp(5f) * 1.2f)
             canvas.drawRect(rect.left + dp(4f), rect.top + dp(4f), rect.left + dp(4f) + m, rect.top + dp(4f) + m, bar)
         }
@@ -459,20 +533,14 @@ class RailView(
         val left = if (growRight) x else x - boxW
         val rect = RectF(left, top, left + boxW, top + size)
 
-        bar.color = if (active) state.ink.ink else state.ink.paper
-        canvas.drawRect(rect, bar)
-        bar.color = Color.BLACK
-        canvas.drawRect(rect.left, rect.top, rect.right, rect.top + dp(1.6f), bar)
-        canvas.drawRect(rect.left, rect.bottom - dp(1.6f), rect.right, rect.bottom, bar)
-        canvas.drawRect(rect.left, rect.top, rect.left + dp(1.6f), rect.bottom, bar)
-        canvas.drawRect(rect.right - dp(1.6f), rect.top, rect.right, rect.bottom, bar)
+        tile(canvas, rect, active)
 
         if (glyph != null) {
             val g = snap8(size * 0.74f)
             drawGlyph(canvas, glyph, rect.left + (boxW - g) / 2f, rect.top + (size - g) / 2f, g, active)
         } else {
             title.textSize = snap16(size * 0.42f)
-            title.color = if (active) state.ink.paper else state.ink.ink
+            title.color = fg(active)
             canvas.drawText(shown, rect.left + pad, rect.centerY() + title.textSize * 0.34f, title)
         }
         hits += hitArea(rect) to action
@@ -497,12 +565,17 @@ class RailView(
     /** One 16x16 pixel-art glyph, printed like [dev.retrobit.desktop.ui.components.GlyphIcon]. */
     private fun drawGlyph(canvas: Canvas, glyph: Glyph, x: Float, y: Float, size: Float, invert: Boolean) {
         val cell = size / 16f
+        val ink = fg(invert)
+        // a native key is an outline: the "hole" pixels of a glyph show the surface through, and
+        // the plate of a key that is on fills them instead
+        val paper = if (skin != null) bg(invert) else if (invert) state.ink.ink else state.ink.paper
+        val mid = if (skin != null) SkinPaint.hairline(ink, 0.55f) else state.ink.mid
         glyph.rows.forEachIndexed { row, cols ->
             cols.forEachIndexed { col, ch ->
                 val color = when (ch) {
-                    '#' -> if (invert) state.ink.paper else state.ink.ink
-                    'o' -> if (invert) state.ink.ink else state.ink.paper
-                    '+' -> state.ink.mid
+                    '#' -> ink
+                    'o' -> paper
+                    '+' -> mid
                     else -> Color.TRANSPARENT
                 }
                 if (color != Color.TRANSPARENT) {

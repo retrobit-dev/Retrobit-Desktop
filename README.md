@@ -89,6 +89,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   warna border temanya. **Start menu, Launchpad, panel Spotlight, dock, serta title rail & dock
   aplikasi bawaan** memakai radius + border tipis + bayangan lembut dari tema. Di palet e-paper
   semuanya tetap kartu kotak berbingkai tinta dengan bayangan checker keras.
+- **Chrome overlay (title rail, dock, quick panel) ikut tema.** Saat aplikasi pihak ketiga memenuhi
+  layar, rail judul + dock yang digambar launcher di atasnya kini memakai chrome tema: rail atas
+  menjadi **title bar** tema (gradien Aqua/Ubuntu/Adwaita, rata di Win11/Win95), tombol menjadi
+  kotak membulat berbingkai tipis (terisi `plate` saat aktif), tile dock membulat dengan **ikon app
+  berwarna** (di e-paper tetap grayscale), dan **quick panel** menjadi sheet membulat + bayangan
+  lembut dengan groove kecerahan beraksen. Bingkai hitam di tepi layar tetap hitam (itu frame
+  cyberdeck-nya). Di palet e-paper semuanya tetap tercetak: kertas, garis tinta, bayangan keras.
 - **Wallpaper** digambar di atas **warna desktop** palet (untuk palet e-paper warna itu = warna
   kertasnya sendiri), jadi pola dither selalu berada di latar yang benar. Di tema native wallpaper
   tidak di-dither: gambar tetap **berwarna** (posterisasi lembut 16 level) di atas desktop aslinya.

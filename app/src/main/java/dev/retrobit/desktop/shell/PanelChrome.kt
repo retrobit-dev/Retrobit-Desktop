@@ -39,6 +39,8 @@ object PanelChrome {
         val sizeName: String = "normal",
         /** Live clock, printed in the header so the panel reads like the rest of the shell. */
         val clock: String = "",
+        /** Window chrome of the active palette: `null` on the e-paper palettes (printed sheet). */
+        val skin: CyberdeckChrome.Skin? = null,
     )
 
     @Volatile

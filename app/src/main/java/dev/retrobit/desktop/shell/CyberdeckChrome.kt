@@ -1,5 +1,9 @@
 package dev.retrobit.desktop.shell
 
+import androidx.compose.ui.graphics.toArgb
+import dev.retrobit.desktop.ui.theme.Palette
+import dev.retrobit.desktop.ui.theme.WidgetSkin
+
 /**
  * Shared state of the **cyberdeck chrome**: the frame the launcher draws *over* the app that owns
  * the screen.
@@ -19,6 +23,60 @@ object CyberdeckChrome {
 
     /** The four palette colours the rails are printed with, as ARGB ints. */
     data class Ink(val paper: Int, val ink: Int, val mid: Int, val accent: Int)
+
+    /**
+     * The window chrome the overlays draw, mapped straight from the active palette.
+     *
+     * `null` means "print it": the e-paper palettes keep their square paper rails with ink rules
+     * and the hard checker shadow, exactly as before. A native palette gets its own desktop chrome
+     * instead - the face, the title-strip gradient, the hairline border, the corner radius and the
+     * accent its windows use (see [WidgetSkin], the contract the widgets already follow, so a theme
+     * change moves the rails, the dock and the widgets together).
+     */
+    data class Skin(
+        /** Face of the rails, the dock and the quick panel. */
+        val face: Int,
+        val border: Int,
+        val borderDp: Float,
+        val cornerDp: Float,
+        /** Title strip of the top rail: the theme's own title bar, gradient or flat. */
+        val titleTop: Int,
+        val titleBottom: Int,
+        val titleText: Int,
+        /** A key or tile that is switched on / holding the app in front. */
+        val plate: Int,
+        val plateText: Int,
+        /** Hairline rules inside a surface. */
+        val soft: Int,
+        val accent: Int,
+    ) {
+        val flatTitle: Boolean get() = titleTop == titleBottom
+
+        /** Radius of a small part: never as round as the surface it sits on. */
+        fun tile(share: Float = 0.6f, cap: Float = 10f): Float =
+            if (cornerDp <= 0f) 0f else (cornerDp * share).coerceAtMost(cap)
+
+        companion object {
+            /** The chrome of [p], or `null` while the palette prints an e-paper shell. */
+            fun of(p: Palette): Skin? {
+                if (!p.isNative) return null
+                val w = WidgetSkin.of(p)
+                return Skin(
+                    face = w.panel.toArgb(),
+                    border = w.border.toArgb(),
+                    borderDp = w.borderDp,
+                    cornerDp = w.cornerDp,
+                    titleTop = w.headerTop.toArgb(),
+                    titleBottom = w.headerBottom.toArgb(),
+                    titleText = w.headerText.toArgb(),
+                    plate = w.plate.toArgb(),
+                    plateText = w.plateText.toArgb(),
+                    soft = w.separator.toArgb(),
+                    accent = w.meterFill.toArgb(),
+                )
+            }
+        }
+    }
 
     /** One button of a rail / one entry of the dock. */
     data class Bar(
@@ -61,6 +119,8 @@ object CyberdeckChrome {
         val brightness: Float = -1f,
         /** A short confirmation ("pinned to the dock: Files") drawn on the rail for a moment. */
         val flash: String = "",
+        /** Window chrome of the active palette: `null` on the e-paper palettes (printed rails). */
+        val skin: Skin? = null,
     )
 
     /**

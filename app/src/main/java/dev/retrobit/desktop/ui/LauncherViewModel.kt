@@ -326,6 +326,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             size = CyberdeckChrome.sizeFactor(settings.chromeSize),
             brightness = settings.brightness,
             flash = chromeFlash.takeIf { System.currentTimeMillis() - chromeFlashAt < 2_500L }.orEmpty(),
+            // native palettes: the rails over a full-screen app wear that desktop's own chrome
+            // (rounded surfaces, title-strip gradient, hairlines); e-paper keeps the printed rails
+            skin = dev.retrobit.desktop.shell.CyberdeckChrome.Skin.of(palette),
         )
     }
 
@@ -498,6 +501,7 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             ink = palette.ink.toArgb(),
             mid = palette.mid.toArgb(),
             accent = palette.accent.toArgb(),
+            skin = dev.retrobit.desktop.shell.CyberdeckChrome.Skin.of(palette),
             scale = settings.uiScale.coerceIn(0.6f, 2f),
             brightness = settings.brightness.takeIf { it > 0f },
             rotateLocked = settings.rotateLocked,

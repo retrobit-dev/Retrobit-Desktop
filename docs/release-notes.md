@@ -81,6 +81,26 @@ berwarna, tapi juga berbentuk seperti desktop itu.
   palet e-paper tidak memin apa pun, "follow palette" lebih memilih palet daripada gaya shell,
   pilihan eksplisit selalu menang, dan daftar bentuk tetap rapi untuk baris chip.
 
+### Chrome overlay juga ikut tema: title rail, dock, dan quick panel
+Sisa terakhir yang masih "tercetak" di tema native. Selama ini rail judul, dock, dan quick panel
+yang digambar launcher **di atas aplikasi pihak ketiga** selalu bergaya kertas-bertinta. Sekarang
+palet native mengirim chrome-nya ke overlay (`CyberdeckChrome.Skin`, kontrak yang sama dengan
+widget):
+
+- **Title rail = title bar tema.** Gradien judul Aqua/Ubuntu/Adwaita, rata di Windows 11 & Windows 95,
+  teks judul memakai warna judul tema, titik aksen sebelum nama app memakai accent tema.
+- **Tombol rail** menjadi kotak membulat berbingkai tipis (radius tema, maks. 10 dp); saat aktif
+  terisi warna `plate` dengan teks `plateText`. Windows 95 tetap kotak.
+- **Dock** memakai muka jendela tema + tile membulat, dan **ikon app-nya kembali berwarna** seperti
+  dock asli desktop itu (di e-paper tetap grayscale seperti shell cetakan).
+- **Quick panel** menjadi sheet membulat berbingkai tipis dengan bayangan lembut, groove kecerahan
+  beraksen, dan baris pilihan memakai warna seleksi tema; garis-garis pemisahnya jadi hairline.
+- **Flash message** naik sebagai toast membulat, bukan balok tinta terbalik.
+- **Bingkai hitam tepi layar tetap hitam** — itu frame cyberdeck-nya, bukan bagian dari tema.
+
+Palet e-paper **tidak berubah sama sekali**: `Skin` bernilai `null`, dan seluruh jalur cetak
+(kertas, empat garis tinta, bayangan checker keras) tetap seperti sebelumnya.
+
 ### Sudut, menu, dan permukaan mengambang kini mengikuti tema juga
 Tiga detail chrome yang tersisa disesuaikan supaya tema native benar-benar terasa seperti desktop
 aslinya:
