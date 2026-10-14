@@ -264,8 +264,8 @@ private fun NativeDesk(
             )
         } else if (source != WallpaperSource.PATTERN) {
             Column(
-                Modifier.align(Alignment.Center).padding(dp(24f)),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                Modifier.align(androidx.compose.ui.Alignment.Center).padding(dp(24f)),
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(dp(8f)),
             ) {
                 RetroText(if (busy) "developing image…" else "wallpaper: ${source.label.lowercase()}", size = 16f, display = true)

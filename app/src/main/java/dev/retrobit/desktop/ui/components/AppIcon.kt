@@ -155,13 +155,11 @@ fun AppIconTile(
     ) {
         // selected: the e-paper palettes invert the icon (ink plate), a native theme paints the
         // selection colour of its desktop behind it (navy on Windows 95, system blue on Aqua)
-        val plate = p.skin?.highlight ?: p.ink
-        val plateEdge = p.skin?.highlight ?: p.ink
         Box(
             Modifier
                 .size(iconSize + dp(6f))
-                .background(if (selected) plate else Color.Transparent)
-                .then(if (selected) Modifier.border(dp(1.5f), plateEdge) else Modifier),
+                .background(if (selected) p.plate else Color.Transparent)
+                .then(if (selected) Modifier.border(dp(1.5f), p.plate) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             if (icon != null) {
@@ -205,7 +203,7 @@ fun AppIconTile(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .background(if (selected) p.plate else p.paper)
-                        .border(dp(1f), if (selected) p.plate else p.ink.copy(alpha = 0.45f))
+                        .border(dp(1f), if (selected) p.plateText else p.ink.copy(alpha = 0.45f))
                         .padding(horizontal = dp(4f), vertical = dp(1f)),
                 )
             }

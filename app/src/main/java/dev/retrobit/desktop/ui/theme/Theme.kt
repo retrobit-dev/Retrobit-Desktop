@@ -4,12 +4,10 @@ import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import kotlin.math.pow
-import kotlin.math.roundToInt
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -281,8 +279,7 @@ data class IconOptions(
 fun rememberPanelTexture(color: Color? = null): Brush? {
     val p = LocalPalette.current
     if (p.isNative) return null
-    val px = with(androidx.compose.ui.platform.LocalDensity.current) { 1.dp.toPx() }.roundToInt()
-    return remember(p.pattern, color) { chromeTile(ChromePattern.STRIPES_H, color ?: p.pattern, px).brush() }
+    return rememberChromeBrush(ChromePattern.STRIPES_H, color ?: p.pattern, 1.dp)
 }
 
 val LocalPalette = staticCompositionLocalOf { Palettes.of(PaletteId.PAPER) }
