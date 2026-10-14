@@ -81,6 +81,29 @@ berwarna, tapi juga berbentuk seperti desktop itu.
   palet e-paper tidak memin apa pun, "follow palette" lebih memilih palet daripada gaya shell,
   pilihan eksplisit selalu menang, dan daftar bentuk tetap rapi untuk baris chip.
 
+### Widget desktop: sekarang ikut tema paletnya
+Tema palet sudah membawa warna, chrome, dan bentuk ikon. Sekarang **widget** ikut juga: di tema
+desktop native widget menggambar chrome desktop itu, bukan cetakan e-paper berwarna.
+
+| Bagian widget | Palet e-paper (tetap) | Tema native (baru) |
+| --- | --- | --- |
+| Badan kartu | kertas + bingkai tinta 1.6 dp, kotak, bayangan kotak keras | muka jendela tema, **sudut membulat** tema (0–12 dp), border tema, **bayangan lembut** |
+| Bar judul | strip **hatch** cetakan, judul tinta | **gradient judul asli tema** (Win95 navy `#000080` → biru `#1084D0`, Aqua `#F7F7F8` → `#DCDCDE`, Ubuntu `#3D3D3D` → `#2C2C2C`, Win11/Adwaita rata) dengan teks berwarna header, tinggi bar sedikit lebih besar (21–23 dp) |
+| Meter (baterai/RAM/disk) | sel tinta padat di atas kertas, setengah sel `mid` | **track membulat** di muka lembut tema, isian **aksen tema** (navy / biru sistem / oranye) |
+| Kalender | hari terpilih = plat tinta | hari terpilih = **warna seleksi tema** (navy di Win95, biru sistem di Aqua, oranye di Ubuntu), sel membulat 4 dp |
+| Tag baris agenda | kotak tinta + teks kertas | kotak **highlight tema** + teks highlight-nya |
+| Mode edit | bingkai putus-putus **tinta**, kotak | bingkai putus-putus **aksen tema**, membulat sesuai sudut tema |
+| Grip resize | garis tinta | garis **border tema** |
+
+- **Ganti palet = ganti tampilan widget** tanpa mengubah ukuran, posisi, isi, atau pengaturannya.
+  Semua widget lama (chrono, kalender, agenda, tasks, launcher, power, sysinfo, notes) ikut.
+- **Palet e-paper tidak berubah sedikit pun** — semuanya masih tercetak: hatch, sel tinta, bayangan
+  keras, bingkai tinta mode edit.
+- Unit test baru (`WidgetSkinTest`, 6 ekspektasi): setiap palet native harus memetakan ke muka
+  jendela/border/gradient/meter/plate miliknya, palet e-paper harus tetap tercetak, judul widget
+  wajib terbaca di kedua ujung bar, meter wajib terlihat di atas track-nya, dan palet rata
+  (Win11/Adwaita) wajib mendapat bar rata.
+
 ### Jendela mengambang: aplikasi bawaan launcher tidak lagi langsung full screen
 Aplikasi **bawaan launcher** sekarang terbuka sebagai **jendela kotak di desktop**, bukan memenuhi
 layar begitu dibuka. Yang ikut pindah ke dalam jendela: **terminal, settings, notes, applications

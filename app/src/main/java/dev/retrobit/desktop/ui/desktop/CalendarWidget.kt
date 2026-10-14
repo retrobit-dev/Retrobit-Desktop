@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -31,10 +30,12 @@ import dev.retrobit.desktop.model.EntryKind
 import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.Glyph
-import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroIconButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import dev.retrobit.desktop.ui.theme.WidgetSkin
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import java.time.LocalDate
 import java.time.YearMonth
@@ -64,26 +65,17 @@ fun CalendarWidget(
         dayEntries.count { it.kind == EntryKind.TASK && !it.done }
     }
 
-    Column(
-        modifier
-            .width(width)
-            .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
-            .background(p.paper)
-            .border(dp(1.6f), p.edge),
-    ) {
+    Column(modifier.widgetSurface(width, height)) {
         // ── month + arrows, and a + that opens the inline writer ──────────────────
-        Row(
-            Modifier.fillMaxWidth().padding(horizontal = dp(6f), vertical = dp(4f)),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dp(4f)),
-        ) {
-            GlyphIcon(Glyph.CALENDAR, dp(13f))
-            RetroText(CalendarMath.prettyMonth(month), size = 11f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
+        // this bar carries three buttons, so it is a touch taller than a plain title strip
+        val bar = remember(p) { dev.retrobit.desktop.ui.theme.WidgetSkin.of(p) }
+        WidgetHeader(Glyph.CALENDAR, height = dp(bar.headerHeight + 7f)) {
+            WidgetTitle(CalendarMath.prettyMonth(month), Modifier.weight(1f))
             RetroIconButton(label = "<", boxSize = dp(19f)) { month = month.minusMonths(1) }
             RetroIconButton(label = ">", boxSize = dp(19f)) { month = month.plusMonths(1) }
             RetroIconButton(label = "+", boxSize = dp(19f), active = writing) { writing = !writing }
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.edge))
+        WidgetSeparator()
 
         // ── month grid: no boxes around the days, just the numbers and a dot ──────
         Column(Modifier.padding(horizontal = dp(6f), vertical = dp(5f)), verticalArrangement = Arrangement.spacedBy(dp(2f))) {
@@ -184,16 +176,20 @@ private fun DayCell(
     onSelect: () -> Unit,
 ) {
     val p = LocalPalette.current
+    val w = remember(p) { WidgetSkin.of(p) }
     val bg = when {
-        isSelected -> p.ink
+        // the picked day wears the theme's selection colour: navy in Windows 95, system blue in
+        // Aqua, orange in Ubuntu - and the ink plate in the e-paper palettes
+        isSelected -> w.plate
         isToday -> p.soft
         else -> p.paper
     }
-    val fg = if (isSelected) p.paper else p.ink
+    val fg = if (isSelected) w.plateText else p.ink
     Column(
         Modifier
             .fillMaxWidth()
             .height(dp(21f))
+            .clip(RoundedCornerShape(dp(if (w.native) 4f else 0f)))
             .background(bg)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onSelect),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -226,11 +222,16 @@ fun EntryRow(
     ) {
         Box(
             Modifier
-                .background(if (entry.kind == EntryKind.BIRTHDAY) p.paper else p.ink)
-                .border(dp(1f), p.edge)
+                .background(if (entry.kind == EntryKind.BIRTHDAY) p.paper else p.plate)
+                .border(dp(1f), if (entry.kind == EntryKind.BIRTHDAY) p.edge else p.plate)
                 .padding(horizontal = dp(3f)),
         ) {
-            RetroText(tag, size = 8.5f, color = if (entry.kind == EntryKind.BIRTHDAY) p.ink else p.paper, maxLines = 1)
+            RetroText(
+                tag,
+                size = 8.5f,
+                color = if (entry.kind == EntryKind.BIRTHDAY) p.ink else p.plateText,
+                maxLines = 1,
+            )
         }
         RetroText(
             entry.title,

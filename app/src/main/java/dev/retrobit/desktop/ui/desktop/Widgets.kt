@@ -29,11 +29,97 @@ import dev.retrobit.desktop.ui.components.RetroProgress
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.theme.ChromePattern
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import dev.retrobit.desktop.ui.components.retroShadow
+import dev.retrobit.desktop.ui.theme.WidgetSkin
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberPanelTexture
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+/**
+ * The card every widget sits on.
+ *
+ * E-paper palettes **print** it: a paper face, the ink frame, a hard offset shadow and a hatched
+ * header strip. A native theme draws the widget its desktop would draw: the window face with that
+ * desktop's rounded corners and border colour, a real soft shadow, and a header bar painted with
+ * the theme's own title gradient — so a Windows 95 gadget gets the navy→blue bar and an Aqua one
+ * the grey one, exactly like the windows above them.
+ */
+@Composable
+fun Modifier.widgetSurface(width: Dp, height: Dp? = null): Modifier {
+    val p = LocalPalette.current
+    val w = remember(p) { WidgetSkin.of(p) }
+    val shape = RoundedCornerShape(dp(w.cornerDp))
+    return this
+        .width(width)
+        .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
+        .then(if (w.native) Modifier.retroShadow(dp(6f)) else Modifier)
+        .clip(shape)
+        .background(w.panel)
+        .border(dp(w.borderDp), w.border, shape)
+}
+
+/**
+ * The header strip of a widget: the hatch pattern of a printed panel, or the **title gradient** of
+ * the active desktop theme. The caller puts the title (and any buttons) inside [content].
+ */
+@Composable
+fun WidgetHeader(
+    glyph: Glyph,
+    modifier: Modifier = Modifier,
+    height: Dp? = null,
+    content: @Composable RowScope.() -> Unit,
+) {
+    val p = LocalPalette.current
+    val w = remember(p) { WidgetSkin.of(p) }
+    // native themes paint the real bar; the e-paper palettes keep printing the hatch
+    val hatch = rememberPanelTexture()
+    Row(
+        modifier
+            .fillMaxWidth()
+            .height(height ?: dp(w.headerHeight))
+            .then(
+                if (hatch != null) Modifier.background(hatch)
+                else Modifier.background(Brush.verticalGradient(listOf(w.headerTop, w.headerBottom)))
+            )
+            .padding(horizontal = dp(6f)),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(dp(6f)),
+        content = {
+            if (w.native) GlyphIcon(glyph, dp(12f), tint = w.headerText, clear = w.headerTop)
+            else GlyphIcon(glyph, dp(12f))
+            content()
+        },
+    )
+}
+
+/** The title inside a [WidgetHeader], in the colour the header needs. */
+@Composable
+fun WidgetTitle(title: String, modifier: Modifier = Modifier) {
+    val p = LocalPalette.current
+    val w = remember(p) { WidgetSkin.of(p) }
+    RetroText(
+        title,
+        size = 11f,
+        weight = FontWeight.Bold,
+        maxLines = 1,
+        color = if (w.native) w.headerText else p.ink,
+        modifier = modifier,
+    )
+}
+
+/** The hairline between a widget header and its body. */
+@Composable
+fun WidgetSeparator(modifier: Modifier = Modifier) {
+    val p = LocalPalette.current
+    val w = remember(p) { WidgetSkin.of(p) }
+    Box(modifier.fillMaxWidth().height(dp(if (w.native) 1f else 1.2f)).background(w.separator))
+}
 
 @Composable
 fun WidgetCard(
@@ -45,37 +131,17 @@ fun WidgetCard(
     onClick: (() -> Unit)? = null,
     content: @Composable () -> Unit,
 ) {
-    val p = LocalPalette.current
-    // native themes print a flat header bar instead of the e-paper hatch
-    val hatch = rememberPanelTexture()
     Column(
         modifier
-            .width(width)
-            .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
-            .background(p.paper)
-            .border(dp(1.6f), p.edge)
+            .widgetSurface(width, height)
             .then(
                 if (onClick != null) Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick,
                 ) else Modifier
             ),
     ) {
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .height(dp(20f))
-                .then(
-                    if (hatch != null) Modifier.background(hatch)
-                    else Modifier.background(p.soft)
-                )
-                .padding(horizontal = dp(6f)),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(dp(6f)),
-        ) {
-            GlyphIcon(glyph, dp(12f))
-            RetroText(title, size = 11f, weight = FontWeight.Bold, maxLines = 1)
-        }
-        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.edge))
+        WidgetHeader(glyph) { WidgetTitle(title, Modifier.weight(1f)) }
+        WidgetSeparator()
         Column(Modifier.padding(dp(9f)), verticalArrangement = Arrangement.spacedBy(dp(6f))) { content() }
     }
 }

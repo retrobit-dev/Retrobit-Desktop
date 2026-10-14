@@ -429,6 +429,22 @@ fun Tag(text: String, modifier: Modifier = Modifier, inverted: Boolean = false) 
 @Composable
 fun RetroProgress(fraction: Float, modifier: Modifier = Modifier, cells: Int = 20, thickness: Dp = dp(10f)) {
     val p = LocalPalette.current
+    if (p.isNative) {
+        // a real desktop meter: a rounded track in the theme's soft face, filled with the accent
+        Canvas(modifier.fillMaxWidth().height(thickness)) {
+            val frac = fraction.coerceIn(0f, 1f)
+            val r = androidx.compose.ui.geometry.CornerRadius(size.height / 2f, size.height / 2f)
+            drawRoundRect(p.soft, cornerRadius = r)
+            if (frac > 0f) {
+                drawRoundRect(
+                    p.accent,
+                    size = Size(size.width * frac, size.height),
+                    cornerRadius = r,
+                )
+            }
+        }
+        return
+    }
     Canvas(modifier.fillMaxWidth().height(thickness)) {
         val cellW = size.width / cells
         val filled = (fraction.coerceIn(0f, 1f) * cells)

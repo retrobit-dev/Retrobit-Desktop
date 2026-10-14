@@ -446,22 +446,22 @@ def mix(a, b, t):
 SKIN_WIN95 = dict(
     window=(0xC0, 0xC0, 0xC0), border=(0x00, 0x00, 0x00),
     title_top=(0x00, 0x00, 0x80), title_bot=(0x10, 0x84, 0xD0), title_text=(0xFF, 0xFF, 0xFF),
-    button=(0xC0, 0xC0, 0xC0), button_text=(0x00, 0x00, 0x00), dot=(0x00, 0x00, 0x80), radius=0, lights=False,
+    text=(0x00, 0x00, 0x00), button=(0xC0, 0xC0, 0xC0), button_text=(0x00, 0x00, 0x00), dot=(0x00, 0x00, 0x80), radius=0, lights=False,
 )
 SKIN_AQUA = dict(
     window=(0xF4, 0xF4, 0xF6), border=(0xB9, 0xB9, 0xBF),
     title_top=(0xF7, 0xF7, 0xF8), title_bot=(0xDC, 0xDC, 0xDE), title_text=(0x1D, 0x1D, 0x1F),
-    button=(0xE4, 0xE4, 0xE8), button_text=(0x5A, 0x5A, 0x5F), dot=(0x0A, 0x84, 0xFF), radius=10, lights=True,
+    text=(0x1D, 0x1D, 0x1F), button=(0xE4, 0xE4, 0xE8), button_text=(0x5A, 0x5A, 0x5F), dot=(0x0A, 0x84, 0xFF), radius=10, lights=True,
 )
 SKIN_WIN11 = dict(
     window=(0x20, 0x20, 0x20), border=(0x3A, 0x3A, 0x3A),
     title_top=(0x2B, 0x2B, 0x2B), title_bot=(0x2B, 0x2B, 0x2B), title_text=(0xFF, 0xFF, 0xFF),
-    button=(0x2B, 0x2B, 0x2B), button_text=(0xFF, 0xFF, 0xFF), dot=(0x60, 0xCD, 0xFF), radius=8, lights=False,
+    text=(0xFF, 0xFF, 0xFF), button=(0x2B, 0x2B, 0x2B), button_text=(0xFF, 0xFF, 0xFF), dot=(0x60, 0xCD, 0xFF), radius=8, lights=False,
 )
 SKIN_UBUNTU = dict(
     window=(0xF6, 0xF5, 0xF4), border=(0xBE, 0xBA, 0xB6),
     title_top=(0x3D, 0x3D, 0x3D), title_bot=(0x2C, 0x2C, 0x2C), title_text=(0xFF, 0xFF, 0xFF),
-    button=(0x4A, 0x4A, 0x4A), button_text=(0xFF, 0xFF, 0xFF), dot=(0xE9, 0x54, 0x20), radius=12, lights=False,
+    text=(0x2E, 0x34, 0x36), button=(0x4A, 0x4A, 0x4A), button_text=(0xFF, 0xFF, 0xFF), dot=(0xE9, 0x54, 0x20), radius=12, lights=False,
 )
 # the real traffic lights of macOS: close / minimize / zoom
 AQUA_LIGHTS = [(0xFF, 0x5F, 0x57), (0xFE, 0xBC, 0x2E), (0x28, 0xC8, 0x40)]
@@ -542,6 +542,50 @@ def native_window(d, box, title, skin, glyph_kind="term", content_bg=None):
     return content
 
 
+def native_widget(d, box, skin, title, lines, meter=None):
+    """A desktop widget in the chrome of a native theme: ui/desktop/Widgets.kt, native path.
+
+    The window face with the theme's rounded corners and border, a header bar painted with the
+    theme's **own title gradient**, and - if the widget has one - a meter in the theme accent over
+    the theme's soft face. The e-paper palettes print a hatched header and ink cells instead.
+    """
+    x0, y0, x1, y1 = box
+    radius = skin["radius"]
+    bar = 21 if radius == 0 else 23
+    # soft shadow (real desktop widgets float), a hard square one for Windows 95
+    if radius == 0:
+        d.rectangle([x0 + 3, y0 + 3, x1 + 3, y1 + 3], fill=mix(SHEET_BG, (0, 0, 0), 0.45))
+    else:
+        for i, a in ((6, 0.30), (4, 0.20), (2, 0.12)):
+            d.rounded_rectangle([x0 + i, y0 + i, x1 + i, y1 + i], radius=radius + 2, fill=mix(SHEET_BG, (0, 0, 0), a))
+    if radius == 0:
+        d.rectangle(box, fill=skin["window"], outline=skin["border"], width=2)
+    else:
+        d.rounded_rectangle(box, radius=radius, fill=skin["window"], outline=skin["border"])
+    # the header bar: the theme's real title gradient (flat for Windows 11 / GNOME)
+    for i in range(bar - 2):
+        t = i / max(1, bar - 3)
+        d.line([x0 + 2, y0 + 2 + i, x1 - 2, y0 + 2 + i], fill=mix(skin["title_top"], skin["title_bot"], t))
+    # a 12 px glyph then the widget name, both in the header's own text colour
+    gx, gy = x0 + 7, y0 + 2 + (bar - 2) // 2 - 5
+    d.rectangle([gx, gy, gx + 9, gy + 9], fill=skin["title_text"])
+    d.text((gx + 15, y0 + 2 + (bar - 2) // 2 - 6), title, font=mono_tiny, fill=skin["title_text"])
+    d.line([x0 + 1, y0 + bar, x1 - 1, y0 + bar], fill=skin["border"])
+    cy = y0 + bar + 8
+    for line in lines:
+        d.text((x0 + 9, cy), line, font=mono_tiny, fill=skin["text"])
+        cy += 16
+    if meter is not None:
+        frac, label = meter
+        my0, my1 = cy + 4, cy + 14
+        r = (my1 - my0) / 2
+        d.rounded_rectangle([x0 + 9, my0, x1 - 9, my1], radius=r, fill=mix(skin["window"], skin["text"], 0.13))
+        if frac > 0:
+            d.rounded_rectangle([x0 + 9, my0, x0 + 9 + (x1 - 9 - (x0 + 9)) * frac, my1], radius=r, fill=skin["dot"])
+        d.text((x0 + 9, my1 + 4), label, font=mono_tiny, fill=skin["text"])
+    return (x0 + 9, cy)
+
+
 def native_desktop(kind):
     """One panel per native desktop theme, drawn in that desktop's real colours - the same values
     the Kotlin NativeSkin carries, so the mockup documents what the launcher actually paints."""
@@ -590,6 +634,9 @@ def native_desktop(kind):
             d.text((bx + 8, h - 30), label, font=mono_tiny, fill=ink)
         d.rectangle([w - 150, h - 40, w - 6, h - 6], fill=taskbar, outline=(0, 0, 0))
         d.text((w - 142, h - 30), "13:37", font=mono_tiny, fill=ink)
+        # a gadget on the teal: silver face, the navy > blue header bar, an ink-on-silver meter
+        native_widget(d, (500, 830, w - 24, h - 66), SKIN_WIN95, "chrono",
+                      ["13:37:09", "Wed, 14 Oct 2026"], meter=(0.62, "RAM  8.4 / 12 GB"))
     elif kind == "aqua":
         desk_top, desk_bot = (0x3F, 0x72, 0xA8), (0x1E, 0x4E, 0x7E)
         for y in range(h):
@@ -620,6 +667,9 @@ def native_desktop(kind):
             d.rounded_rectangle([gx, h - 72, gx + 44, h - 28], radius=10, fill=(0xE4, 0xE4, 0xE8), outline=(0xB9, 0xB9, 0xBF))
             col = [(0x0A, 0x84, 0xFF), (0x34, 0xC7, 0x59), (0xFF, 0x95, 0x00), (0xFF, 0x3B, 0x30), (0x30, 0xD1, 0x58), (0x5E, 0x5C, 0xE6)][i]
             d.rectangle([gx + 13, h - 62, gx + 31, h - 38], fill=col)
+        # a dashboard widget: snow face, grey gradient bar, system-blue meter
+        native_widget(d, (60, 810, 420, h - 100), SKIN_AQUA, "chrono",
+                      ["13:37:09"], meter=(0.62, "RAM  8.4 / 12 GB"))
     elif kind == "win11":
         desk_top, desk_bot = (0x1B, 0x1F, 0x24), (0x0F, 0x12, 0x16)
         for y in range(h):
@@ -662,6 +712,9 @@ def native_desktop(kind):
                 col = [(0x0C, 0xC4, 0xC4), (0xFF, 0xC1, 0x2E), (0x60, 0xCD, 0xFF), (0xE8, 0xE8, 0xE8)][i - 1]
                 d.rounded_rectangle([bx + 2, h - 34, bx + 24, h - 12], radius=4, fill=col)
         d.text((w - 96, h - 32), "13:37", font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+        # a Windows 11 widget: Mica face, flat bar, accent meter
+        native_widget(d, (470, 830, w - 24, h - 66), SKIN_WIN11, "sysinfo",
+                      ["BAT 86%  +", "RAM  8.4 / 12 GB"], meter=(0.58, "DISK 412 / 512 GB"))
     else:  # ubuntu
         desk_top, desk_bot = (0x77, 0x21, 0x6F), (0x4B, 0x17, 0x49)
         for y in range(h):
@@ -691,6 +744,9 @@ def native_desktop(kind):
             col = [(0xE9, 0x54, 0x20), (0x77, 0x21, 0x6F), (0xF6, 0xF5, 0xF4), (0xE9, 0x54, 0x20),
                    (0x5E, 0x27, 0x5B), (0xF6, 0xF5, 0xF4), (0xE9, 0x54, 0x20)][i]
             d.rectangle([33, gy + 11, 53, gy + 35], fill=col)
+        # a GNOME widget: light face, dark headerbar, orange accent meter
+        native_widget(d, (470, 810, w - 24, h - 66), SKIN_UBUNTU, "sysinfo",
+                      ["BAT 86%  +", "RAM  8.4 / 12 GB"], meter=(0.58, "DISK 412 / 512 GB"))
     return img
 
 

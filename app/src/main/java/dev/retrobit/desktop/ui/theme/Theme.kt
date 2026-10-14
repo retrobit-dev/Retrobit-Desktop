@@ -284,6 +284,86 @@ data class IconOptions(
 )
 
 /**
+ * The resolved look of a **desktop widget** under the active palette.
+ *
+ * An e-paper palette *prints* a widget: a paper card with the ink frame, a hatched header strip, a
+ * hard offset shadow and a pixel meter of solid ink cells. A native theme draws the widget its
+ * desktop would draw instead: the window face with that desktop's rounded corners and border
+ * colour, a **header bar in the theme's own title gradient**, a soft shadow, and a meter whose
+ * track and fill use the theme's soft face and accent colour.
+ *
+ * Everything the widget views need is resolved here once, so no widget has to know about skins.
+ */
+@Immutable
+data class WidgetSkin(
+    val native: Boolean,
+    val panel: Color,
+    val border: Color,
+    val borderDp: Float,
+    val cornerDp: Float,
+    val headerTop: Color,
+    val headerBottom: Color,
+    val headerText: Color,
+    val headerHeight: Float,
+    val separator: Color,
+    val meterTrack: Color,
+    val meterFill: Color,
+    val meterPartial: Color,
+    val plate: Color,
+    val plateText: Color,
+    val grip: Color,
+) {
+    /** True when the header bar is one colour (Windows 11, GNOME) instead of a gradient. */
+    val headerFlat: Boolean get() = headerTop == headerBottom
+
+    companion object {
+        /** The widget look of [p]: printed for the e-paper palettes, real chrome for the native ones. */
+        fun of(p: Palette): WidgetSkin {
+            val skin = p.skin
+                ?: return WidgetSkin(
+                    native = false,
+                    panel = p.paper,
+                    border = p.ink,
+                    borderDp = 1.6f,
+                    cornerDp = 0f,
+                    // the e-paper widgets print a hatch on the header; this is only the colour a
+                    // glyph sits on when one has to be punched out of it
+                    headerTop = p.pattern,
+                    headerBottom = p.pattern,
+                    headerText = p.ink,
+                    headerHeight = 20f,
+                    separator = p.edge,
+                    meterTrack = p.paper,
+                    meterFill = p.ink,
+                    meterPartial = p.mid,
+                    plate = p.plate,
+                    plateText = p.plateText,
+                    grip = p.ink,
+                )
+            return WidgetSkin(
+                native = true,
+                panel = p.paper,
+                border = skin.border,
+                borderDp = if (skin.cornerDp == 0f) 2f else 1f,
+                cornerDp = skin.cornerDp,
+                headerTop = skin.titleTop,
+                headerBottom = skin.titleBottom,
+                headerText = skin.titleText,
+                // real widget header bars are a touch taller than a printed strip
+                headerHeight = if (skin.cornerDp >= 10f) 23f else 21f,
+                separator = skin.border,
+                meterTrack = p.soft,
+                meterFill = p.accent,
+                meterPartial = p.accent.copy(alpha = 0.5f),
+                plate = p.plate,
+                plateText = p.plateText,
+                grip = skin.border,
+            )
+        }
+    }
+}
+
+/**
  * Panel texture for faceplates (tray, widget headers, dock strips): the e-paper palettes print a
  * hatch on them, the native ones draw flat chrome the way a real desktop does. `null` = flat.
  */

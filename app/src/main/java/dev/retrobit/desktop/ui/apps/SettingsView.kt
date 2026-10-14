@@ -87,8 +87,12 @@ fun SettingsView(vm: LauncherViewModel) {
                 "teal desk; Aqua gets snow chrome, the red/amber/green traffic lights and the blue " +
                 "desk; Ubuntu gets the dark headerbar, orange accents and the aubergine wallpaper; " +
                 "Windows 11 and Adwaita get their flat dark chrome and rounded windows. Gradients " +
-                "are real gradients here, shadows are real shadows, and the scanline overlay is off.",
-            size = 10.5f, color = p.mid, maxLines = 12,
+                "are real gradients here, shadows are real shadows, and the scanline overlay is off.\n" +
+                "**Widgets follow the theme as well**: they wear the window face of that desktop, its " +
+                "rounded corners, its border colour, a header bar in its own title gradient, and " +
+                "meters filled with its accent colour - while the e-paper palettes keep printing the " +
+                "hatched header and the ink cells.",
+            size = 10.5f, color = p.mid, maxLines = 16,
         )
         RetroText(
             "Picking a native theme also switches to the desktop style it belongs to and shows " +

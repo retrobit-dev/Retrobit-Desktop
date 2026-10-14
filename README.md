@@ -61,6 +61,11 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
     registration mark / caption cetakan, tanpa bayangan cetak. Ikon, label, wallpaper, dan widget
     memakai warna asli (ikon berwarna penuh, label putih di atas desktop gelap, plate seleksi
     memakai warna highlight desktop itu — navy di Win95, biru sistem di Aqua, oranye di Ubuntu).
+  - **Widget ikut tema juga** (lihat bagian *Widget desktop* di bawah): di tema native widget
+    memakai muka jendela tema, sudut membulatnya, warna border tema, **bar judul bergradasi tema**
+    (navy→biru di Win95, abu di Aqua, gelap di Ubuntu/Adwaita, rata di Win11/GNOME), **meter
+    beraksen tema** di atas muka lembut, dan bayangan lembut. Di palet e-paper widget tetap
+    tercetak: strip header ber-hatch, sel tinta, dan bayangan kotak keras.
   - Memilih tema bawaan sekaligus memindahkan **desktop style** yang cocok (Win95/Win11 → Windows,
     Aqua/Aqua dark → macOS, Ubuntu/Adwaita → Linux) dan ikon jadi berwarna; gaya & mode ikon itu
     masih bisa diganti lagi setelahnya. Palet e-paper tidak pernah menyentuh keduanya.
@@ -217,6 +222,15 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   jadi `spo` langsung memunculkan Spotify kalau memang itu yang paling sering kamu buka.
 
 ### Widget desktop: bisa ditambah, dihapus, diatur
+
+- **Widget mengikuti tema palet.** Di palet e-paper widget **tercetak** seperti sebelumnya (kertas,
+  bingkai tinta, header ber-hatch, meter sel tinta). Di tema native widget menggambar chrome
+  desktop aslinya: muka jendela tema + **sudut membulat** + border tema, **bar judul dengan gradient
+  milik tema itu** (Win95 navy→biru, Aqua abu salju, Ubuntu/Adwaita gelap, Win11 rata) dengan teks
+  berwarna header, **meter beraksen tema** di atas muka lembut (bukan blok tinta), bayangan lembut,
+  dan bingkai putus-putus mode edit memakai **warna aksen** tema dengan sudut membulat. Kalender
+  memakai warna seleksi tema untuk hari yang dipilih; setengah sel meter yang lama `mid` tetap
+  dipakai di e-paper saja.
 - **Delapan widget siap pakai** (`Add widget:` di menu desktop, panel mode edit, Settings, terminal):
 
   | Widget | Isinya |

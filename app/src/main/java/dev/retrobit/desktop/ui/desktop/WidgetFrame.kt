@@ -27,6 +27,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -169,14 +170,27 @@ fun WidgetSlot(
 
             // editing chrome: dashed frame, name, remove / move / reset
             if (editing) {
+                val ws = remember(p) { dev.retrobit.desktop.ui.theme.WidgetSkin.of(p) }
                 Canvas(Modifier.matchParentSize()) {
-                    drawRect(
-                        color = p.ink,
-                        style = Stroke(
-                            width = 3f,
-                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f)),
-                        ),
+                    // a native theme marks the selection with its accent colour and rounds the
+                    // corners the way its own windows are rounded
+                    val stroke = Stroke(
+                        width = 3f,
+                        pathEffect = PathEffect.dashPathEffect(floatArrayOf(12f, 8f)),
                     )
+                    val colour = if (ws.native) p.accent else p.ink
+                    if (ws.cornerDp > 0f) {
+                        val r = ws.cornerDp * density.density
+                        drawRoundRect(
+                            color = colour,
+                            topLeft = Offset(r / 2f, r / 2f),
+                            size = Size(size.width - r, size.height - r),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(r, r),
+                            style = stroke,
+                        )
+                    } else {
+                        drawRect(color = colour, style = stroke)
+                    }
                 }
                 // while editing, taps must not reach the widget content
                 Box(
@@ -204,12 +218,14 @@ fun WidgetSlot(
                 }
             }
 
-            // printed corner grip, so the resize handle is discoverable
+            // corner grip, so the resize handle is discoverable: printed in ink on e-paper, in the
+            // theme's border colour on a native desktop
             if (!editing && width > 120f && height > 60f) {
                 Canvas(Modifier.align(Alignment.BottomEnd).size(dp(13f))) {
+                    val grip = if (p.isNative) p.edge else p.ink
                     for (i in 0 until 3) {
                         val o = i * 4f
-                        drawLine(p.ink, Offset(size.width - 13f + o, size.height - 1f), Offset(size.width - 1f, size.height - 13f + o), 1.6f)
+                        drawLine(grip, Offset(size.width - 13f + o, size.height - 1f), Offset(size.width - 1f, size.height - 13f + o), 1.6f)
                     }
                 }
             }
