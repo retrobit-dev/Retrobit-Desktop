@@ -1287,7 +1287,7 @@ def main():
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((margin, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((margin + 2, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · 12 palettes: 6 e-paper tones + 6 native desktop themes that paint their own real chrome · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
+    d.text((margin + 2, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · 12 palettes: 6 e-paper tones + 6 native desktop themes that paint their own real chrome (rounded window corners, rounded menus, soft shadows) · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = margin
     for p in epaper:
