@@ -10,6 +10,41 @@
 ## Yang baru di {{TAG}}
 
 
+### Tema desktop bawaan: Windows 95, Windows 11, macOS Aqua, Ubuntu, Adwaita
+Palet-paletnya sekarang tidak hanya e-paper. Mesin e-paper-nya tetap sama (kertas + tinta + dither),
+tapi warnanya bisa mengikuti desktop asli:
+
+| Palet | Rasanya |
+| --- | --- |
+| **Windows 95** | chrome perak `#C0C0C0`, teks hitam, aksen navy, **desktop teal `#008080`** |
+| **Windows 11** | dark: permukaan hampir hitam, teks putih lembut, aksen Fluent biru muda |
+| **Aqua** (macOS) | chrome salju, teks hampir hitam, aksen biru sistem, desktop slate blue |
+| **Aqua dark** | chrome graphite, teks putih, aksen biru sistem yang sama |
+| **Ubuntu** | kertas hangat, tinta aubergine, aksen oranye, **desktop aubergine `#77216F`** |
+| **Adwaita** (GNOME) | dark: abu-abu GTK 4 / libadwaita, aksen Adwaita biru |
+
+- **Warna desktop ikut dikenali.** Palet-palet ini punya *warna dasar desktop* sendiri yang berbeda
+  dari warna panel/jendela: desktop-nya dicat teal (Win95) atau aubergine (Ubuntu) di belakang ikon,
+  sementara panel, jendela, menu, dan dialog tetap memakai warna kertas — persis seperti Windows 95
+  yang desainnya memang begitu. Ikon tetap punya chip nama berwarna kertas, jadi namanya tetap terbaca
+  di desktop gelap/berwarna, dan kursor pena tetap punya halo kertas.
+- **Satu ketuk = satu tema.** Memilih tema bawaan sekaligus memindahkan **desktop style** yang
+  cocoknya (Win95/Win11 → shell Windows, Aqua/Aqua dark → shell macOS, Ubuntu/Adwaita → shell Linux).
+  Gaya itu tetap bisa diganti lagi setelahnya: palet dan gaya desktop tetap dua setelan terpisah.
+  Palet e-paper tidak pernah memindahkan gaya desktopmu.
+- **Pratinjau di Settings**: *Settings - palette* sekarang menampilkan setiap palet sebagai kotak
+  kecil berisi warna desktop, plat jendela, title bar aksen, dan namanya — 4 palet per baris, dipisah
+  antara keluarga e-paper dan tema bawaan.
+- **Night mode** (`ink`) membalik kertas ⇄ tinta, dan untuk tema bawaan desktop-nya ikut digelapkan
+  (teal tetap teal, hanya kehilangan silaunya).
+- Terminal: `palette` (status + daftar lengkap), `palette win95`, `palette macos-dark`,
+  `palette ubuntu`, `palette adwaita`, … — nama, label (`"Windows 95"`), dan alias (`windows`, `mac`,
+  `gnome`, `linux`, `fluent`) semuanya jalan. Tema bawaan mencetak warna-warnanya (`desk/paper/ink/accent`)
+  dalam hex.
+- Unit test baru menjaga paletnya tetap waras: setiap id punya palet, kontras teks ≥ 4.5:1,
+  aksen ≥ 3:1, `invert` menukar kertas ⇄ tinta, dan setiap tema bawaan punya warna desktop sendiri
+  plus pasangan terang/gelap di ketiga shell.
+
 ### Jendela mengambang: aplikasi bawaan launcher tidak lagi langsung full screen
 Aplikasi **bawaan launcher** sekarang terbuka sebagai **jendela kotak di desktop**, bukan memenuhi
 layar begitu dibuka. Yang ikut pindah ke dalam jendela: **terminal, settings, notes, applications

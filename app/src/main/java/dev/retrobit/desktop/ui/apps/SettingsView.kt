@@ -74,27 +74,20 @@ fun SettingsView(vm: LauncherViewModel) {
             }
         }
 
-        Section("e-paper palette")
-        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
-            PaletteId.values().forEach { id ->
-                val pal = Palettes.of(id)
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .border(dp(if (s.palette == id) 2.4f else 1.2f), if (s.palette == id) p.ink else p.mid)
-                        .background(pal.paper)
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                            vm.setPalette(id)
-                        }
-                        .padding(dp(6f)),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(dp(5f)),
-                ) {
-                    Box(Modifier.fillMaxWidth().height(dp(14f)).background(pal.ink))
-                    RetroText(id.label, size = 10f, color = pal.ink, maxLines = 1)
-                }
-            }
-        }
+        Section("palette")
+        RetroText(
+            "**E-paper**: one paper tone and one ink tone, printed with the launcher's own dither " +
+                "patterns. These are the original palettes and they fit every desktop style.\n" +
+                "**Native desktop**: the same e-paper engine wearing the colours of a real desktop, " +
+                "including the colour it paints behind its icons - Windows 95 teal, Ubuntu aubergine, " +
+                "Aqua slate blue. Picking one also switches to the desktop style it belongs to (you " +
+                "can change the style again in the section above); the e-paper palettes never move " +
+                "the style. Every native palette comes in a light and a dark take.",
+            size = 10.5f, color = p.mid, maxLines = 10,
+        )
+        PaletteChips(Palettes.ePaper, s.palette) { vm.applyPalette(it) }
+        RetroText("native desktop themes", size = 10f, color = p.mid)
+        PaletteChips(Palettes.native, s.palette) { vm.applyPalette(it) }
 
         Section("wallpaper source")
         val pickImage = rememberLauncherForActivityResult(
@@ -155,7 +148,8 @@ fun SettingsView(vm: LauncherViewModel) {
         Section("wallpaper pattern")
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             WallPattern.values().forEach { w ->
-                val brush = rememberWallpaperBrush(w, p.pattern, dp(2f))
+                // the sample is printed on the desk colour, exactly like the desktop itself
+                val brush = rememberWallpaperBrush(w, p.deskPattern, dp(2f))
                 Column(
                     Modifier
                         .weight(1f)
@@ -167,7 +161,7 @@ fun SettingsView(vm: LauncherViewModel) {
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(dp(5f)),
                 ) {
-                    Box(Modifier.fillMaxWidth().height(dp(16f)).background(p.paper).then(brush?.let { Modifier.background(it) } ?: Modifier))
+                    Box(Modifier.fillMaxWidth().height(dp(16f)).background(p.desk).then(brush?.let { Modifier.background(it) } ?: Modifier))
                     RetroText(w.label, size = 10f, maxLines = 1)
                 }
             }
@@ -387,6 +381,54 @@ fun SettingsView(vm: LauncherViewModel) {
             RetroButton(label = "About", modifier = Modifier.weight(1f), onClick = { vm.openWindow(dev.retrobit.desktop.model.WinKind.ABOUT) })
         }
         RetroText("retrobit desktop · build ${dev.retrobit.desktop.BuildConfig.VERSION_NAME}", size = 10f, color = p.mid)
+    }
+}
+
+/**
+ * The palette picker. Every chip is a small print of what that palette does: the desk colour behind,
+ * a window plate in paper, a title bar in the accent and the name printed in ink - which is exactly
+ * the set of colours the desktop uses.
+ */
+@Composable
+private fun PaletteChips(ids: List<PaletteId>, current: PaletteId, onPick: (PaletteId) -> Unit) {
+    val p = LocalPalette.current
+    Column(verticalArrangement = Arrangement.spacedBy(dp(6f))) {
+        ids.chunked(4).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+                row.forEach { id ->
+                    val pal = Palettes.of(id)
+                    val active = current == id
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .border(dp(if (active) 2.4f else 1.2f), if (active) p.ink else p.mid)
+                            .background(pal.paper)
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                onPick(id)
+                            }
+                            .padding(dp(5f)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(dp(4f)),
+                    ) {
+                        // a print of the desk with a little window sitting on it
+                        Box(Modifier.fillMaxWidth().height(dp(22f)).background(pal.desk)) {
+                            Box(
+                                Modifier
+                                    .align(Alignment.Center)
+                                    .fillMaxWidth(0.72f)
+                                    .height(dp(15f))
+                                    .background(pal.paper)
+                                    .border(dp(1f), pal.ink),
+                            ) {
+                                Box(Modifier.fillMaxWidth().height(dp(4f)).background(pal.accent))
+                            }
+                        }
+                        RetroText(id.label, size = 9.5f, color = pal.ink, maxLines = 1)
+                    }
+                }
+                repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+            }
+        }
     }
 }
 

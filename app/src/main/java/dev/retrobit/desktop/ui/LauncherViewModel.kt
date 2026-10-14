@@ -869,7 +869,28 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
 
     // ── appearance ───────────────────────────────────────────────────────────────
     fun setStyle(style: DesktopStyle) { settings.style = style; shell.print("desktop style -> ${style.label}") }
+    /** Picks a palette without touching the desktop style (night mode and the terminal use this). */
     fun setPalette(p: PaletteId) { settings.palette = p }
+
+    /**
+     * Picks a palette from the UI. The **native** palettes bring their shell along, so one tap on
+     * "Windows 95" gives the silver-and-teal desktop in the Windows shell, "Aqua" the macOS one and
+     * so on; the e-paper palettes leave the style exactly where the user put it. The desktop style
+     * can always be switched right afterwards — the two settings stay independent.
+     */
+    fun applyPalette(p: PaletteId) {
+        settings.palette = p
+        p.style?.let { style ->
+            if (settings.style != style) {
+                settings.style = style
+                shell.print("desktop style -> ${style.label} · ${style.tagline}")
+            }
+        }
+        shell.print(
+            "palette -> ${p.label}" +
+                if (p.native) " (native desktop palette; the desk is painted in its own colour)" else "",
+        )
+    }
     fun setWallpaper(w: WallPattern) { settings.wallpaper = w }
     fun setIconMode(m: IconMode) { settings.iconMode = m }
     fun invertPalette() {

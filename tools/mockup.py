@@ -398,6 +398,37 @@ def float_panel():
     return img
 
 
+# ── palettes ────────────────────────────────────────────────────────────────────
+# Mirrors ui/theme/Theme.kt: the e-paper palettes paint the desk in their own paper, the native ones
+# bring the colour that desktop really uses behind its icons.
+PALETTES = [
+    ("paper",    (0xE8, 0xE5, 0xDA), (0xE8, 0xE5, 0xDA), (0x1B, 0x1B, 0x1B), (0x3F, 0x3F, 0x3F)),
+    ("sepia",    (0xEA, 0xDF, 0xC6), (0xEA, 0xDF, 0xC6), (0x2E, 0x24, 0x18), (0x8C, 0x6B, 0x3F)),
+    ("tri-color",(0xED, 0xEB, 0xE4), (0xED, 0xEB, 0xE4), (0x16, 0x16, 0x16), (0xB1, 0x28, 0x1F)),
+    ("ink",      (0x17, 0x17, 0x17), (0x17, 0x17, 0x17), (0xDA, 0xD6, 0xCA), (0x8C, 0x88, 0x78)),
+    ("phosphor", (0x0B, 0x11, 0x0B), (0x0B, 0x11, 0x0B), (0x9C, 0xF0, 0x8A), (0x4F, 0xB9, 0x3F)),
+    ("amber",    (0x13, 0x0D, 0x05), (0x13, 0x0D, 0x05), (0xFF, 0xB5, 0x42), (0xE0, 0x7A, 0x16)),
+    ("windows 95", (0x00, 0x80, 0x80), (0xC0, 0xC0, 0xC0), (0x00, 0x00, 0x00), (0x00, 0x00, 0x80)),
+    ("windows 11", (0x15, 0x18, 0x1C), (0x2B, 0x2B, 0x2B), (0xF2, 0xF2, 0xF2), (0x60, 0xCD, 0xFF)),
+    ("aqua",       (0x55, 0x78, 0xA6), (0xF4, 0xF4, 0xF6), (0x1D, 0x1D, 0x1F), (0x0A, 0x84, 0xFF)),
+    ("aqua dark",  (0x10, 0x12, 0x16), (0x1E, 0x1E, 0x20), (0xF2, 0xF2, 0xF7), (0x0A, 0x84, 0xFF)),
+    ("ubuntu",     (0x77, 0x21, 0x6F), (0xF2, 0xEF, 0xEB), (0x2C, 0x00, 0x1E), (0xE9, 0x54, 0x20)),
+    ("adwaita",    (0x1A, 0x1A, 0x1A), (0x24, 0x24, 0x24), (0xFF, 0xFF, 0xFF), (0x78, 0xAE, 0xED)),
+]
+
+
+def palette_chip(d, x, y, w, h, name, desk, paper, ink, accent):
+    """One palette in the Settings picker: the desk colour, a window plate, the accent title bar
+    and the name printed in ink on the paper."""
+    d.rectangle([x, y, x + w, y + h], fill=paper, outline=ink, width=2)
+    d.rectangle([x + 2, y + 2, x + w - 2, y + 44], fill=desk)
+    wx0, wx1 = x + int(w * 0.16), x + int(w * 0.84)
+    d.rectangle([wx0, y + 9, wx1, y + 38], fill=paper, outline=ink, width=2)
+    d.rectangle([wx0 + 2, y + 11, wx1 - 2, y + 18], fill=accent)
+    tw = d.textlength(name, font=mono_tiny)
+    d.text((x + (w - tw) / 2, y + h - 24), name, font=mono_tiny, fill=ink)
+
+
 def pager(d, x, y, size=26, cells=3, active=0):
     """Workspace switcher: one numbered square per page of desktop icons and widgets."""
     p = INK
@@ -784,17 +815,28 @@ def main():
         float_panel(),
     ]
     w = sum(p.width for p in panels) + 40 * (len(panels) + 1)
-    h = panels[0].height + 180
+    strip_h = 260
+    h = panels[0].height + 180 + strip_h
     sheet = Image.new("RGB", (w, h), (0x2A, 0x2A, 0x2A))
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
     d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
+    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · 12 palettes: 6 e-paper + native desktop themes (Windows 95, Windows 11, Aqua, Aqua dark, Ubuntu, Adwaita) with their own desk colour · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
     x = 40
     for p in panels:
         sheet.paste(p, (x, 136))
         x += p.width + 40
+
+    # ── the palette row: e-paper on the left, native desktop themes on the right ──
+    y = 136 + panels[0].height + 28
+    d.text((40, y - 6), "PALETTES — 6 e-paper tones, then the native desktop themes: Windows 95 paints its desk teal, "
+                        "Ubuntu aubergine, Aqua slate blue (panel, windows and menus stay paper)",
+           font=mono, fill=(0xC9, 0xC5, 0xB8))
+    y += 34
+    chip_w = (w - 80 - 6 * 11) / 12
+    for i, (name, desk, paper, ink, accent) in enumerate(PALETTES):
+        palette_chip(d, 40 + i * (chip_w + 6), y, chip_w, 150, name, desk, paper, ink, accent)
     sheet.save(OUT)
     print("wrote", OUT, sheet.size)
 

@@ -11,7 +11,9 @@ import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
+import dev.retrobit.desktop.ui.theme.Palettes
 import java.text.SimpleDateFormat
+import kotlin.math.roundToInt
 import java.util.Date
 import java.util.Locale
 
@@ -78,7 +80,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "hostname" -> print("retrobit-matepad")
             "echo" -> print(args.joinToString(" "))
             "style", "wm" -> style(args.firstOrNull())
-            "palette", "theme" -> palette(args.firstOrNull())
+            "palette", "theme", "colors", "colours" -> palette(args)
             "wall", "wallpaper" -> wallpaper(args.firstOrNull())
             "icons", "iconmode" -> icons(args.firstOrNull())
             "scale" -> scale(args.firstOrNull())
@@ -140,7 +142,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             neofetch               system + about summary
             df | free | ps         disk, memory, what owns the screen
             style linux|macos|windows
-            palette paper|sepia|bwr|ink|phosphor|amber
+            palette [name]         colour scheme; bare lists them, native themes also switch the style
             wall dots|grid|dither|hatch|plain
             icons color|mono|dither
             scale 0.8|0.9|1.0|1.15|1.3
@@ -283,11 +285,53 @@ class TerminalShell(private val vm: LauncherViewModel) {
         print("desktop style -> ${s.label}")
     }
 
-    private fun palette(arg: String?) {
-        val s = arg?.let { a -> PaletteId.values().firstOrNull { it.name.equals(a, true) || it.label.equals(a, true) } }
-        if (s == null) { print("palettes: " + PaletteId.values().joinToString(" | ") { it.name.lowercase() }, Kind.ERR); return }
-        vm.setPalette(s)
-        print("palette -> ${s.label}")
+    /**
+     * `palette` — the colour scheme of the desktop. Bare `palette` prints the current one and the
+     * list; naming one applies it. The **native** palettes also bring their desktop style along
+     * (`palette win95` = silver chrome, teal desk, Windows shell).
+     */
+    private fun palette(args: List<String>) {
+        if (args.isEmpty()) {
+            val now = vm.settings.palette
+            print("palette     ${now.label} (${now.name.lowercase()})", Kind.HEAD)
+            print("  e-paper   " + Palettes.ePaper.joinToString("  ") { it.name.lowercase() })
+            print("  native    " + Palettes.native.joinToString("  ") { it.name.lowercase() })
+            print("  desk      " + hex(Palettes.of(now).desk) + "  (the base colour behind the icons)")
+            print("  a native theme also switches the desktop style it belongs to; e-paper never does.", Kind.DIM)
+            return
+        }
+        // a few friendly aliases, then the enum name or the label ("Windows 95")
+        val query = args.joinToString(" ").lowercase()
+        val alias = mapOf(
+            "windows" to PaletteId.WIN95, "win" to PaletteId.WIN95, "95" to PaletteId.WIN95,
+            "fluent" to PaletteId.WIN11, "11" to PaletteId.WIN11,
+            "mac" to PaletteId.AQUA, "macos" to PaletteId.AQUA, "apple" to PaletteId.AQUA,
+            "macos-dark" to PaletteId.AQUA_DARK,
+            "linux" to PaletteId.UBUNTU, "orange" to PaletteId.UBUNTU,
+            "gnome" to PaletteId.ADWAITA, "gtk" to PaletteId.ADWAITA,
+        )[query]
+        val id = alias ?: PaletteId.values().firstOrNull {
+            it.name.equals(query, true) ||
+                it.label.equals(query, true) ||
+                it.label.replace(" ", "-").equals(query, true)
+        }
+        if (id == null) {
+            print("rb-sh: unknown palette \"$query\"", Kind.ERR)
+            print("  e-paper   " + Palettes.ePaper.joinToString("  ") { it.name.lowercase() }, Kind.ERR)
+            print("  native    " + Palettes.native.joinToString("  ") { it.name.lowercase() }, Kind.ERR)
+            return
+        }
+        vm.applyPalette(id)
+        val pal = Palettes.of(id)
+        if (id.native) {
+            print("  desk ${hex(pal.desk)} · paper ${hex(pal.paper)} · ink ${hex(pal.ink)} · accent ${hex(pal.accent)}")
+        }
+    }
+
+    /** `#rrggbb` of a colour, for the palette readout. */
+    private fun hex(c: androidx.compose.ui.graphics.Color): String {
+        fun part(v: Float) = ((v * 255f).roundToInt().coerceIn(0, 255)).toString(16).padStart(2, '0')
+        return "#" + part(c.red) + part(c.green) + part(c.blue)
     }
 
     private fun calendar(args: List<String>) {

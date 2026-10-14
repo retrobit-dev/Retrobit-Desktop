@@ -234,8 +234,9 @@ fun Wallpaper(
     note: String = "",
 ) {
     val p = LocalPalette.current
-    val brush = rememberWallpaperBrush(pattern, p.pattern, dp(3f))
-    Box(modifier.background(p.paper)) {
+    // the pattern is printed on the desk, so both follow the palette's desk colour
+    val brush = rememberWallpaperBrush(pattern, p.deskPattern, dp(3f))
+    Box(modifier.background(p.desk)) {
         if (source != WallpaperSource.PATTERN) {
             if (image != null) {
                 androidx.compose.foundation.Image(
@@ -268,7 +269,7 @@ fun Wallpaper(
         Canvas(Modifier.fillMaxSize()) {
             val m = 26f
             val len = 30f
-            val c = p.ink.copy(alpha = 0.55f)
+            val c = p.onDesk.copy(alpha = 0.55f)
             val corners = listOf(
                 Offset(0f, 0f), Offset(size.width, 0f), Offset(0f, size.height), Offset(size.width, size.height),
             )
@@ -280,10 +281,10 @@ fun Wallpaper(
             }
         }
         RetroText(
-            "RETROBIT E-PAPER · ${p.id.label.uppercase()} · " +
+            "RETROBIT DESKTOP · ${p.id.label.uppercase()} · " +
                 if (source == WallpaperSource.PATTERN) pattern.label.uppercase() else source.label.uppercase(),
             size = 10f,
-            color = p.ink.copy(alpha = 0.45f),
+            color = p.onDesk.copy(alpha = 0.45f),
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd).padding(dp(14f)),
         )
         Scanlines(alpha = 0.035f)

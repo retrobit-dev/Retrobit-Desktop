@@ -42,9 +42,25 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 | **Windows** (`Retrodows 95`) | **start menu** dua kolom, **taskbar** + system tray, ikon desktop bertumpuk di kiri, tombol & panel ber-bevel dither khas Win95 |
 
 ### Sistem visual e-paper
-- **6 palet**: Paper, Sepia, Tri-color (B&W + aksen merah), Ink (dark), Phosphor (hijau CRT), Amber.
-  Perintah `invert` membalik kertas ⇄ tinta.
-- **Wallpaper**: tiga sumber, semuanya berakhir sebagai e-paper.
+- **12 palet**, dua keluarga:
+  - **E-paper** (6): Paper, Sepia, Tri-color (B&W + aksen merah), Ink (dark), Phosphor (hijau CRT),
+    Amber. Satu nada kertas + satu nada tinta, cocok dengan gaya desktop apa pun.
+  - **Tema desktop bawaan** (6): **Windows 95** (chrome perak, teks hitam, aksen navy),
+    **Windows 11** (dark, aksen Fluent), **Aqua** dan **Aqua dark** (macOS: chrome salju/graphite,
+    aksen biru sistem), **Ubuntu** (kertas hangat, tinta aubergine, aksen oranye),
+    **Adwaita** (dark, gaya GTK 4 / libadwaita). Mesin e-paper-nya sama — hanya warnanya yang
+    mengikuti desktop aslinya, **termasuk warna yang dipakai desktop itu di belakang ikonnya**
+    (teal Windows 95, aubergine Ubuntu, slate blue Aqua). Memilih tema bawaan sekaligus memindahkan
+    **desktop style** yang cocok (Win95/Win11 → Windows, Aqua/Aqua dark → macOS, Ubuntu/Adwaita →
+    Linux); gaya itu masih bisa diganti lagi setelahnya.
+  - Di *Settings - palette* setiap palet ditampilkan sebagai **pratinjau**: warna desktop + plat
+    jendela + title bar aksen + namanya. Terminal: `palette` (daftar + warna sekarang),
+    `palette win95`, `palette aqua-dark`, `palette ubuntu`, …
+  - Perintah `invert` membalik kertas ⇄ tinta (night mode memakai palet Ink dan kembali ke palet
+    harimu saat dimatikan).
+- **Wallpaper** digambar di atas **warna desktop** palet (untuk palet e-paper warna itu = warna
+  kertasnya sendiri), jadi pola dither selalu berada di latar yang benar. Tiga sumber, semuanya
+  berakhir sebagai e-paper.
   - *Pattern* — enam pola dither bawaan (halftone dots, grid, stipple Bayer 4×4, hatch, polos).
   - *Device* — wallpaper tablet kamu, dibaca lewat WallpaperManager, di-crop, diturunkan resolusinya
     ke ~260 sel lalu di-dither ulang (satu sel = satu titik tinta/kertas).
@@ -272,7 +288,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 ### Aplikasi bawaan
 - **Terminal** (`rb-sh`) — 30+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
-  `style linux|macos|windows`, `palette`, `wall`, `icons`, `scale`,
+  `style linux|macos|windows`, `palette [name]`, `wall`, `icons`, `scale`,
   `workspace 1..4` (`ws`), `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
   `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `pen [text|rightclick|cursor on|off]`,
@@ -282,7 +298,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   `invert`, `boot`, `help`, `exit`,
   dan peluncuran aplikasi langsung dengan mengetik namanya.
 - **Applications** — app drawer dengan pencarian, long-press untuk menu, drag untuk pin.
-- **Settings** — gaya desktop, palet, **sumber & tone wallpaper**, **safe area kamera/sudut**,
+- **Settings** — gaya desktop, palet (12, dengan pratinjau), **sumber & tone wallpaper**, **safe area kamera/sudut**,
   **cara membuka app** (dobel klik vs satu klik), **perilaku M-Pencil** (hold = klik kanan, lama
   hold, panah kursor, mode pena di kolom teks), **perilaku keyboard** (mengapung / ruang di dalam app
   / slide up), **jendela mengambang** (reset ukuran + tutup semua),

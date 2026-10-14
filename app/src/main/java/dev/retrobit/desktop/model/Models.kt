@@ -10,13 +10,33 @@ enum class DesktopStyle(val label: String, val osName: String, val tagline: Stri
     WINDOWS("Windows", "Retrodows 95", "start menu · taskbar · system tray"),
 }
 
-enum class PaletteId(val label: String) {
+/**
+ * The colour scheme of the whole desktop.
+ *
+ * The first six are the **e-paper** palettes: one paper tone, one ink tone, one accent. The last
+ * six are the **native desktop** ones: they use exactly the same e-paper engine, but with the
+ * colours a familiar desktop uses, including the colour that desktop paints behind its icons
+ * ([dev.retrobit.desktop.ui.theme.Palette.desk]).
+ *
+ * [style] is the shell a native palette belongs to, so picking one can bring its layout along
+ * (Windows 95 goes with the Windows shell, Aqua with macOS, and so on); the e-paper palettes work
+ * with every shell and leave the user's choice alone.
+ */
+enum class PaletteId(val label: String, val native: Boolean = false, val style: DesktopStyle? = null) {
     PAPER("Paper"),
     SEPIA("Sepia"),
     BWR("Tri-color"),
     INK("Ink"),
     PHOSPHOR("Phosphor"),
     AMBER("Amber"),
+
+    // native desktops: a light and a dark take on each of the three shells
+    WIN95("Windows 95", native = true, style = DesktopStyle.WINDOWS),
+    WIN11("Windows 11", native = true, style = DesktopStyle.WINDOWS),
+    AQUA("Aqua", native = true, style = DesktopStyle.MACOS),
+    AQUA_DARK("Aqua dark", native = true, style = DesktopStyle.MACOS),
+    UBUNTU("Ubuntu", native = true, style = DesktopStyle.LINUX),
+    ADWAITA("Adwaita", native = true, style = DesktopStyle.LINUX),
 }
 
 enum class WallPattern(val label: String) {
