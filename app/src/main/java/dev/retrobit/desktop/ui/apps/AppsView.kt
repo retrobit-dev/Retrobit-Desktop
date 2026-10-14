@@ -28,6 +28,7 @@ import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.Tag
@@ -150,7 +151,7 @@ private fun DrawerRow(vm: LauncherViewModel, app: AppEntry, uses: Int) {
             if (icon != null) {
                 Image(icon, app.label, Modifier.size(dp(22f)), filterQuality = FilterQuality.None)
             } else {
-                GlyphIcon(Glyph.FOLDER, dp(18f))
+                GlyphTile(Glyph.FOLDER, dp(18f))
             }
         }
         Column(Modifier.weight(1f)) {

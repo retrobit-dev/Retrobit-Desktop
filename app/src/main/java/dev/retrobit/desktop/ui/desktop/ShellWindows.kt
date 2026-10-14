@@ -44,6 +44,7 @@ import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.AppIconTile
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.components.shellPanel
@@ -293,7 +294,7 @@ private fun StartItem(glyph: Glyph, label: String, onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(8f)),
     ) {
-        GlyphIcon(glyph, dp(15f))
+        GlyphTile(glyph, dp(15f))
         RetroText(label, size = 12f, maxLines = 2, modifier = Modifier.weight(1f))
     }
 }

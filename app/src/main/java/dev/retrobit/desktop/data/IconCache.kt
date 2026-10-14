@@ -115,23 +115,9 @@ object IconCache {
         // printing the frame in ink
         val frameColor = if (edge != 0) edge else ink
         val circle = theme == IconTheme.CIRCLE
-        val radius = when (theme) {
-            IconTheme.CLASSIC -> 0f
-            IconTheme.ROUNDED -> size * 0.20f
-            IconTheme.FLAT -> size * 0.06f
-            IconTheme.SQUIRCLE -> size * 0.24f
-            IconTheme.AQUA -> size * 0.26f
-            IconTheme.YARU -> size * 0.16f
-            IconTheme.CIRCLE -> size * 0.5f
-            else -> 0f
-        }
-        val inset = when (theme) {
-            IconTheme.CLASSIC -> size * 0.06f
-            IconTheme.ROUNDED -> size * 0.05f
-            IconTheme.CIRCLE -> size * 0.04f
-            IconTheme.PLAIN -> 0f
-            else -> size * 0.03f
-        }
+        // the shape vocabulary is shared with the internal icons of the shell (IconTheme.tileRadius)
+        val radius = IconTheme.tileRadius(theme, size.toFloat())
+        val inset = IconTheme.tileInset(theme, size.toFloat())
         val body = Rect(inset.toInt(), inset.toInt(), size - inset.toInt(), size - inset.toInt())
         // a circle is drawn as an oval across the whole (square) body; everything else as a rounded box
         val path = android.graphics.Path().apply {

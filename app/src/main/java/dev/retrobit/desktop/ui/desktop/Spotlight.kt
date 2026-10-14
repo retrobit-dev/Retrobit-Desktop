@@ -36,6 +36,7 @@ import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.dp
@@ -115,7 +116,7 @@ fun Spotlight(vm: LauncherViewModel) {
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(dp(10f)),
                     ) {
-                        GlyphIcon(glyph, dp(16f))
+                        GlyphTile(glyph, dp(16f))
                         RetroText(label, size = 13f, modifier = Modifier.weight(1f))
                         RetroText("command", size = 10f, color = p.mid)
                     }
@@ -133,7 +134,7 @@ fun Spotlight(vm: LauncherViewModel) {
                         if (icon != null) {
                             Image(icon, null, Modifier.width(dp(22f)), filterQuality = FilterQuality.None)
                         } else {
-                            GlyphIcon(Glyph.FOLDER, dp(16f))
+                            GlyphTile(Glyph.FOLDER, dp(16f))
                         }
                         RetroText(app.label, size = 13f, modifier = Modifier.weight(1f))
                         RetroText(app.pkg, size = 10f, color = p.mid, maxLines = 1)

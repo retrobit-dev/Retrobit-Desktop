@@ -207,9 +207,13 @@ fun SettingsView(vm: LauncherViewModel) {
                 "square with the orange trim, GNOME the circle with a thin ring. The e-paper palettes " +
                 "print a 1-bit tile and take their shape from the desktop style instead (Windows " +
                 "square, macOS rounded, Linux flat).\n" +
+                "The **shell's own icons** (launch, find, shell, mon, note, setup, and the keys " +
+                "of the docks and menus) wear the very same tile, so the internal icons and the " +
+                "app icons of a theme always match; **Plain** takes the tiles away and leaves the " +
+                "bare printed glyph, on any palette.\n" +
                 "Pinning a shape below overrides the theme until you pick another palette; " +
                 "`icons shape <name>` does the same from the terminal.",
-            size = 10.5f, color = p.mid, maxLines = 8,
+            size = 10.5f, color = p.mid, maxLines = 11,
         )
         Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
             RetroButton(

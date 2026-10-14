@@ -96,6 +96,15 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   berwarna** (di e-paper tetap grayscale), dan **quick panel** menjadi sheet membulat + bayangan
   lembut dengan groove kecerahan beraksen. Bingkai hitam di tepi layar tetap hitam (itu frame
   cyberdeck-nya). Di palet e-paper semuanya tetap tercetak: kertas, garis tinta, bayangan keras.
+- **Ikon internal (launch, find, shell, mon, note, setup) ikut tema juga.** Glyph pixel bawaan
+  shell yang muncul di dock, quick launch, start menu, Launchpad, Spotlight, dan dock aplikasi
+  bawaan sekarang memakai **tile yang sama dengan ikon app**: bentuk dari icon theme palet aktif
+  (Win95 kotak bevel + pita accent, Win11 rounded square lembut, Aqua tile mengkilap, Ubuntu kotak
+  dengan trim oranye, GNOME lingkaran), muka `soft` tema, bingkai `edge`, glyph warna tinta tema;
+  ikon yang aktif memakai `plate`/`plateText`. Palet e-paper tetap mencetak glyph polos seperti
+  dulu, dan memilih bentuk **Plain** menghilangkan tile di palet mana pun. Radius tile-nya diambil
+  dari satu sumber (`IconTheme.tileRadius`) yang juga dipakai bingkai ikon app, jadi kedua keluarga
+  ikon selalu sebentuk. Lihat di *Settings - app icon shape* (ada baris preview "shell icons").
 - **Wallpaper** digambar di atas **warna desktop** palet (untuk palet e-paper warna itu = warna
   kertasnya sendiri), jadi pola dither selalu berada di latar yang benar. Di tema native wallpaper
   tidak di-dither: gambar tetap **berwarna** (posterisasi lembut 16 level) di atas desktop aslinya.

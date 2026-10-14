@@ -140,6 +140,34 @@ enum class IconTheme(val label: String, val hint: String) {
         /** How this shape is drawn, and where it comes from. Used by the terminal and Settings. */
         fun describe(theme: IconTheme, style: DesktopStyle, palette: PaletteId?): String =
             "${resolve(theme, style, palette).label} (${theme.label.lowercase()})"
+
+        /**
+         * Corner radius of the tile a shape draws for a side of [side] px: half the side for a
+         * circle, the rounding that desktop uses for a rounded square, and a hard square for the
+         * printed/squared shapes.
+         *
+         * `data/IconCache` frames the app icons with it and `GlyphTile` draws the **internal icons**
+         * of the shell with it, so an app icon and a shell icon of one theme are the same shape.
+         */
+        fun tileRadius(theme: IconTheme, side: Float): Float = when (theme) {
+            CLASSIC, PLAIN -> 0f
+            ROUNDED -> side * 0.20f
+            FLAT -> side * 0.06f
+            SQUIRCLE -> side * 0.24f
+            AQUA -> side * 0.26f
+            YARU -> side * 0.16f
+            CIRCLE -> side * 0.5f
+            AUTO -> 0f
+        }
+
+        /** How far the tile is inset from the icon box: the printed square sits closer to the edge. */
+        fun tileInset(theme: IconTheme, side: Float): Float = when (theme) {
+            CLASSIC -> side * 0.06f
+            ROUNDED -> side * 0.05f
+            CIRCLE -> side * 0.04f
+            PLAIN -> 0f
+            else -> side * 0.03f
+        }
     }
 }
 

@@ -27,6 +27,7 @@ import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.RetroButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
@@ -41,6 +42,16 @@ import dev.retrobit.desktop.ui.theme.LocalPalette
  * same letter plate), then the same app in every icon mode and against the inverted paper, so a
  * change of palette, mode, shape or accent is visible right here instead of only out on the desktop.
  */
+/** The internal icon set of the shell, in the order the docks and menus use it. */
+private val SHELL_ICONS = listOf(
+    Glyph.GRID to "launch",
+    Glyph.SEARCH to "find",
+    Glyph.TERMINAL to "shell",
+    Glyph.SYSMON to "mon",
+    Glyph.NOTES to "note",
+    Glyph.SETTINGS to "setup",
+)
+
 @Composable
 fun AppIconPreview(vm: LauncherViewModel) {
     val p = LocalPalette.current
@@ -138,6 +149,37 @@ fun AppIconPreview(vm: LauncherViewModel) {
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // The shell's own icons (launch, find, shell, mon, note, setup) are glyphs, not app
+        // bitmaps, but they follow the very same shape: a native theme tiles them, e-paper prints
+        // them bare, and "Plain" takes the tiles away on any palette.
+        Column(verticalArrangement = Arrangement.spacedBy(dp(3f))) {
+            RetroText(
+                "shell icons (launch, find, shell, mon, note, setup) wear the same tile",
+                size = 10f, color = p.mid, maxLines = 2,
+            )
+            Row(
+                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(dp(12f)),
+            ) {
+                SHELL_ICONS.forEach { (glyph, label) ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(dp(2f)),
+                    ) {
+                        GlyphTile(glyph, dp(22f))
+                        RetroText(label, size = 9f, color = p.mid, maxLines = 1)
+                    }
+                }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(dp(2f)),
+                ) {
+                    GlyphTile(Glyph.HOME, dp(22f), active = true)
+                    RetroText("active", size = 9f, color = p.mid, maxLines = 1)
                 }
             }
         }

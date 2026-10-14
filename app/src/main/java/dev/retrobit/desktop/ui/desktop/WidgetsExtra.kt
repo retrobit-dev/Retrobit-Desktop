@@ -23,7 +23,7 @@ import dev.retrobit.desktop.data.CalendarMath
 import dev.retrobit.desktop.model.WinKind
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.Glyph
-import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.RetroIconButton
 import dev.retrobit.desktop.ui.components.RetroProgress
 import dev.retrobit.desktop.ui.components.RetroText
@@ -144,7 +144,7 @@ fun LauncherWidget(vm: LauncherViewModel, modifier: Modifier = Modifier, width: 
                             if (icon != null) {
                                 Image(icon, app.label, Modifier.size(dp(36f)), filterQuality = FilterQuality.None)
                             } else {
-                                GlyphIcon(Glyph.FOLDER, dp(28f))
+                                GlyphTile(Glyph.FOLDER, dp(28f))
                             }
                         }
                         RetroText(app.label, size = 8.5f, maxLines = 1)

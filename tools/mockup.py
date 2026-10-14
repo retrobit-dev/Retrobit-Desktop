@@ -463,6 +463,22 @@ SKIN_UBUNTU = dict(
     title_top=(0x3D, 0x3D, 0x3D), title_bot=(0x2C, 0x2C, 0x2C), title_text=(0xFF, 0xFF, 0xFF),
     text=(0x2E, 0x34, 0x36), button=(0x4A, 0x4A, 0x4A), button_text=(0xFF, 0xFF, 0xFF), dot=(0xE9, 0x54, 0x20), radius=12, lights=False,
 )
+# Adwaita, the GNOME theme (Theme.kt: window #242424, border #3D3D3D, highlight #78AEED)
+SKIN_ADWAITA = dict(
+    window=(0x24, 0x24, 0x24), border=(0x3D, 0x3D, 0x3D),
+    title_top=(0x30, 0x30, 0x30), title_bot=(0x24, 0x24, 0x24), title_text=(0xFF, 0xFF, 0xFF),
+    text=(0xFF, 0xFF, 0xFF), button=(0x30, 0x30, 0x30), button_text=(0xFF, 0xFF, 0xFF), dot=(0x78, 0xAE, 0xED), radius=12, lights=False,
+)
+
+# name, skin, icon theme, accent, highlight (plate), highlight text: the internal icons per theme
+SHELL_THEMES = [
+    ("WINDOWS 95", SKIN_WIN95, "classic", (0x00, 0x00, 0x80), (0x00, 0x00, 0x80), (0xFF, 0xFF, 0xFF)),
+    ("WINDOWS 11", SKIN_WIN11, "squircle", (0x60, 0xCD, 0xFF), (0x60, 0xCD, 0xFF), (0x00, 0x24, 0x3D)),
+    ("AQUA", SKIN_AQUA, "aqua", (0x0A, 0x84, 0xFF), (0x0A, 0x84, 0xFF), (0xFF, 0xFF, 0xFF)),
+    ("UBUNTU", SKIN_UBUNTU, "yaru", (0xE9, 0x54, 0x20), (0xE9, 0x54, 0x20), (0xFF, 0xFF, 0xFF)),
+    ("GNOME", SKIN_ADWAITA, "circle", (0x78, 0xAE, 0xED), (0x78, 0xAE, 0xED), (0x00, 0x32, 0x5C)),
+]
+
 # the real traffic lights of macOS: close / minimize / zoom
 AQUA_LIGHTS = [(0xFF, 0x5F, 0x57), (0xFE, 0xBC, 0x2E), (0x28, 0xC8, 0x40)]
 
@@ -1062,6 +1078,181 @@ NATIVE_RAILS = {
 }
 
 
+# The internal icons of the shell, cell for cell from ui/components/Glyphs.kt ('#' ink,
+# 'o' the surface through the glyph, '+' a mid tone).
+GLYPH_ROWS = {
+    "grid": [
+        "####  ####  ####",
+        "#oo#  #oo#  #oo#",
+        "#oo#  #oo#  #oo#",
+        "####  ####  ####",
+        "",
+        "",
+        "####  ####  ####",
+        "#oo#  #oo#  #oo#",
+        "#oo#  #oo#  #oo#",
+        "####  ####  ####",
+        "",
+        "",
+        "####  ####  ####",
+        "#oo#  #oo#  #oo#",
+        "#oo#  #oo#  #oo#",
+        "####  ####  ####",
+    ],
+    "search": [
+        "   #####",
+        "  #ooooo#",
+        " #ooooooo#",
+        " #ooooooo#",
+        " #ooooooo#",
+        " #ooooooo#",
+        "  #ooooo#",
+        "   ######",
+        "        ###",
+        "         ###",
+        "          ###",
+        "           ##",
+    ],
+    "terminal": [
+        "################",
+        "#oooooooooooooo#",
+        "################",
+        "################",
+        "##o#############",
+        "###o############",
+        "####o###########",
+        "###o############",
+        "##o####ooooo####",
+        "################",
+        "################",
+        "################",
+    ],
+    "sysmon": [
+        "################",
+        "#oooooooooooooo#",
+        "#ooooooooooo#oo#",
+        "#oooooooooo#o#o#",
+        "#ooo#oooooo#o#o#",
+        "#oo#o#oooo#ooo##",
+        "#o#ooo#ooo#oooo#",
+        "##ooooo#o#ooooo#",
+        "#oooooo#o#ooooo#",
+        "#ooooooo#oooooo#",
+        "#oooooooooooooo#",
+        "################",
+        "     ######",
+        "   ##########",
+    ],
+    "notes": [
+        "  #########",
+        "  #ooooooo##",
+        "  #ooooooo#o#",
+        "  #ooooooo####",
+        "  #oooooooooo#",
+        "  #o######ooo#",
+        "  #oooooooooo#",
+        "  #o########o#",
+        "  #oooooooooo#",
+        "  #o#######oo#",
+        "  #oooooooooo#",
+        "  #o#####oooo#",
+        "  #oooooooooo#",
+        "  ############",
+    ],
+    "settings": [
+        "   ###",
+        "   #o#",
+        "################",
+        "   #o#",
+        "   ###",
+        "          ###",
+        "          #o#",
+        "################",
+        "          #o#",
+        "          ###",
+        "      ###",
+        "      #o#",
+        "################",
+        "      #o#",
+        "      ###",
+    ],
+    "home": [
+        "       ##",
+        "      #oo#",
+        "     #oooo#",
+        "    #oooooo#",
+        "   #oooooooo#",
+        "  #oooooooooo#",
+        " ##############",
+        "  #oooooooooo#",
+        "  #ooo###oooo#",
+        "  #ooo#o#oooo#",
+        "  #ooo#o#o##o#",
+        "  #ooo#o#o##o#",
+        "  #ooo#o#oooo#",
+        "  ############",
+    ],
+}
+
+
+# The internal icons wear a tile in the shape of the icon theme the palette resolved to: these are
+# the radii of IconTheme.tileRadius / tileInset in model/Models.kt, the same ones data/IconCache
+# frames the app icons with.
+TILE_SHAPE = {                       # theme: (radius share, inset share, outline, accent trim)
+    "classic": (0.00, 0.06, True, "band"),
+    "rounded": (0.20, 0.05, True, None),
+    "flat": (0.06, 0.03, False, None),
+    "squircle": (0.24, 0.03, False, None),
+    "aqua": (0.26, 0.03, True, "gloss"),
+    "yaru": (0.16, 0.03, True, "trim"),
+    "circle": (0.50, 0.04, True, None),
+}
+
+
+def native_glyph_tile(d, x, y, size, rows, skin, theme, accent, active=False, plate=None, plate_text=None):
+    """One internal icon of the shell (launch, find, shell, mon, note, setup) in a native theme."""
+    radius_share, inset_share, outline, trim = TILE_SHAPE[theme]
+    face, ink = skin["window"], skin["text"]
+    fill = plate if (active and plate) else mix(face, ink, 0.13)          # Palette.soft
+    fg = plate_text if (active and plate_text) else ink
+    line = mix(fill, fg, 0.45)
+    radius = size * radius_share
+    inset = size * inset_share
+    box = [x + inset, y + inset, x + size - inset, y + size - inset]
+    circle = theme == "circle"
+    if circle:
+        d.ellipse(box, fill=fill)
+    else:
+        d.rounded_rectangle(box, radius=radius, fill=fill)
+    hair = max(1, round(size * 0.035))
+    if outline:
+        if circle:
+            d.ellipse(box, outline=line, width=hair)
+        else:
+            d.rounded_rectangle(box, radius=radius, outline=line, width=hair)
+    if trim == "band":                # Windows 95: the accent band along the bottom (CLASSIC)
+        band = round(size * 0.07)
+        d.rectangle([box[0] + size * 0.06, box[3] - band, box[2] - size * 0.06, box[3] - band * 0.35], fill=accent)
+    elif trim == "trim":              # Ubuntu: the accent line inside the edge (YARU)
+        t = round(size * 0.05)
+        d.rounded_rectangle([box[0] + t, box[1] + t, box[2] - t, box[3] - t], radius=max(1, radius * 0.7),
+                            outline=accent, width=max(1, round(size * 0.025)))
+    elif trim == "gloss":             # Aqua: the glassy line along the top (AQUA)
+        d.line([box[0] + radius * 0.6, box[1] + 1, box[2] - radius * 0.6, box[1] + 1],
+               fill=mix(fill, (0xFF, 0xFF, 0xFF), 0.55), width=max(1, round(size * 0.02)))
+    # the artwork itself, punched into the tile: 'o' shows the tile through, '+' is a mid tone
+    g = size * 0.60
+    cell = g / 16
+    gx = x + (size - g) / 2
+    gy = y + (size - g) / 2
+    for ry, row in enumerate(rows):
+        for cx, ch in enumerate(row):
+            col = {"#": fg, "o": fill, "+": mix(fg, fill, 0.45)}.get(ch)
+            if col is not None:
+                d.rectangle([gx + cx * cell, gy + ry * cell,
+                             gx + cx * cell + cell + 0.6, gy + ry * cell + cell + 0.6], fill=col)
+
+
 def rail_gradient(d, box, top, bottom):
     """The vertical gradient of a title bar (SkinPaint.face)."""
     x0, y0, x1, y1 = box
@@ -1458,7 +1649,7 @@ def main():
     row2 = 136 + ph + 56
     row3 = row2 + ph + 56
     strip_y = row3 + ph + 40
-    h = strip_y + 200 + 150
+    h = strip_y + 200 + 150 + 120
     sheet = Image.new("RGB", (w, h), SHEET_BG)
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
@@ -1514,6 +1705,25 @@ def main():
     for label, shape, paper, ink, accent, desk in ICON_SHAPES:
         icon_shape_tile(d, x, icon_y, tile, shape, paper, ink, accent, ink, desk, label)
         x += cell
+    # ── the internal icons of the shell, in every native theme ──
+    shell_y = icon_y + 112
+    d.text((margin, shell_y - 24), "SHELL ICONS — the internal icons of the shell (launch, find, shell, mon, note, setup) are glyphs, not app bitmaps, "
+                                   "but they wear the very same tile: each native theme draws its own shape (95 the bevelled square with the accent band, "
+                                   "11 the soft rounded square, Aqua the glassy tile, Ubuntu the rounded square with the orange trim, GNOME the circle). "
+                                   "E-paper prints them bare, and \u201cPlain\u201d takes the tiles away on any palette.",
+           font=mono, fill=(0xC9, 0xC5, 0xB8))
+    gx = margin
+    for name, skin, theme, accent, plate, plate_text in SHELL_THEMES:
+        d.text((gx, shell_y + 2), name, font=mono_tiny, fill=(0xC9, 0xC5, 0xB8))
+        x = gx
+        for key in ("grid", "search", "terminal", "sysmon", "notes", "settings"):
+            native_glyph_tile(d, x, shell_y + 22, 30, GLYPH_ROWS[key], skin, theme, accent,
+                              plate=plate, plate_text=plate_text)
+            x += 36
+        # the switched-on state: the plate colour and its text
+        native_glyph_tile(d, x, shell_y + 22, 30, GLYPH_ROWS["home"], skin, theme, accent,
+                          active=True, plate=plate, plate_text=plate_text)
+        gx = x + 44
     sheet.save(OUT)
     print("wrote", OUT, sheet.size)
 

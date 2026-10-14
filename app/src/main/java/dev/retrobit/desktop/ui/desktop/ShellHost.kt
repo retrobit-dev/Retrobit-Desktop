@@ -34,7 +34,7 @@ import dev.retrobit.desktop.ui.apps.SystemMonitorView
 import dev.retrobit.desktop.ui.apps.TerminalView
 import dev.retrobit.desktop.ui.components.AppIconRow
 import dev.retrobit.desktop.ui.components.Glyph
-import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.LocalUiScale
 import dev.retrobit.desktop.ui.components.RetroIconButton
 import dev.retrobit.desktop.ui.components.RetroText
@@ -164,7 +164,7 @@ private fun ShellDock(vm: LauncherViewModel) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(dp(3f)),
         ) {
-            GlyphIcon(Glyph.HOME, dp(24f) * scale)
+            GlyphTile(Glyph.HOME, dp(24f) * scale)
             RetroText("desktop", size = 10f, color = p.mid, maxLines = 1)
         }
         Box(Modifier.width(dp(1.4f)).height(dp(34f)).background(Color.Black))

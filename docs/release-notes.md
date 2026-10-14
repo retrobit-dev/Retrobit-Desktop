@@ -81,6 +81,22 @@ berwarna, tapi juga berbentuk seperti desktop itu.
   palet e-paper tidak memin apa pun, "follow palette" lebih memilih palet daripada gaya shell,
   pilihan eksplisit selalu menang, dan daftar bentuk tetap rapi untuk baris chip.
 
+### Ikon internal shell (launch, setup, monitor, terminal) sekarang sebentuk dengan tema
+Ikon app sudah ikut tema sejak v1.19.0, tapi ikon **internal** launcher — glyph pixel "launch",
+"find", "shell", "mon", "note", "setup" yang dipakai dock, quick launch, start menu, Launchpad,
+Spotlight, dan dock aplikasi bawaan — masih tercetak polos.
+
+Sekarang keduanya memakai satu kosakata bentuk: glyph internal digambar di dalam **tile** dengan
+bentuk icon theme yang dipilih palet (Win95 kotak bevel + pita accent, Win11 rounded square, Aqua
+tile mengkilap, Ubuntu kotak dengan trim oranye, GNOME lingkaran), diisi muka `soft` tema,
+dibingkai `edge`, dan glyph-nya memakai tinta tema; keadaan aktif memakai `plate`/`plateText`.
+Radius tile diambil dari satu sumber baru, `IconTheme.tileRadius` / `tileInset`, yang **juga** dipakai
+`data/IconCache` untuk membingkai ikon app — jadi tidak mungkin lagi bentuknya berbeda.
+
+- Palet e-paper **tidak berubah**: glyph tetap tercetak polos (itu gaya ikon e-paper-nya).
+- Bentuk **Plain** menghilangkan tile di palet mana pun (kembali ke glyph telanjang).
+- Baris preview baru di *Settings - app icon shape*: enam ikon shell + satu contoh keadaan aktif.
+
 ### Chrome overlay juga ikut tema: title rail, dock, dan quick panel
 Sisa terakhir yang masih "tercetak" di tema native. Selama ini rail judul, dock, dan quick panel
 yang digambar launcher **di atas aplikasi pihak ketiga** selalu bergaya kertas-bertinta. Sekarang

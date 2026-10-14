@@ -38,6 +38,7 @@ import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.AppIconTile
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
+import dev.retrobit.desktop.ui.components.GlyphTile
 import dev.retrobit.desktop.ui.components.MenuItem
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
@@ -294,7 +295,7 @@ private fun DockItem(glyph: Glyph, label: String, onClick: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(dp(2f)),
     ) {
-        GlyphIcon(glyph, dp(36f))
+        GlyphTile(glyph, dp(36f))
         RetroText(label, size = 9f, color = p.mid, maxLines = 1)
     }
 }
