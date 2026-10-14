@@ -73,11 +73,9 @@ fun ContextMenu(
         ) {
             // a native desktop rounds its menus (Windows 11, Aqua, GNOME) and frames them with the
             // theme border; the e-paper palettes keep the square printed card with the ink frame
-            val menuShape = remember(p) {
-                androidx.compose.foundation.shape.RoundedCornerShape(
-                    dp(if (p.isNative) p.cornerDp.coerceAtMost(8f) else 0f),
-                )
-            }
+            val menuShape = androidx.compose.foundation.shape.RoundedCornerShape(
+                dp(if (p.isNative) p.cornerDp.coerceAtMost(8f) else 0f),
+            )
             Column(
                 Modifier
                     .clip(menuShape)
