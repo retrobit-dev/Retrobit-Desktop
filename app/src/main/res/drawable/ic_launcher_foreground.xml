@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- hard shadow -->
+    <path android:fillColor="#1B1B1B" android:pathData="M37,39h40v30h-40z" />
+    <!-- monitor bezel -->
+    <path android:fillColor="#1B1B1B" android:pathData="M31,33h42v32h-42z" />
+    <path android:fillColor="#E8E5DA" android:pathData="M34,36h36v4h-36z" />
+    <!-- prompt >_ -->
+    <path android:fillColor="#E8E5DA" android:pathData="M38,45h3v3h-3zM41,48h3v3h-3zM44,51h3v3h-3zM41,54h3v3h-3zM38,57h3v3h-3zM49,57h12v3h-12z" />
+    <!-- stand -->
+    <path android:fillColor="#1B1B1B" android:pathData="M47,65h10v4h-10zM40,69h24v4h-24z" />
+</vector>

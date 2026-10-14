@@ -1,0 +1,210 @@
+name: Build APK
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish/update the rolling 'nightly' pre-release with the APKs"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Assemble debug + release APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0 platform-tools"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Compile
+        id: compile
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleDebug :app:assembleRelease --stacktrace --console=plain 2>&1 | tee build.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Report compile diagnostics
+        if: steps.compile.outcome == 'failure'
+        run: |
+          {
+            echo "### Compile failed"
+            echo '```'
+            grep -nE "^(e: |FAILURE: |\* What went wrong|Caused by:|> Task .* FAILED|Execution failed)" build.log | head -120 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          grep -nE "^(e: |FAILURE: |\* What went wrong|Caused by:|> Task .* FAILED|Execution failed)" build.log | head -50 | while IFS= read -r line; do
+            msg=$(printf '%s' "${line#*:}" | head -c 800 | sed 's/%/%25/g')
+            echo "::error title=Kotlin/Gradle::${msg}"
+          done || true
+          exit 1
+
+      - name: Name artifacts
+        if: steps.compile.outcome == 'success'
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk dist/retrobit-desktop-${{ github.run_number }}-release.apk
+          cp app/build/outputs/apk/debug/app-debug.apk dist/retrobit-desktop-${{ github.run_number }}-debug-only-for-testing.apk
+          ls -la dist
+
+      - name: Verify APKs
+        if: steps.compile.outcome == 'success'
+        run: |
+          set -uo pipefail
+          SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          AAPT=$(ls "$SDK"/build-tools/*/aapt2 2>/dev/null | sort -V | tail -1)
+          REL=$(ls dist/*release.apk | head -1)
+          DBG=$(ls dist/*debug*.apk | head -1)
+          {
+            echo "### APK verification"
+            echo '```'
+            for f in "$REL" "$DBG"; do
+              echo "== $(basename "$f")  $(du -h "$f" | cut -f1)"
+              [ -n "$AAPT" ] && "$AAPT" dump badging "$f" 2>/dev/null | grep -E "^(package:|launchable-activity:|sdkVersion:|targetSdkVersion:|uses-permission:|application-debuggable)" || true
+              [ -n "$AAPT" ] && { "$AAPT" dump badging "$f" 2>/dev/null | grep -q "^application-debuggable" && echo "   debuggable: YES (test build)" || echo "   debuggable: no (release build)"; }
+              unzip -l "$f" | grep -E "classes[0-9]*\.dex|res/font|META-INF/.*\.(RSA|SF|MF)" || true
+            done
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          # GitHub keeps only a limited number of annotations per step, so emit just the essentials.
+          PKG=$([ -n "$AAPT" ] && "$AAPT" dump badging "$REL" 2>/dev/null | grep -m1 '^package:' || echo "package: (aapt2 unavailable)")
+          ACT=$([ -n "$AAPT" ] && "$AAPT" dump badging "$REL" 2>/dev/null | grep -m1 '^launchable-activity:' || echo "launchable-activity: (aapt2 unavailable)")
+          DEX=$(unzip -l "$REL" | grep -Ec 'classes[0-9]*\.dex' || true)
+          FONTS=$(unzip -l "$REL" | grep -Ec '\.ttf' || true)
+          APKSIGNER=$(ls "$SDK"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1)
+          SIG="apksigner unavailable"
+          if [ -n "$APKSIGNER" ]; then
+            SIG=$("$APKSIGNER" verify -v --print-certs "$REL" 2>&1 | grep -E "^(Verified using|Verifies|Signer #1 certificate DN)" | tr '\n' ' ' | head -c 400)
+          fi
+          echo "::notice title=release APK size::$(du -h "$REL" | cut -f1)"
+          echo "::notice title=release APK package::$(printf '%s' "$PKG" | sed 's/%/%25/g')"
+          echo "::notice title=release APK entry activity::$(printf '%s' "$ACT" | sed 's/%/%25/g')"
+          echo "::notice title=release APK contents::${DEX:-0} dex files, ${FONTS:-0} font files"
+          echo "::notice title=release APK signature::$(printf '%s' "$SIG" | sed 's/%/%25/g')"
+          DBGPKG=$([ -n "$AAPT" ] && "$AAPT" dump badging "$DBG" 2>/dev/null | grep -m1 '^package:' || echo "package: (aapt2 unavailable)")
+          echo "::notice title=install this one::$(basename "$REL") - signed release build, not debuggable, installs over previous versions"
+          echo "::notice title=testing only::$(basename "$DBG") - ${DBGPKG#package: } (installs next to the release build)"
+
+      - name: Upload APK artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: retrobit-desktop-apk-${{ github.run_number }}
+          path: dist/*.apk
+          if-no-files-found: error
+
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          packages: "platforms;android-35 build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Run unit tests
+        id: tests
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          ./gradlew :app:testDebugUnitTest --console=plain 2>&1 | tee test.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Report test results
+        if: always()
+        run: |
+          RESULTS="app/build/test-results/testDebugUnitTest"
+          TOTAL=0; FAILED=0; SKIPPED=0
+          if [ -d "$RESULTS" ]; then
+            TOTAL=$(grep -ho 'tests="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | paste -sd+ - | bc 2>/dev/null || echo 0)
+            FAILED=$(grep -ho 'failures="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | paste -sd+ - | bc 2>/dev/null || echo 0)
+            SKIPPED=$(grep -ho 'skipped="[0-9]*"' "$RESULTS"/*.xml | grep -o '[0-9]*' | paste -sd+ - | bc 2>/dev/null || echo 0)
+          fi
+          {
+            echo "### Unit tests"
+            echo "tests: ${TOTAL:-0} · failures: ${FAILED:-0} · skipped: ${SKIPPED:-0}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          if [ -d "$RESULTS" ]; then
+            for f in "$RESULTS"/*.xml; do
+              echo "::notice title=$(basename "$f")::$(grep -o 'tests="[0-9]*" skipped="[0-9]*" failures="[0-9]*" errors="[0-9]*"' "$f" | head -1)"
+            done
+          fi
+          if [ "${FAILED:-0}" != "0" ] || [ ! -d "$RESULTS" ]; then
+            grep -nE "^(.*Test.*FAILED|e: |FAILURE:|.*expected.*)" test.log | head -40 | while IFS= read -r line; do
+              echo "::error title=Unit test::$(printf '%s' "$line" | head -c 500 | sed 's/%/%25/g')"
+            done
+            exit 1
+          fi
+
+  release:
+    name: Publish APKs
+    needs: [build, test]
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          ls -la dist
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+            TITLE="Retrobit Desktop ${TAG}"
+            sed -e "s/{{TAG}}/${TAG}/g" -e "s/{{BUILD}}/${GITHUB_RUN_NUMBER}/g" docs/release-notes.md > /tmp/notes.md
+            PRERELEASE=""
+          else
+            TAG="nightly"
+            TITLE="Retrobit Desktop - nightly (build #${GITHUB_RUN_NUMBER})"
+            sed -e "s/{{BUILD}}/${GITHUB_RUN_NUMBER}/g" -e "s/{{REF}}/${GITHUB_REF_NAME}/g" -e "s/{{SHA}}/${GITHUB_SHA::7}/g" \
+              docs/release-notes-nightly.md > /tmp/notes.md
+            PRERELEASE="--prerelease"
+          fi
+          if gh release view "$TAG" -R "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            gh release edit "$TAG" -R "${GITHUB_REPOSITORY}" --title "$TITLE" --notes-file /tmp/notes.md
+          else
+            gh release create "$TAG" -R "${GITHUB_REPOSITORY}" --title "$TITLE" --notes-file /tmp/notes.md $PRERELEASE
+          fi
+          gh release upload "$TAG" dist/*.apk -R "${GITHUB_REPOSITORY}" --clobber
