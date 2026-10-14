@@ -1048,6 +1048,181 @@ def agenda_widget(d, box):
     widget_grip(d, x1 - 3, y1 - 3, size=12)
 
 
+# ── the chrome over a full-screen app ───────────────────────────────────────────
+# Mirrors shell/ChromeViews.kt + shell/PanelView.kt + shell/SkinPaint.kt: the launcher draws the
+# black frame, the title rail and the dock *on top* of whatever app owns the screen (there is no
+# freeform window for someone else's app, and never was). With a native palette that overlay wears
+# the chrome of the theme - the title gradient, hairline rounded keys, rounded dock tiles, and the
+# app icons back in colour. The e-paper palettes keep printing theirs; none of that changed.
+NATIVE_RAILS = {
+    "win11": dict(skin=SKIN_WIN11, desk_top=(0x1B, 0x1F, 0x24), desk=(0x0F, 0x12, 0x16),
+                  accent=(0x60, 0xCD, 0xFF), plate=(0x60, 0xCD, 0xFF), plate_text=(0x00, 0x24, 0x3D)),
+    "ubuntu": dict(skin=SKIN_UBUNTU, desk_top=(0x77, 0x21, 0x6F), desk=(0x4B, 0x17, 0x49),
+                   accent=(0xE9, 0x54, 0x20), plate=(0xE9, 0x54, 0x20), plate_text=(0xFF, 0xFF, 0xFF)),
+}
+
+
+def rail_gradient(d, box, top, bottom):
+    """The vertical gradient of a title bar (SkinPaint.face)."""
+    x0, y0, x1, y1 = box
+    span = max(1, y1 - y0 - 1)
+    for y in range(y0, y1):
+        d.line([x0, y, x1 - 1, y], fill=mix(top, bottom, (y - y0) / span))
+
+
+def native_chrome_panel(kind):
+    """Third-party app full screen, wearing the chrome of one native theme."""
+    rail = NATIVE_RAILS[kind]
+    skin = rail["skin"]
+    face, border, text = skin["window"], skin["border"], skin["text"]
+    title_top, title_bot, title_text = skin["title_top"], skin["title_bot"], skin["title_text"]
+    plate, plate_text = rail["plate"], rail["plate_text"]
+    corner = skin["radius"]
+    tile = max(3, min(10, round(corner * 0.6)))          # Skin.tile(): smaller than the window
+    key_line = mix(title_top, title_text, 0.35)          # hairline of a key that is off
+    dock_line = mix(face, text, 0.35)
+    soft = mix(face, text, 0.20)
+
+    w, h = 780, 1060
+    img = Image.new("RGB", (w, h), rail["desk"])
+    d = ImageDraw.Draw(img)
+    rail_gradient(d, (0, 0, w, h), rail["desk_top"], rail["desk"])
+
+    bez, rail_h, dock_h = 9, 62, 80
+    top = [bez, bez, w - bez, bez + rail_h]
+    dock = [bez, h - bez - dock_h, w - bez, h - bez]
+    content = [bez, top[3], w - bez, dock[1]]
+
+    # ── the app that owns the screen: not ours, so it is drawn in its own colours ──
+    d.rectangle(content, fill=(0x2A, 0x2E, 0x33))
+    d.rectangle([content[0], content[1], content[2], content[1] + 44], fill=(0x1F, 0x4F, 0x8C))
+    d.text((content[0] + 16, content[1] + 13), "someone else's app, full screen", font=mono_bold, fill=(0xFF, 0xFF, 0xFF))
+    for i, line in enumerate([
+        "the launcher never asks for a freeform window: this app",
+        "fills the screen and keeps every gesture of its own. the",
+        "frame, the title rail and the dock are overlay strips the",
+        "launcher draws over it.",
+        "",
+        "with a native palette those strips now wear the chrome of",
+        "the theme: the title gradient of that desktop, hairline",
+        "rounded keys, a rounded dock with the app icons in colour,",
+        "and a quick panel that is a rounded sheet with a soft",
+        "shadow instead of a printed card.",
+    ]):
+        d.text((content[0] + 20, content[1] + 68 + i * 21), line, font=mono_tiny, fill=(0xD4, 0xD8, 0xDE))
+
+    # ── the frame: black, always (BorderView keeps the cyberdeck frame black) ──
+    for box in [(0, 0, w, bez), (0, h - bez, w, h), (0, 0, bez, h), (w - bez, 0, w, h)]:
+        d.rectangle(box, fill=(0x00, 0x00, 0x00))
+
+    # ── the title rail = the title bar of the theme ──
+    rail_gradient(d, top, title_top, title_bot)
+    d.rectangle([top[0], top[3] - 2, top[2], top[3]], fill=(0x00, 0x00, 0x00))
+    cy = (top[1] + top[3]) / 2
+    ax = top[0] + 14
+    d.rectangle([ax, cy - 5, ax + 10, cy + 5], fill=rail["accent"])          # the accent mark
+    d.text((ax + 20, cy - 9), "article — website", font=mono_bold, fill=title_text)
+
+    kx = top[2] - 12
+    for label in ("x", "eye", "desk", "panel", "kbd"):                       # keys, right to left
+        tw = d.textlength(label, font=mono_tiny)
+        bw = max(40, tw + 24)
+        d.rounded_rectangle([kx - bw, cy - 17, kx, cy + 17], radius=tile, outline=key_line, width=2)
+        d.text((kx - bw / 2 - tw / 2, cy - 8), label, font=mono_tiny, fill=title_text)
+        kx -= bw + 7
+    tw = d.textlength("13:37", font=mono_tiny)
+    kx -= 12
+    d.text((kx - tw, cy - 8), "13:37", font=mono_tiny, fill=title_text)
+    kx -= tw + 16
+    d.rectangle([kx - 18, cy - 8, kx, cy + 8], outline=title_text, width=2)  # battery gauge
+    d.rectangle([kx - 15, cy - 5, kx - 7, cy + 5], fill=title_text)
+    d.rectangle([kx + 1, cy - 4, kx + 4, cy + 4], fill=title_text)
+    kx -= 40
+    for i in range(4):                                                       # signal bars
+        bh = 3 + 3 * i
+        d.rectangle([kx - 18 + i * 5, cy + 6 - bh, kx - 15 + i * 5, cy + 6], fill=title_text)
+
+    # ── the dock = the dock of that desktop, icons in colour ──
+    d.rectangle(dock, fill=face)
+    d.rectangle([dock[0], dock[1], dock[2], dock[1] + 2], fill=(0x00, 0x00, 0x00))
+    ty0, ty1 = dock[1] + 14, dock[3] - 14
+
+    def tile_at(x, width, label, icon, active=False):
+        box = [x, ty0, x + width, ty1]
+        if active:
+            d.rounded_rectangle(box, radius=tile, fill=plate)
+        d.rounded_rectangle(box, radius=tile, outline=plate if active else dock_line, width=2)
+        fg = plate_text if active else text
+        d.rounded_rectangle([x + 9, ty0 + 8, x + 33, ty0 + 32], radius=5, fill=icon)
+        d.text((x + 42, ty0 + 15), label, font=mono_tiny, fill=fg)
+
+    tile_at(dock[0] + 12, 86, "desktop", (0x7A, 0x84, 0x90))
+    x = dock[0] + 108
+    d.rounded_rectangle([x, ty0 + 4, x + 34, ty1 - 4], radius=tile, outline=dock_line, width=2)
+    d.text((x + 11, ty0 + 15), "≡", font=mono_tiny, fill=text)
+    x += 46
+    for label, icon, active in [("browser", (0x1F, 0x4F, 0x8C), True), ("files", (0xE9, 0x54, 0x20), False),
+                                ("notes", (0xF2, 0xC1, 0x4E), False), ("photos", (0x2E, 0xA0, 0x6E), False)]:
+        tile_at(x, 94, label, icon, active)
+        x += 100
+    kx = dock[2] - 12
+    for label in ("x", "eye", "panel", "kbd"):
+        tw = d.textlength(label, font=mono_tiny)
+        bw = max(40, tw + 22)
+        d.rounded_rectangle([kx - bw, ty0 + 6, kx, ty1 - 6], radius=tile, outline=dock_line, width=2)
+        d.text((kx - bw / 2 - tw / 2, ty0 + 15), label, font=mono_tiny, fill=text)
+        kx -= bw + 7
+
+    # ── the quick panel: a rounded sheet with a soft shadow (PanelView) ──
+    pw, ph = 404, 470
+    px1, py0 = top[2] - 26, top[3] + 22
+    px0, py1 = px1 - pw, py0 + ph
+    for share, alpha in ((1.00, 0.16), (0.75, 0.10), (0.50, 0.07)):
+        off = 7 * share
+        d.rounded_rectangle([px0 + off, py0 + off, px1 + off, py1 + off], radius=corner,
+                            fill=mix((0x2A, 0x2E, 0x33), (0x00, 0x00, 0x00), alpha * 2.2))
+    d.rounded_rectangle([px0, py0, px1, py1], radius=corner, fill=face, outline=border, width=2)
+
+    def panel_key(x, y, width, height, label, active=False):
+        box = [x, y, x + width, y + height]
+        if active:
+            d.rounded_rectangle(box, radius=tile, fill=plate)
+        d.rounded_rectangle(box, radius=tile, outline=plate if active else mix(face, text, 0.45), width=2)
+        tw = d.textlength(label, font=mono_tiny)
+        d.text((x + (width - tw) / 2, y + (height - 15) / 2), label, font=mono_tiny,
+               fill=plate_text if active else text)
+
+    ix, ir = px0 + 18, px1 - 18
+    d.text((ix, py0 + 16), "QUICK PANEL", font=mono_bold, fill=text)
+    panel_key(ir - 62, py0 + 12, 62, 30, "close")
+    d.line([ix, py0 + 52, ir, py0 + 52], fill=soft, width=1)
+    d.text((ix, py0 + 62), "BRIGHTNESS", font=mono_bold, fill=text)
+    d.text((ix + 128, py0 + 64), "40%", font=mono_tiny, fill=text)
+    groove = [ix, py0 + 86, ir - 150, py0 + 112]
+    d.rounded_rectangle(groove, radius=12, fill=soft, outline=border, width=2)
+    d.rounded_rectangle([groove[0] + 3, groove[1] + 3, groove[0] + 3 + (groove[2] - groove[0] - 6) * 0.4, groove[3] - 3],
+                        radius=10, fill=rail["accent"])
+    panel_key(ir - 142, py0 + 86, 44, 26, "B-")
+    panel_key(ir - 92, py0 + 86, 44, 26, "B+")
+    panel_key(ir - 62, py0 + 86, 62, 26, "auto", active=True)
+    d.text((ix, py0 + 130), "DISPLAY", font=mono_bold, fill=text)
+    quarter = (ir - ix - 12) / 4
+    for i, (label, active) in enumerate([("rotate locked", True), ("night off", False),
+                                         ("chrome on", True), ("hide rails now", False)]):
+        panel_key(ix + i * (quarter + 4), py0 + 152, quarter, 32, label, active)
+    d.text((ix, py0 + 202), "RAILS", font=mono_bold, fill=text)
+    half = (ir - ix - 8) / 2
+    panel_key(ix, py0 + 224, half * 0.9, 32, "pinned apps", active=True)
+    panel_key(ix + half, py0 + 224, half, 32, "most used first")
+    d.text((ix, py0 + 274), "APPS & RULES", font=mono_bold, fill=text)
+    for i, (label, active) in enumerate([("browser  framed", True), ("files  framed", True), ("camera  no chrome", False)]):
+        panel_key(ix, py0 + 296 + i * 38, ir - ix, 32, label, active)
+    d.line([ix, py1 - 46, ir, py1 - 46], fill=soft, width=1)
+    panel_key(ix, py1 - 38, 116, 28, "close panel")
+    d.text((ir - 200, py1 - 30), "esc closes too", font=mono_tiny, fill=soft)
+    return img
+
+
 def panel(caption, style):
     w, h = 780, 1060
     img = Image.new("RGB", (w, h), PAPER)
@@ -1281,7 +1456,8 @@ def main():
     w = max(sum(p.width for p in epaper) + gap * (len(epaper) + 1),
             sum(p.width for p in native) + gap * (len(native) + 1))
     row2 = 136 + ph + 56
-    strip_y = row2 + ph + 40
+    row3 = row2 + ph + 56
+    strip_y = row3 + ph + 40
     h = strip_y + 200 + 150
     sheet = Image.new("RGB", (w, h), SHEET_BG)
     d = ImageDraw.Draw(sheet)
@@ -1302,6 +1478,19 @@ def main():
     x = (w - row_w) // 2          # centre the native row under the five e-paper panels
     for p in native:
         sheet.paste(p, (x, row2))
+        x += p.width + gap
+
+    # ── the chrome row: the same overlay in two native themes ──
+    d.text((margin, row3 - 30), "CHROME OVER A THIRD-PARTY APP — the launcher draws the frame, the title rail and the dock on top of an app it does not own. "
+                                "With a native palette those strips wear that desktop's chrome: title gradient, hairline rounded keys, rounded dock tiles, "
+                                "app icons in colour, and the quick panel as a rounded sheet with a soft shadow and an accent groove. "
+                                "The black frame stays black. In the e-paper palettes this same overlay stays printed: paper, ink rules, hard shadow.",
+           font=mono, fill=(0xC9, 0xC5, 0xB8))
+    chrome = [native_chrome_panel("win11"), native_chrome_panel("ubuntu")]
+    row_w = sum(p.width for p in chrome) + gap * (len(chrome) - 1)
+    x = (w - row_w) // 2
+    for p in chrome:
+        sheet.paste(p, (x, row3))
         x += p.width + gap
 
     # ── the palette row: the 6 e-paper tones, then the 6 native desktops ──
