@@ -84,7 +84,11 @@ class IconThemeTest {
         assertEquals("labels must be unique", labels.size, labels.toSet().size)
         assertTrue("a label is too long for a chip", labels.all { it.length <= 14 })
         // describe() names the shape actually used, for the terminal status line
-        assertEquals("Aqua (auto)", IconTheme.describe(IconTheme.AUTO, DesktopStyle.LINUX, PaletteId.AQUA))
+        assertEquals("Aqua (follow palette)", IconTheme.describe(IconTheme.AUTO, DesktopStyle.LINUX, PaletteId.AQUA))
+        assertEquals(
+            "Classic 95 (follow palette)",
+            IconTheme.describe(IconTheme.AUTO, DesktopStyle.WINDOWS, PaletteId.PAPER),
+        )
         assertEquals("Flat (flat)", IconTheme.describe(IconTheme.FLAT, DesktopStyle.LINUX, PaletteId.AQUA))
         assertNotNull(IconTheme.describe(IconTheme.AUTO, DesktopStyle.LINUX, null))
     }
