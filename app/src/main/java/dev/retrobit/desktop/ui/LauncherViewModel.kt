@@ -13,6 +13,7 @@ import dev.retrobit.desktop.data.SystemInfo
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.model.WinKind
@@ -894,10 +895,26 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
             settings.iconMode = wantedIcons
             shell.print("app icons -> ${wantedIcons.label.lowercase()} (part of the theme; change it any time)")
         }
+        // ... and in its own shape: Windows 95 beveled squares, Aqua glossy tiles, GNOME circles.
+        // "Follow palette" is the setting that does that, so a theme change resets a pinned shape.
+        val wantedShape = IconTheme.forPalette(p)
+        if (settings.iconThemeEnum != IconTheme.AUTO) {
+            settings.iconTheme = IconTheme.AUTO.name
+            shell.print("icon shape -> follows the theme again (pick one in Settings - icons to pin it)")
+        }
+        if (wantedShape != null) {
+            shell.print("icon shape -> ${wantedShape.label.lowercase()} · ${wantedShape.hint}")
+        }
         shell.print(
             "palette -> ${p.label}" +
                 if (p.native) " (native desktop palette; the desk is painted in its own colour)" else "",
         )
+    }
+
+    /** Pin an icon shape for good: it stops following the palette until the next theme change. */
+    fun setIconTheme(t: IconTheme) {
+        settings.iconTheme = t.name
+        shell.print("icon shape -> ${t.label} (${t.hint})")
     }
     fun setWallpaper(w: WallPattern) { settings.wallpaper = w }
     fun setIconMode(m: IconMode) { settings.iconMode = m }

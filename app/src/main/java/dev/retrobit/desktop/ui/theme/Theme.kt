@@ -125,6 +125,12 @@ data class Palette(
 
     /** True when this palette copies a real desktop instead of printing on e-paper. */
     val isNative: Boolean get() = skin != null
+
+    /**
+     * The icon shape this palette brings: every native desktop theme has its own (Windows 95 the
+     * beveled square, Aqua the glossy tile, GNOME the circle), the e-paper palettes have none.
+     */
+    val iconTheme: IconTheme? get() = IconTheme.forPalette(id)
     /** Frame, panel and separator colour: the skin's own border, or the ink for e-paper. */
     val edge: Color get() = skin?.border ?: ink
     /** Title bar: the real gradient of the skin, or the flat e-paper ink bar. */
@@ -269,6 +275,12 @@ data class IconOptions(
     val accent: Color? = null,
     val monogram: Boolean = false,
     val labels: Boolean = true,
+    /**
+     * Frame colour of the icon tile. `null` on the e-paper palettes (they print the ink outline);
+     * on a native theme it is the border of that desktop, so a Windows 95 tile is framed in black
+     * and an Aqua one in the pale Aqua grey instead of the text colour.
+     */
+    val edge: Color? = null,
 )
 
 /**

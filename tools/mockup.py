@@ -694,6 +694,79 @@ def native_desktop(kind):
     return img
 
 
+def icon_shape_tile(d, x, y, size, shape, paper, ink, accent, edge, desk, label):
+    """One icon tile in the shape a theme draws, with that theme's own colours.
+
+    Mirrors IconCache.frame() in the app: classic 95 is the beveled square with the navy trim,
+    fluent the soft rounded square, aqua the glossy tile with a pale edge, yaru the rounded square
+    with the orange trim, gnome the circle with a thin ring, and the e-paper palettes the printed
+    square / rounded / flat tile in ink on paper.
+    """
+    pad = 10
+    # the desk behind the tile: a gradient, or a flat paper card for the e-paper side
+    if desk is not None:
+        for i in range(size + pad + 26):
+            d.line([x, y + i, x + size + 2 * pad, y + i], fill=mix(desk[0], desk[1], i / (size + pad + 25)))
+    else:
+        d.rectangle([x, y, x + size + 2 * pad, y + size + pad + 14], fill=paper)
+
+    inset = size * (0.06 if shape == "classic" else 0.03)
+    left, top = x + pad + inset, y + pad + inset
+    right, bottom = x + pad + size - inset, y + pad + size - inset
+    radius = {"classic": 0.0, "rounded": 0.20, "flat": 0.06, "squircle": 0.24,
+              "aqua": 0.26, "yaru": 0.16, "circle": 0.50}.get(shape, 0.0) * size
+    box = [left, top, right, bottom]
+
+    if shape == "circle":
+        d.ellipse(box, fill=paper, outline=ink, width=max(2, int(size * 0.05)))
+    else:
+        d.rounded_rectangle(box, radius=radius, fill=paper)
+
+    # the "app" itself: a coloured plate inside the tile
+    inner = size * 0.26
+    ibox = [left + inner, top + inner, right - inner, bottom - inner]
+    if shape == "circle":
+        d.ellipse(ibox, fill=accent)
+    else:
+        d.rounded_rectangle(ibox, radius=size * (0.02 if shape == "classic" else 0.10), fill=accent)
+
+    # the trim of each shape
+    if shape == "classic":
+        d.rectangle(box, outline=ink, width=max(2, int(size * 0.07)))
+        d.line([left + 3, top + 3, right - 3, top + 3], fill=paper, width=max(1, int(size * 0.03)))
+        d.line([left + 3, top + 3, left + 3, bottom - 3], fill=paper, width=max(1, int(size * 0.03)))
+        d.rectangle([left + size * 0.10, bottom - size * 0.13, right - size * 0.10, bottom - size * 0.06], fill=accent)
+    elif shape in ("rounded", "flat"):
+        d.rounded_rectangle(box, radius=radius, outline=ink, width=max(2, int(size * 0.05)))
+    elif shape == "squircle":
+        d.rounded_rectangle(box, radius=radius, outline=edge, width=max(1, int(size * 0.02)))
+        d.line([left + 4, top + 4, right - 4, top + 4], fill=(0x8A, 0x8A, 0x8A), width=max(1, int(size * 0.02)))
+    elif shape == "aqua":
+        d.rounded_rectangle(box, radius=radius, outline=edge, width=max(1, int(size * 0.035)))
+        d.line([left + 4, top + size * 0.10, right - 4, top + size * 0.10], fill=(0xFF, 0xFF, 0xFF), width=max(2, int(size * 0.07)))
+        d.line([left + 4, bottom - size * 0.03, right - 4, bottom - size * 0.03], fill=edge, width=max(2, int(size * 0.04)))
+    elif shape == "yaru":
+        d.rounded_rectangle(box, radius=radius, outline=edge, width=max(1, int(size * 0.025)))
+        d.line([left + size * 0.18, bottom - size * 0.06, right - size * 0.18, bottom - size * 0.06], fill=accent, width=max(2, int(size * 0.055)))
+    tw = d.textlength(label, font=mono_tiny)
+    d.text((x + pad + size / 2 - tw / 2, y + size + pad + 16), label, font=mono_tiny, fill=(0xC9, 0xC5, 0xB8))
+
+
+ICON_SHAPES = [
+    # label, shape, paper (tile face), ink (e-paper frame / ring), accent, desk (gradient or None)
+    ("classic 95", "classic", (0xC0, 0xC0, 0xC0), (0x00, 0x00, 0x00), (0x00, 0x00, 0x80), ((0x00, 0x80, 0x80), (0x00, 0x80, 0x80))),
+    ("fluent", "squircle", (0x20, 0x20, 0x20), (0x3A, 0x3A, 0x3A), (0x60, 0xCD, 0xFF), ((0x1B, 0x1F, 0x24), (0x0F, 0x12, 0x16))),
+    ("aqua", "aqua", (0xF4, 0xF4, 0xF6), (0xB9, 0xB9, 0xBF), (0x0A, 0x84, 0xFF), ((0x3F, 0x72, 0xA8), (0x1E, 0x4E, 0x7E))),
+    ("aqua dark", "aqua", (0x1E, 0x1E, 0x20), (0x3C, 0x3C, 0x3F), (0x0A, 0x84, 0xFF), ((0x17, 0x19, 0x1D), (0x0B, 0x0C, 0x0F))),
+    ("yaru", "yaru", (0xF6, 0xF5, 0xF4), (0xBE, 0xBA, 0xB6), (0xE9, 0x54, 0x20), ((0x77, 0x21, 0x6F), (0x4B, 0x17, 0x49))),
+    ("gnome", "circle", (0x24, 0x24, 0x24), (0x78, 0xAE, 0xED), (0x78, 0xAE, 0xED), ((0x1A, 0x1A, 0x1A), (0x14, 0x14, 0x14))),
+    # the e-paper side: the print tile keeps its ink outline and takes the shape from the shell style
+    ("square (win)", "classic", (0xE8, 0xE5, 0xDA), (0x1B, 0x1B, 0x1B), (0x1B, 0x1B, 0x1B), None),
+    ("rounded (mac)", "rounded", (0xE8, 0xE5, 0xDA), (0x1B, 0x1B, 0x1B), (0x8C, 0x6B, 0x3F), None),
+    ("flat (linux)", "flat", (0xE8, 0xE5, 0xDA), (0x1B, 0x1B, 0x1B), (0x3F, 0x3F, 0x3F), None),
+]
+
+
 def palette_chip(d, x, y, w, h, pal):
     """One entry of the Settings palette picker, drawn the way the launcher paints it.
 
@@ -1153,7 +1226,7 @@ def main():
             sum(p.width for p in native) + gap * (len(native) + 1))
     row2 = 136 + ph + 56
     strip_y = row2 + ph + 40
-    h = strip_y + 200
+    h = strip_y + 200 + 150
     sheet = Image.new("RGB", (w, h), SHEET_BG)
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
@@ -1183,6 +1256,19 @@ def main():
     chip_w = (w - 2 * margin - 6 * 11) / 12
     for i, pal in enumerate(PALETTES):
         palette_chip(d, margin + i * (chip_w + 6), y, chip_w, 150, pal)
+
+    # ── the icon shapes: the tile every theme draws around an app icon ──
+    icon_y = y + 150 + 40
+    d.text((margin, icon_y - 24), "ICON SHAPES — the tile each theme draws around an app icon: Windows 95 the beveled square with its navy trim, "
+                                  "Windows 11 the soft rounded square, Aqua the glossy tile with a pale edge, Ubuntu the rounded square with the orange trim, "
+                                  "GNOME the circle; the e-paper palettes print a 1-bit tile and take the shape from the desktop style",
+           font=mono, fill=(0xC9, 0xC5, 0xB8))
+    tile = 54
+    cell = tile + 20 + 34
+    x = margin + 4
+    for label, shape, paper, ink, accent, desk in ICON_SHAPES:
+        icon_shape_tile(d, x, icon_y, tile, shape, paper, ink, accent, ink, desk, label)
+        x += cell
     sheet.save(OUT)
     print("wrote", OUT, sheet.size)
 

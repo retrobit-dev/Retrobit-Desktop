@@ -59,12 +59,14 @@ fun rememberAppIcon(app: AppEntry, inverted: Boolean = false): ImageBitmap? {
     val ink = if (inverted) p.paper else p.ink
     val paper = if (inverted) p.ink else p.paper
     val accent = if (inverted) null else options.accent
+    // the border of a native theme frames the tile; the e-paper palettes keep the printed ink line
+    val edge = if (inverted) null else options.edge
     val label = app.label
-    val keys = arrayOf<Any?>(app.key, mode, theme, ink, paper, accent, options.monogram, epoch)
-    val state by produceState(IconCache.peek(app, mode, theme, ink, paper, accent, options.monogram), *keys) {
+    val keys = arrayOf<Any?>(app.key, mode, theme, ink, paper, accent, edge, options.monogram, epoch)
+    val state by produceState(IconCache.peek(app, mode, theme, ink, paper, accent, edge, options.monogram), *keys) {
         // resolve for *this* key, whether or not a bitmap from another key is already in `value`
         value = withContext(Dispatchers.Default) {
-            IconCache.get(app, mode, theme, ink, paper, accent, options.monogram, label)
+            IconCache.get(app, mode, theme, ink, paper, accent, edge, options.monogram, label)
         }
     }
     return state

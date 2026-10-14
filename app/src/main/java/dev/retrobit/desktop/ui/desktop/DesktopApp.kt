@@ -98,12 +98,13 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
     CompositionLocalProvider(
         LocalPalette provides palette,
         LocalIconMode provides settings.iconMode,
-        LocalIconTheme provides IconTheme.resolve(settings.iconThemeEnum, settings.style),
+        LocalIconTheme provides IconTheme.resolve(settings.iconThemeEnum, settings.style, settings.palette),
         dev.retrobit.desktop.ui.theme.LocalIconEpoch provides vm.iconEpoch,
         dev.retrobit.desktop.ui.theme.LocalIconOptions provides dev.retrobit.desktop.ui.theme.IconOptions(
             accent = if (settings.iconAccent) palette.accentColor else null,
             monogram = settings.iconMonogram,
             labels = settings.iconLabels,
+            edge = if (palette.isNative) palette.edge else null,
         ),
         LocalDesktopStyle provides settings.style,
         dev.retrobit.desktop.ui.theme.LocalDesktopInsets provides insets,

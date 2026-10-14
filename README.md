@@ -67,6 +67,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   - Di *Settings - palette* setiap palet ditampilkan sebagai **pratinjau**: warna desktop + plat
     jendela + title bar aksen + namanya. Terminal: `palette` (daftar + warna sekarang),
     `palette win95`, `palette aqua-dark`, `palette ubuntu`, …
+  - **Tema ikon ikut palet.** Setiap tema desktop membawa **bentuk ikon** yang desktop itu pakai:
+    Windows 95 kotak ber-bevel dengan trim navy, Windows 11 kotak membulat halus, Aqua tile
+    membulat dengan edge pucat dan kilau kaca, Ubuntu kotak membulat dengan trim oranye,
+    GNOME lingkaran dengan cincin tipis. Palet e-paper mencetak tile 1-bit dan mengambil bentuk
+    dari **desktop style** (Windows kotak, macOS membulat, Linux rata). Mengganti palet otomatis
+    mengganti bentuk ikon; kalau mau, bentuknya bisa **dipin** di *Settings - app icon shape* atau
+    lewat `icons shape <nama>`, dan pilihan itu bertahan sampai palet berikutnya dipilih.
   - Perintah `invert` membalik kertas ⇄ tinta (night mode memakai palet Ink dan kembali ke palet
     harimu saat dimatikan) — dan **melepas skin native**, karena &#8220;Windows 95 gelap&#8221; tidak
     pernah ada; night mode selalu kembali ke mesin e-paper.
@@ -178,6 +185,21 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   supaya judul aplikasi tidak tertimpa.
 - UX: tap pada rail kosong atau handle = sembunyikan/munculkan rail, area sentuh tombol diperbesar,
   tombol `eye` menyembunyikan rail hanya untuk app itu, dan setiap aksi mengeluarkan konfirmasi.
+
+### Ikon aplikasi: mode, warna, dan bentuk yang mengikuti tema
+- **Tiga mode render**: `Color` (artwork asli), `Mono` (grayscale dipetakan ke ram kertas→tinta), dan
+  `1-bit` (halftone Bayer, ditampilkan nearest-neighbour supaya tetap tajam). Terminal:
+  `icons color|mono|dither`.
+- **Bentuk tile mengikuti palet**: lihat bagian *Sistem visual* di atas. Bentuknya bisa dilihat
+  hidup di *Settings - app icon shape* (deretan chip yang menggambar app asli kamu dalam setiap
+  bentuk, memakai warna palet aktif), dipin lewat chip atau `icons shape <nama>`, dan kembali
+  otomatis ke tema dengan `icons shape auto`.
+- **Trim & warna ikut tema**: tile memakai muka jendela tema sebagai plat, warna teks tema sebagai
+  garis bingkai, dan aksen tema sebagai trim (pita bawah Win95, trim Yaru, cincin GNOME), jadi
+  aplikasi pihak ketiga tetap terlihat seperti bagian dari desktop yang aktif.
+- **Huruf penanda** (`letters`, default aktif) mencetak inisial aplikasi di pojok tile — setelah
+  di-dither, ikon folder asing sulit dibedakan — dan **re-ink icons now** membuang cache bitmap
+  supaya semua ikon digambar ulang dari sumbernya.
 
 ### App drawer: daftar yang bisa digulir, yang paling sering dipakai di atas
 - **Punya layar sendiri**: *Applications* terbuka **penuh** seperti aplikasi lain (bingkai + title
@@ -301,7 +323,7 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 
 ### Aplikasi bawaan
 - **Terminal** (`rb-sh`) — 30+ perintah: `apps/ls`, `open <nama>`, `neofetch`, `df`, `free`, `ps`,
-  `style linux|macos|windows`, `palette [name]`, `wall`, `icons`, `scale`,
+  `style linux|macos|windows`, `palette [name]`, `wall`, `icons [shape <name>]`, `scale`,
   `workspace 1..4` (`ws`), `cal`, `wallpaper pattern|device|image`,
   `seconds on|off`, `arrange`, `safearea on|off|20`, `dock list`, `dock move <app> <slot>`,
   `cyberdeck on|off|preview|grant|autohide|size`, `usage [top|clear]`, `pen [text|rightclick|cursor on|off]`,
@@ -487,6 +509,7 @@ app/src/main/java/dev/retrobit/desktop/
 app/src/test/java/dev/retrobit/desktop/ui/wm/      # GridMathTest, DockMathTest, WidgetMathTest,
 │                                                  # LayoutMathTest, MaximizeMathTest
 app/src/test/java/dev/retrobit/desktop/ui/theme/   # PalettesTest (skin native, kontras, invert)
+app/src/test/java/dev/retrobit/desktop/model/      # IconThemeTest (bentuk ikon per palet)
 app/src/test/java/dev/retrobit/desktop/data/       # AppUsageTest  (CI: job "Unit tests")
 ```
 

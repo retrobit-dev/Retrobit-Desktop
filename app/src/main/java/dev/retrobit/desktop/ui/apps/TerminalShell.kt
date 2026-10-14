@@ -7,6 +7,7 @@ import dev.retrobit.desktop.data.SystemInfo
 import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.EntryKind
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.model.WinKind
@@ -82,7 +83,7 @@ class TerminalShell(private val vm: LauncherViewModel) {
             "style", "wm" -> style(args.firstOrNull())
             "palette", "theme", "colors", "colours" -> palette(args)
             "wall", "wallpaper" -> wallpaper(args.firstOrNull())
-            "icons", "iconmode" -> icons(args.firstOrNull())
+            "icons", "iconmode" -> icons(args)
             "scale" -> scale(args.firstOrNull())
             "workspace", "ws", "desktop" -> workspace(args.firstOrNull())
             "cal", "calendar" -> calendar(args)
@@ -144,7 +145,8 @@ class TerminalShell(private val vm: LauncherViewModel) {
             style linux|macos|windows
             palette [name]         colour scheme; bare lists them, native themes also switch the style
             wall dots|grid|dither|hatch|plain
-            icons color|mono|dither
+            icons [color|mono|dither]        rendering mode
+            icons shape <auto|classic|rounded|flat|squircle|aqua|yaru|circle|plain>   icon tile shape
             scale 0.8|0.9|1.0|1.15|1.3
             cal                    calendar entries (cal add "title" 2026-11-02 14:30 event|task|birthday)
             cal list | cal tasks   agenda view / open tasks
@@ -687,11 +689,58 @@ class TerminalShell(private val vm: LauncherViewModel) {
         print("wallpaper -> ${s.label}")
     }
 
-    private fun icons(arg: String?) {
-        val s = arg?.let { a -> IconMode.values().firstOrNull { it.name.equals(a, true) } }
-        if (s == null) { print("modes: color | mono | dither", Kind.ERR); return }
-        vm.setIconMode(s)
-        print("icon mode -> ${s.label}")
+    /**
+     * `icons` — how the app icons are drawn: the rendering mode and the shape of the tile.
+     *
+     *  `icons`                     status (mode + shape, and what the palette asks for)
+     *  `icons color|mono|dither`   rendering mode
+     *  `icons shape <name>`        tile shape: auto, classic, rounded, flat, squircle, aqua, yaru,
+     *                              circle, plain (aliases: `theme`, `icons <name>`)
+     *  `icons accent on|off`       the accent-coloured trim
+     *  `icons letters on|off`      the letter plate on the icon
+     */
+    private fun icons(args: List<String>) {
+        val st = vm.settings
+        val head = args.firstOrNull()?.lowercase()
+        val palette = dev.retrobit.desktop.ui.theme.Palettes.of(st.palette)
+        if (head == null || head == "status") {
+            print("icon mode -> ${st.iconMode.label.lowercase()}   shape -> " +
+                IconTheme.describe(st.iconThemeEnum, st.style, st.palette))
+            print("palette ${palette.id.label} asks for: " +
+                (palette.iconTheme?.let { "${it.label.lowercase()} (${it.hint})" }
+                    ?: "no shape of its own (e-paper: follows the desktop style)"))
+            print("modes: color | mono | dither    shapes: " +
+                IconTheme.entries.joinToString(" | ") { it.name.lowercase() })
+            print("accent ${if (st.iconAccent) "on" else "off"}   letters ${if (st.iconMonogram) "on" else "off"}")
+            return
+        }
+        if (head == "accent") {
+            st.iconAccent = args.getOrNull(1)?.let { !it.equals("off", true) && !it.equals("false", true) } ?: !st.iconAccent
+            vm.reinkIcons()
+            print("icon accent -> ${if (st.iconAccent) "on" else "off"}")
+            return
+        }
+        if (head == "letters" || head == "monogram") {
+            st.iconMonogram = args.getOrNull(1)?.let { !it.equals("off", true) && !it.equals("false", true) } ?: !st.iconMonogram
+            vm.reinkIcons()
+            print("icon letters -> ${if (st.iconMonogram) "on" else "off"}")
+            return
+        }
+        val name = if (head == "shape" || head == "theme" || head == "themes") args.getOrNull(1) else args.firstOrNull()
+        val theme = name?.let { a -> IconTheme.entries.firstOrNull { it.name.equals(a, true) } }
+        if (theme != null) {
+            vm.setIconTheme(theme)
+            print("shape -> " + IconTheme.describe(theme, st.style, st.palette))
+            return
+        }
+        val mode = IconMode.values().firstOrNull { it.name.equals(head, true) }
+        if (mode != null) {
+            vm.setIconMode(mode)
+            print("icon mode -> ${mode.label}")
+            return
+        }
+        print("unknown: ${args.joinToString(" ")} — modes color|mono|dither, shapes " +
+            IconTheme.entries.joinToString("|") { it.name.lowercase() }, Kind.ERR)
     }
 
     /**

@@ -47,8 +47,10 @@ object IconCache {
         ink: Color,
         paper: Color,
         accent: Color?,
+        edge: Color?,
         monogram: Boolean,
-    ) = "${app.key}|$mode|$theme|${ink.toArgb()}|${paper.toArgb()}|${accent?.toArgb() ?: 0}|$monogram"
+    ) = "${app.key}|$mode|$theme|${ink.toArgb()}|${paper.toArgb()}|${accent?.toArgb() ?: 0}" +
+        "|${edge?.toArgb() ?: 0}|$monogram"
 
     fun peek(
         app: AppEntry,
@@ -57,8 +59,9 @@ object IconCache {
         ink: Color,
         paper: Color,
         accent: Color? = null,
+        edge: Color? = null,
         monogram: Boolean = false,
-    ): ImageBitmap? = cache.get(key(app, mode, theme, ink, paper, accent, monogram))
+    ): ImageBitmap? = cache.get(key(app, mode, theme, ink, paper, accent, edge, monogram))
 
     fun get(
         app: AppEntry,
@@ -67,10 +70,11 @@ object IconCache {
         ink: Color,
         paper: Color,
         accent: Color? = null,
+        edge: Color? = null,
         monogram: Boolean = false,
         label: String? = null,
     ): ImageBitmap? {
-        val k = key(app, mode, theme, ink, paper, accent, monogram)
+        val k = key(app, mode, theme, ink, paper, accent, edge, monogram)
         cache.get(k)?.let { return it }
         val drawable = runCatching { app.info.getBadgedIcon(0) }.getOrNull()
             ?: runCatching { app.info.getIcon(0) }.getOrNull()
@@ -80,7 +84,7 @@ object IconCache {
             IconMode.MONO -> mono(render(drawable, 128), ink.toArgb(), paper.toArgb())
             IconMode.DITHER -> dither(render(drawable, 64), ink.toArgb(), paper.toArgb())
         }
-        val framed = frame(bmp, theme, ink.toArgb(), paper.toArgb(), accent?.toArgb() ?: 0)
+        val framed = frame(bmp, theme, ink.toArgb(), paper.toArgb(), accent?.toArgb() ?: 0, edge?.toArgb() ?: 0)
         if (monogram) stamp(framed, label ?: app.label, ink.toArgb(), paper.toArgb(), theme)
         val img = framed.asImageBitmap()
         cache.put(k, img)
@@ -88,30 +92,54 @@ object IconCache {
     }
 
     /**
-     * Desktop-theme icon framing. Every icon is printed like a tile on paper: a plate in the palette
-     * paper, the artwork masked to the shape, an ink outline and — when the palette has one — an
-     * accent band, so a mixed set of third-party icons still looks like the active desktop theme.
+     * Desktop-theme icon framing. Every icon becomes a tile: a plate in the palette colours, the
+     * artwork masked to the shape, and then the trim that shape calls for — the bevel and accent
+     * band of a Windows 95 button, the thin outline of an e-paper print, the gloss of an Aqua tile,
+     * the accent trim of Yaru, the ring of a GNOME circle. A mixed set of third-party icons then
+     * still looks like the desktop theme it is sitting on.
      */
-    private fun frame(src: Bitmap, theme: IconTheme, ink: Int, paper: Int, accent: Int = 0): Bitmap {
+    private fun frame(
+        src: Bitmap,
+        theme: IconTheme,
+        ink: Int,
+        paper: Int,
+        accent: Int = 0,
+        edge: Int = 0,
+    ): Bitmap {
         if (theme == IconTheme.PLAIN) return src
         val size = src.width
         val out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out)
         val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+        // `edge` is the border of a native desktop theme; the e-paper palettes leave it 0 and keep
+        // printing the frame in ink
+        val frameColor = if (edge != 0) edge else ink
+        val circle = theme == IconTheme.CIRCLE
         val radius = when (theme) {
             IconTheme.CLASSIC -> 0f
             IconTheme.ROUNDED -> size * 0.20f
             IconTheme.FLAT -> size * 0.06f
+            IconTheme.SQUIRCLE -> size * 0.24f
+            IconTheme.AQUA -> size * 0.26f
+            IconTheme.YARU -> size * 0.16f
+            IconTheme.CIRCLE -> size * 0.5f
             else -> 0f
         }
         val inset = when (theme) {
             IconTheme.CLASSIC -> size * 0.06f
             IconTheme.ROUNDED -> size * 0.05f
+            IconTheme.CIRCLE -> size * 0.04f
+            IconTheme.PLAIN -> 0f
             else -> size * 0.03f
         }
         val body = Rect(inset.toInt(), inset.toInt(), size - inset.toInt(), size - inset.toInt())
+        // a circle is drawn as an oval across the whole (square) body; everything else as a rounded box
         val path = android.graphics.Path().apply {
-            addRoundRect(android.graphics.RectF(body), radius, radius, android.graphics.Path.Direction.CW)
+            if (circle) {
+                addOval(android.graphics.RectF(body), android.graphics.Path.Direction.CW)
+            } else {
+                addRoundRect(android.graphics.RectF(body), radius, radius, android.graphics.Path.Direction.CW)
+            }
         }
         // paper plate first: the artwork sits on paper instead of a transparent hole
         paint.style = Paint.Style.FILL
@@ -123,16 +151,16 @@ object IconCache {
         canvas.clipPath(path)
         canvas.drawBitmap(src, null, body, paint)
         canvas.restore()
-        // ink outline (thicker than before: it has to read at a glance on e-paper)
+        // frame stroke: thick ink on the e-paper print, thin and pale on the native tiles
         val stroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = size * 0.06f
-            color = ink
+            strokeWidth = if (edge != 0) size * 0.035f else size * 0.06f
+            color = frameColor
         }
         val accented = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             style = Paint.Style.STROKE
-            strokeWidth = size * 0.045f
-            color = if (accent != 0) accent else ink
+            strokeWidth = if (edge != 0) size * 0.03f else size * 0.045f
+            color = if (accent != 0) accent else frameColor
         }
         when (theme) {
             IconTheme.CLASSIC -> {
@@ -155,6 +183,77 @@ object IconCache {
                 canvas.drawPath(path, stroke)
                 canvas.drawPath(path, accented)
             }
+            IconTheme.SQUIRCLE -> {
+                // Windows 11 and friends: no outline, just a hairline and a light top edge
+                val hair = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.02f
+                    color = frameColor
+                    alpha = 150
+                }
+                canvas.drawPath(path, hair)
+                val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.022f
+                    color = paper
+                    alpha = 90
+                }
+                canvas.save()
+                canvas.clipPath(path)
+                canvas.drawLine(body.left + 1f, body.top + 1f, body.right - 1f, body.top + 1f, gloss)
+                canvas.restore()
+            }
+            IconTheme.AQUA -> {
+                // macOS: a thin edge, a glassy highlight across the top and a soft inner shadow below
+                val hair = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.028f
+                    color = frameColor
+                }
+                canvas.drawPath(path, hair)
+                canvas.save()
+                canvas.clipPath(path)
+                val gloss = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.10f
+                    color = 0xFFFFFFFF.toInt()
+                    alpha = 60
+                }
+                canvas.drawLine(body.left + 2f, body.top + size * 0.10f, body.right - 2f, body.top + size * 0.10f, gloss)
+                val foot = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.045f
+                    color = frameColor
+                    alpha = 70
+                }
+                canvas.drawLine(body.left + 2f, body.bottom - size * 0.03f, body.right - 2f, body.bottom - size * 0.03f, foot)
+                canvas.restore()
+            }
+            IconTheme.YARU -> {
+                // Ubuntu / Yaru: a rounded square with the accent trim along the bottom edge
+                val hair = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    style = Paint.Style.STROKE
+                    strokeWidth = size * 0.024f
+                    color = frameColor
+                    alpha = 170
+                }
+                canvas.drawPath(path, hair)
+                if (accent != 0) {
+                    val trim = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                        style = Paint.Style.STROKE
+                        strokeWidth = size * 0.055f
+                        color = accent
+                    }
+                    canvas.save()
+                    canvas.clipPath(path)
+                    canvas.drawLine(
+                        body.left + size * 0.16f, body.bottom - size * 0.045f,
+                        body.right - size * 0.16f, body.bottom - size * 0.045f, trim,
+                    )
+                    canvas.restore()
+                }
+            }
+            IconTheme.CIRCLE -> canvas.drawPath(path, accented)
             else -> Unit
         }
         return out
@@ -175,7 +274,7 @@ object IconCache {
         val paint = Paint(Paint.ANTI_ALIAS_FLAG)
         paint.style = Paint.Style.FILL
         paint.color = paper
-        val radius = if (theme == IconTheme.ROUNDED) plate * 0.28f else 0f
+        val radius = if (theme == IconTheme.CLASSIC || theme == IconTheme.PLAIN) 0f else plate * 0.28f
         if (radius > 0f) {
             canvas.drawRoundRect(left, top, left + plate, top + plate, radius, radius, paint)
             paint.style = Paint.Style.STROKE

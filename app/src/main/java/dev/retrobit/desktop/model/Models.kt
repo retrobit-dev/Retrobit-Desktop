@@ -89,14 +89,22 @@ enum class WidgetId(val label: String, val defaultWidth: Int, val defaultHeight:
 }
 
 /**
- * Shape of the desktop app icons. [AUTO] follows the active desktop style:
- * Windows → classic square bevel, macOS → rounded, Linux → flat.
+ * Shape of the desktop app icons.
+ *
+ * [AUTO] follows the **palette** first — every native desktop theme brings the icon shape that
+ * desktop really uses — and falls back to the desktop style (Windows → classic square bevel,
+ * macOS → rounded, Linux → flat) for the e-paper palettes, which have no desktop of their own.
+ * The rest are the shapes themselves: pick one to override the theme for good.
  */
 enum class IconTheme(val label: String, val hint: String) {
-    AUTO("Follow desktop", "pick the shape from the active style"),
+    AUTO("Follow palette", "the shape of the active palette (or of the desktop style)"),
     CLASSIC("Classic 95", "square, bevelled, hard outline"),
     ROUNDED("Rounded", "rounded corners, outline"),
     FLAT("Flat", "soft corners, no outline"),
+    SQUIRCLE("Fluent", "rounded square, soft edge, no outline"),
+    AQUA("Aqua", "glossy rounded tile, thin edge"),
+    YARU("Yaru", "rounded square with an accent trim"),
+    CIRCLE("GNOME", "circle with a thin ring"),
     PLAIN("Plain", "no frame at all"),
     ;
 
@@ -107,8 +115,31 @@ enum class IconTheme(val label: String, val hint: String) {
             DesktopStyle.LINUX -> FLAT
         }
 
-        fun resolve(theme: IconTheme, style: DesktopStyle): IconTheme =
-            if (theme == AUTO) forStyle(style) else theme
+        /**
+         * The icon shape that belongs to a palette, or `null` for the e-paper palettes (they are
+         * printed 1-bit and take their shape from the desktop style instead).
+         */
+        fun forPalette(palette: PaletteId): IconTheme? = when (palette) {
+            PaletteId.WIN95 -> CLASSIC
+            PaletteId.WIN11 -> SQUIRCLE
+            PaletteId.AQUA, PaletteId.AQUA_DARK -> AQUA
+            PaletteId.UBUNTU -> YARU
+            PaletteId.ADWAITA -> CIRCLE
+            PaletteId.PAPER, PaletteId.SEPIA, PaletteId.BWR,
+            PaletteId.INK, PaletteId.PHOSPHOR, PaletteId.AMBER,
+            -> null
+        }
+
+        /**
+         * The shape actually used for drawing: an explicit choice wins, otherwise the palette
+         * decides, otherwise the desktop style.
+         */
+        fun resolve(theme: IconTheme, style: DesktopStyle, palette: PaletteId? = null): IconTheme =
+            if (theme != AUTO) theme else palette?.let { forPalette(it) } ?: forStyle(style)
+
+        /** How this shape is drawn, and where it comes from. Used by the terminal and Settings. */
+        fun describe(theme: IconTheme, style: DesktopStyle, palette: PaletteId?): String =
+            "${resolve(theme, style, palette).label} (${theme.label.lowercase()})"
     }
 }
 

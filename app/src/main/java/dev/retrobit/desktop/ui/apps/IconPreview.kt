@@ -22,6 +22,8 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.text.font.FontWeight
 import dev.retrobit.desktop.model.AppEntry
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.ui.theme.LocalIconTheme
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.ui.LauncherViewModel
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
@@ -97,6 +99,45 @@ fun AppIconPreview(vm: LauncherViewModel) {
                         PreviewTile(sample, size = 34f, showName = false, inverted = true)
                     }
                     RetroText("invert", size = 9.5f, maxLines = 1)
+                }
+            }
+        }
+
+        if (sample != null) {
+            // one real app in every shape, resolved exactly like the desktop resolves it, so
+            // "follow palette" is visible as the shape the active theme actually picks
+            Column(verticalArrangement = Arrangement.spacedBy(dp(3f))) {
+                RetroText(
+                    "shape of the tile (this is what the palette decides, unless you pin one below)",
+                    size = 10f, color = p.mid, maxLines = 2,
+                )
+                Row(
+                    Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(dp(12f)),
+                ) {
+                    IconTheme.entries.forEach { theme ->
+                        val resolved = IconTheme.resolve(theme, s.style, s.palette)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(dp(3f)),
+                        ) {
+                            Box(
+                                Modifier.size(dp(40f)).border(
+                                    if (theme == s.iconThemeEnum) dp(2f) else dp(1f),
+                                    if (theme == s.iconThemeEnum) p.ink else p.mid,
+                                ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                CompositionLocalProvider(LocalIconTheme provides resolved) {
+                                    PreviewTile(sample, size = 34f, showName = false)
+                                }
+                            }
+                            RetroText(theme.label, size = 9f, maxLines = 1)
+                            if (theme == IconTheme.AUTO) {
+                                RetroText(resolved.label, size = 8.5f, color = p.mid, maxLines = 1)
+                            }
+                        }
+                    }
                 }
             }
         }

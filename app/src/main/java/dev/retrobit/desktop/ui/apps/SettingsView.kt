@@ -1,5 +1,7 @@
 package dev.retrobit.desktop.ui.apps
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +32,7 @@ import dev.retrobit.desktop.data.WallpaperSource
 import dev.retrobit.desktop.data.WallpaperTone
 import dev.retrobit.desktop.model.DesktopStyle
 import dev.retrobit.desktop.model.IconMode
+import dev.retrobit.desktop.model.IconTheme
 import dev.retrobit.desktop.model.PaletteId
 import dev.retrobit.desktop.model.WallPattern
 import dev.retrobit.desktop.ui.LauncherViewModel
@@ -191,6 +194,33 @@ fun SettingsView(vm: LauncherViewModel) {
                 }
             }
         }
+
+        Section("app icon shape")
+        RetroText(
+            "**Follow palette** (the default) gives every theme the icon shape that desktop really " +
+                "uses: Windows 95 the square beveled button with its navy trim, Windows 11 the soft " +
+                "rounded square, Aqua the glossy rounded tile with a pale edge, Ubuntu the rounded " +
+                "square with the orange trim, GNOME the circle with a thin ring. The e-paper palettes " +
+                "print a 1-bit tile and take their shape from the desktop style instead (Windows " +
+                "square, macOS rounded, Linux flat).\n" +
+                "Pinning a shape below overrides the theme until you pick another palette; " +
+                "`icons shape <name>` does the same from the terminal.",
+            size = 10.5f, color = p.mid, maxLines = 8,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+            RetroButton(
+                label = "Follow palette",
+                active = s.iconThemeEnum == IconTheme.AUTO,
+                modifier = Modifier.weight(1.6f),
+                onClick = { vm.setIconTheme(IconTheme.AUTO) },
+            )
+            RetroText(
+                "now: " + IconTheme.describe(s.iconThemeEnum, s.style, s.palette),
+                size = 10f, color = p.mid, maxLines = 2, modifier = Modifier.weight(1.4f),
+            )
+        }
+        IconThemeShapeChips(current = s.iconThemeEnum, palette = s.palette, onPick = { vm.setIconTheme(it) })
+        AppIconPreview(vm)
 
         Section("apps & windows")
         RetroText(
@@ -432,6 +462,96 @@ private fun PaletteChips(ids: List<PaletteId>, current: PaletteId, onPick: (Pale
                             }
                         }
                         RetroText(id.label, size = 9.5f, color = pal.ink, maxLines = 1)
+                    }
+                }
+                repeat(4 - row.size) { Box(Modifier.weight(1f)) }
+            }
+        }
+    }
+}
+
+/**
+ * The icon shapes as a row of chips: each one shows the **active palette's own colours** (paper
+ * tile, ink artwork, accent trim, theme border) so picking a shape is a decision about that theme,
+ * not about a generic preview.
+ */
+@Composable
+private fun IconThemeShapeChips(current: IconTheme, palette: PaletteId, onPick: (IconTheme) -> Unit) {
+    val p = LocalPalette.current
+    val shapes = IconTheme.entries.filter { it != IconTheme.AUTO }
+    Column(verticalArrangement = Arrangement.spacedBy(dp(6f))) {
+        shapes.chunked(4).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(dp(6f))) {
+                row.forEach { theme ->
+                    val active = current == theme
+                    // the shape of the palette itself is the one "follow palette" would use
+                    val fromPalette = IconTheme.forPalette(palette) == theme
+                    Column(
+                        Modifier
+                            .weight(1f)
+                            .border(dp(if (active) 2.4f else 1.2f), if (active) p.ink else p.mid)
+                            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                                onPick(theme)
+                            }
+                            .padding(dp(6f)),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(dp(4f)),
+                    ) {
+                        Canvas(Modifier.size(dp(30f))) {
+                            val w = size.width
+                            val inset = when (theme) {
+                                IconTheme.CLASSIC -> w * 0.06f
+                                IconTheme.ROUNDED -> w * 0.05f
+                                else -> w * 0.03f
+                            }
+                            val l = inset
+                            val r = w - inset
+                            val radius = when (theme) {
+                                IconTheme.CLASSIC -> 0f
+                                IconTheme.ROUNDED -> w * 0.20f
+                                IconTheme.FLAT -> w * 0.06f
+                                IconTheme.SQUIRCLE -> w * 0.24f
+                                IconTheme.AQUA -> w * 0.26f
+                                IconTheme.YARU -> w * 0.16f
+                                else -> 0f
+                            }
+                            val rect = androidx.compose.ui.geometry.Rect(l, l, r, r)
+                            val corner = androidx.compose.ui.geometry.CornerRadius(radius, radius)
+                            if (theme == IconTheme.CIRCLE) {
+                                drawCircle(p.paper, radius = (r - l) / 2f, center = rect.center)
+                                drawCircle(p.ink, radius = w * 0.16f, center = rect.center)
+                                drawCircle(p.edge, radius = (r - l) / 2f, center = rect.center, style = Stroke(w * 0.04f))
+                            } else {
+                                drawRoundRect(p.paper, topLeft = rect.topLeft, size = rect.size, cornerRadius = corner)
+                                if (theme == IconTheme.CLASSIC) {
+                                    drawRect(p.ink, topLeft = rect.topLeft, size = rect.size, style = Stroke(w * 0.07f))
+                                    drawRect(
+                                        p.accent,
+                                        topLeft = androidx.compose.ui.geometry.Offset(rect.left + w * 0.08f, rect.bottom - w * 0.13f),
+                                        size = androidx.compose.ui.geometry.Size(rect.width - w * 0.16f, w * 0.07f),
+                                    )
+                                } else if (theme == IconTheme.YARU) {
+                                    drawRoundRect(p.ink, topLeft = rect.topLeft, size = rect.size, cornerRadius = corner, style = Stroke(w * 0.05f))
+                                    drawRoundRect(
+                                        p.accent,
+                                        topLeft = androidx.compose.ui.geometry.Offset(rect.left + w * 0.18f, rect.bottom - w * 0.12f),
+                                        size = androidx.compose.ui.geometry.Size(rect.width - w * 0.36f, w * 0.06f),
+                                        cornerRadius = corner,
+                                    )
+                                } else if (theme == IconTheme.SQUIRCLE) {
+                                    drawRoundRect(p.edge, topLeft = rect.topLeft, size = rect.size, cornerRadius = corner, style = Stroke(w * 0.03f))
+                                } else if (theme == IconTheme.AQUA) {
+                                    drawRoundRect(p.edge, topLeft = rect.topLeft, size = rect.size, cornerRadius = corner, style = Stroke(w * 0.035f))
+                                } else {
+                                    drawRoundRect(p.ink, topLeft = rect.topLeft, size = rect.size, cornerRadius = corner, style = Stroke(w * 0.05f))
+                                }
+                            }
+                        }
+                        RetroText(theme.label, size = 9.5f, maxLines = 1)
+                        RetroText(
+                            if (fromPalette) "this theme" else theme.hint.split(",").first(),
+                            size = 8.5f, color = if (fromPalette) p.ink else p.mid, maxLines = 1,
+                        )
                     }
                 }
                 repeat(4 - row.size) { Box(Modifier.weight(1f)) }

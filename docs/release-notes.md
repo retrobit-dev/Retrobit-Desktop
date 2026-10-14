@@ -51,6 +51,36 @@ karena dua mesin itu memang berbeda, hasilnya bukan lagi "e-paper yang diberi wa
   Windows 95 tetap persegi + gradient, hanya Aqua yang pakai traffic lights, hanya tema modern yang
   rata, dan `invert` wajib melepas skin.
 
+### Tema ikon: setiap tema desktop sekarang membawa bentuk ikonnya sendiri
+Tema palet sudah punya warna dan chrome desktop aslinya; sekarang **ikonnya ikut**: bukan cuma
+berwarna, tapi juga berbentuk seperti desktop itu.
+
+| Tema | Bentuk ikon |
+| --- | --- |
+| **Windows 95** | kotak **ber-bevel**: bingkai hitam tebal, kilau kertas di sisi atas-kiri, dan **pita aksen navy** di tepi bawah seperti tombol 95 |
+| **Windows 11** | **kotak membulat** (radius 24%) tanpa garis luar, hanya hairline tipis dan kilau tipis di tepi atas |
+| **Aqua / Aqua dark** | **tile membulat** (radius 26%) dengan edge pucat, **kilau kaca** melintang di bagian atas dan bayangan lembut di kaki tile |
+| **Ubuntu** | kotak membulat dengan **trim oranye** `#E95420` di tepi bawah, khas Yaru |
+| **Adwaita** | **lingkaran** dengan cincin tipis, khas GNOME |
+
+- **Follow palette** (setelan bawaan) yang memilih: mengganti palet langsung mengganti bentuk ikon.
+  Sebelum ini setelannya bernama "Follow desktop" dan hanya melihat gaya shell.
+- **Palet e-paper tidak berubah**: tetap tile 1-bit bergaris tinta, bentuknya dari desktop style
+  (Windows kotak, macOS membulat, Linux rata) — karena palet e-paper memang tidak punya desktop
+  aslinya sendiri.
+- **Warna tile ikut tema**: plat ikon memakai muka jendela tema, garis bingkainya memakai border
+  tema (bukan warna teks), trimnya memakai aksen tema. Huruf penanda ikut membulat di bentuk baru.
+- **Bisa dipin**: di *Settings - app icon shape* ada deretan chip yang menggambar **aplikasi kamu
+  sendiri** dalam setiap bentuk (dengan warna palet aktif, dan penanda "this theme" pada bentuk yang
+  paletnya pakai). Terminal: `icons shape aqua`, `icons shape auto`, `icons` untuk status,
+  `icons accent on|off`, `icons letters on|off`.
+- **Pratinjau hidup di Settings**: satu baris menampilkan aplikasi asli kamu dalam kesembilan bentuk,
+  jadi perbedaan bevel 95 / squircle / kilau Aqua / trim Ubuntu / cincin GNOME terlihat sebelum
+  dipilih.
+- Unit test baru (`IconThemeTest`, 6 ekspektasi): setiap palet native memetakan ke bentuk desktopnya,
+  palet e-paper tidak memin apa pun, "follow palette" lebih memilih palet daripada gaya shell,
+  pilihan eksplisit selalu menang, dan daftar bentuk tetap rapi untuk baris chip.
+
 ### Jendela mengambang: aplikasi bawaan launcher tidak lagi langsung full screen
 Aplikasi **bawaan launcher** sekarang terbuka sebagai **jendela kotak di desktop**, bukan memenuhi
 layar begitu dibuka. Yang ikut pindah ke dalam jendela: **terminal, settings, notes, applications

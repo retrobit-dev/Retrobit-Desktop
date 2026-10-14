@@ -60,7 +60,10 @@ fun AboutView(vm: LauncherViewModel) {
         kv("desktop style", vm.settings.style.label + " · " + vm.settings.style.osName)
         kv("palette", vm.settings.palette.label)
         kv("wallpaper", vm.settings.wallpaper.label)
-        kv("icon mode", vm.settings.iconMode.label)
+        kv("icon mode", vm.settings.iconMode.label + " · " +
+            dev.retrobit.desktop.model.IconTheme.resolve(
+                vm.settings.iconThemeEnum, vm.settings.style, vm.settings.palette,
+            ).label)
         kv("screen", vm.shellOpen?.let { "maximized: " + it.name.lowercase() } ?: "desktop")
         kv("windows", run {
             val open = vm.openWindows
