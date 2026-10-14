@@ -71,6 +71,7 @@ import dev.retrobit.desktop.ui.theme.PixelMono
 import dev.retrobit.desktop.ui.input.LocalKeyboardRequester
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberChromeBrush
+import dev.retrobit.desktop.ui.theme.rememberPanelTexture
 
 /** Global UI scale (settings › display › scale). */
 val LocalUiScale = staticCompositionLocalOf { 1f }
@@ -158,23 +159,52 @@ fun RetroPanel(
     Box(modifier.background(bg).border(borderWidth, bc).padding(borderWidth), content = content)
 }
 
-/** Offset hard shadow rendered as a checker dither (classic e-paper print look). */
+/**
+ * Drop shadow under a panel, menu or window.
+ *
+ * The e-paper palettes print a **checker dither** (the classic 1-bit look). The native ones drop a
+ * real, soft shadow the way their desktop does — Windows 95 its hard grey offset, the modern ones a
+ * couple of translucent layers that read as a blur without costing a render effect.
+ */
 @Composable
 fun Modifier.retroShadow(offset: Dp = dp(4f), color: Color? = null): Modifier {
     val p = LocalPalette.current
-    val brush = rememberChromeBrush(ChromePattern.CHECKER, color ?: p.ink.copy(alpha = 0.9f), dp(1f))
     val d = offset
+    val skin = p.skin
+    if (skin == null) {
+        val brush = rememberChromeBrush(ChromePattern.CHECKER, color ?: p.ink.copy(alpha = 0.9f), dp(1f))
+        return this.drawBehind {
+            val o = d.toPx()
+            drawRect(brush = brush, topLeft = Offset(o, o), size = Size(size.width, size.height))
+        }
+    }
+    val flat = skin.isFlatTitle && skin.cornerDp == 0f
+    val shadow = color ?: Color.Black
     return this.drawBehind {
         val o = d.toPx()
-        drawRect(brush = brush, topLeft = Offset(o, o), size = Size(size.width, size.height))
+        if (flat) {
+            // Windows 95: one solid grey/black offset, no transparency tricks
+            drawRect(shadow.copy(alpha = 0.45f), topLeft = Offset(o, o), size = Size(size.width, size.height))
+        } else {
+            val steps = listOf(
+                o * 1.00f to 0.16f,
+                o * 0.75f to 0.10f,
+                o * 0.50f to 0.07f,
+            )
+            steps.forEach { (off, alpha) ->
+                drawRect(shadow.copy(alpha = alpha), topLeft = Offset(off, off), size = Size(size.width, size.height))
+            }
+        }
     }
 }
 
 @Composable
 fun HatchedDivider(modifier: Modifier = Modifier, thickness: Dp = dp(3f)) {
     val p = LocalPalette.current
-    val brush = rememberChromeBrush(ChromePattern.STRIPES_H, p.pattern, dp(1f))
-    Box(modifier.fillMaxWidth().height(thickness).background(brush))
+    // native themes draw a plain rule where the e-paper palettes print a hatch
+    val texture = rememberPanelTexture()
+    if (texture == null) Box(modifier.fillMaxWidth().height(dp(1f)).background(p.edge.copy(alpha = 0.45f)))
+    else Box(modifier.fillMaxWidth().height(thickness).background(texture))
 }
 
 /** Solid 1px rule, optionally double (macOS separators). */
@@ -220,14 +250,16 @@ fun RetroButton(
     onClick: () -> Unit,
 ) {
     val p = LocalPalette.current
+    // an active key is a "plate": ink in the e-paper palettes, the theme's own selection colour in
+    // the native ones, so a pressed button in Windows 95 goes navy and in Ubuntu orange
     val bg = when {
         !enabled -> p.paper
-        active -> p.ink
+        active -> p.plate
         else -> p.paper
     }
     val fg = when {
         !enabled -> p.mid
-        active -> p.paper
+        active -> p.plateText
         contentColor != null -> contentColor
         else -> p.ink
     }
@@ -237,7 +269,7 @@ fun RetroButton(
             .then(if (minWidth > 0.dp) Modifier.width(minWidth) else Modifier)
             .fillMaxWidth()
             .background(bg)
-            .border(dp(1.6f), if (enabled) p.ink else p.mid)
+            .border(dp(1.6f), if (!enabled) p.mid else if (active) p.plate else p.edge)
             .then(
                 if (enabled) Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() },
@@ -250,7 +282,12 @@ fun RetroButton(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
             if (glyph != null) {
-                GlyphIcon(glyph, dp(15f))
+                GlyphIcon(
+                    glyph,
+                    dp(15f),
+                    tint = if (active) p.plateText else contentColor,
+                    clear = if (active) p.plate else null,
+                )
                 Spacer(Modifier.width(dp(6f)))
             }
             if (label.isNotEmpty()) {
@@ -282,8 +319,8 @@ fun RetroIconButton(
     Box(
         modifier = modifier
             .size(boxSize)
-            .background(if (active) p.ink else p.paper)
-            .border(dp(1.4f), if (enabled) p.ink else p.mid)
+            .background(if (active) p.plate else p.paper)
+            .border(dp(1.4f), if (!enabled) p.mid else if (active) p.plate else p.edge)
             .then(
                 if (enabled) Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick,
@@ -292,9 +329,14 @@ fun RetroIconButton(
         contentAlignment = Alignment.Center,
     ) {
         if (glyph != null) {
-            GlyphIcon(glyph, boxSize * 0.62f)
+            GlyphIcon(
+                glyph,
+                boxSize * 0.62f,
+                tint = if (active) p.plateText else null,
+                clear = if (active) p.plate else null,
+            )
         } else if (label != null) {
-            RetroText(label, color = if (active) p.paper else if (enabled) p.ink else p.mid, size = 11f, display = true)
+            RetroText(label, color = if (active) p.plateText else if (enabled) p.ink else p.mid, size = 11f, display = true)
         }
     }
 }
@@ -327,7 +369,7 @@ fun RetroTextField(
     Box(
         modifier
             .background(fill ?: p.paper)
-            .border(dp(1.6f), if (enabled) p.ink else p.mid)
+            .border(dp(1.6f), if (enabled) p.edge else p.mid)
             .padding(horizontal = dp(8f), vertical = dp(7f)),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -375,11 +417,11 @@ fun Tag(text: String, modifier: Modifier = Modifier, inverted: Boolean = false) 
     val p = LocalPalette.current
     Box(
         modifier
-            .background(if (inverted) p.ink else p.paper)
-            .border(dp(1.2f), p.ink)
+            .background(if (inverted) p.plate else p.paper)
+            .border(dp(1.2f), p.edge)
             .padding(horizontal = dp(5f), vertical = dp(1f)),
     ) {
-        RetroText(text, color = if (inverted) p.paper else p.ink, size = 10f)
+        RetroText(text, color = if (inverted) p.plateText else p.ink, size = 10f)
     }
 }
 
@@ -416,11 +458,15 @@ fun MarqueeText(text: String, modifier: Modifier = Modifier, size: Float = 12f, 
     )
 }
 
-/** Dotted scanline overlay to sell the e-paper panel look. */
+/**
+ * Dotted scanline overlay to sell the e-paper panel look. The native themes skip it: a real desktop
+ * has no scanlines over it.
+ */
 @Composable
 fun Scanlines(modifier: Modifier = Modifier, alpha: Float = 0.05f) {
     val p = LocalPalette.current
-    val brush: Brush = rememberChromeBrush(ChromePattern.STRIPES_H, p.ink.copy(alpha = alpha), dp(2f))
+    if (p.isNative) return
+    val brush = rememberChromeBrush(ChromePattern.STRIPES_H, p.ink.copy(alpha = alpha), dp(2f))
     Box(modifier.fillMaxSize().background(brush))
 }
 

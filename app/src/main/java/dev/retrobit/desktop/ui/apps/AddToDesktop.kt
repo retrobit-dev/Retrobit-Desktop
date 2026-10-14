@@ -75,7 +75,7 @@ fun AddToDesktopDialog(vm: LauncherViewModel) {
                 .padding(end = dp(4f), bottom = dp(4f))
                 .retroShadow(dp(4f))
                 .background(p.paper)
-                .border(dp(2f), p.ink),
+                .border(dp(2f), p.edge),
         ) {
             // ── title bar ─────────────────────────────────────────────────────────
             Row(
@@ -86,7 +86,7 @@ fun AddToDesktopDialog(vm: LauncherViewModel) {
                 RetroText("add to desktop", size = 12f, weight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 RetroButton(label = "close", minWidth = dp(56f)) { vm.appPicker = false }
             }
-            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
 
             // ── widgets ───────────────────────────────────────────────────────────
             Column(
@@ -111,7 +111,7 @@ fun AddToDesktopDialog(vm: LauncherViewModel) {
                     }
                 }
             }
-            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
 
             // ── apps ──────────────────────────────────────────────────────────────
             Column(
@@ -139,7 +139,7 @@ fun AddToDesktopDialog(vm: LauncherViewModel) {
             LazyColumn(Modifier.fillMaxWidth().height(dp(210f)).padding(horizontal = dp(6f))) {
                 items(apps, key = { it.key }) { app -> AddRow(vm, app) }
             }
-            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
             Row(
                 Modifier.fillMaxWidth().padding(dp(8f)),
                 horizontalArrangement = Arrangement.spacedBy(dp(6f)),
@@ -170,7 +170,7 @@ private fun AddRow(vm: LauncherViewModel, app: AppEntry) {
             .fillMaxWidth()
             .padding(vertical = dp(2f))
             .background(if (onDesktop) p.soft else p.paper)
-            .border(dp(1f), p.ink)
+            .border(dp(1f), p.edge)
             .padding(dp(4f)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(6f)),

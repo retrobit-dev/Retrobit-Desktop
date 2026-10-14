@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.toArgb
+import kotlin.math.roundToInt
 
 enum class WallpaperSource(val label: String) {
     PATTERN("Pattern"),
@@ -112,6 +113,33 @@ class WallpaperRepository(private val context: Context) {
                 }
                 WallpaperTone.SOFT -> ramp[(4 - (l * 4f).toInt()).coerceIn(0, 4)]
             }
+        }
+        val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        bmp.setPixels(out, 0, w, 0, 0, w, h)
+        return bmp.asImageBitmap()
+    }
+
+    /**
+     * Wallpaper for a **native** theme: the picture keeps its real colours instead of being printed
+     * as e-paper. It is only posterised a little (16 levels per channel) so a photo still reads as
+     * part of a retro desktop, and rendered larger than the print version because colour can carry
+     * the extra detail.
+     */
+    fun renderColor(src: Bitmap, cells: Int = 520, posterise: Int = 16): ImageBitmap {
+        val aspect = src.height.toFloat() / src.width.coerceAtLeast(1)
+        val w = cells.coerceIn(64, 1080)
+        val h = (w * aspect).toInt().coerceIn(48, 1400)
+        val small = Bitmap.createScaledBitmap(src, w, h, true)
+        val px = IntArray(w * h)
+        small.getPixels(px, 0, w, 0, 0, w, h)
+        val steps = (posterise - 1).coerceAtLeast(1).toFloat()
+        val out = IntArray(w * h) { i ->
+            val p = px[i]
+            val r = (((p shr 16) and 0xFF) / 255f * steps).roundToInt() * 255 / steps.toInt()
+            val g = (((p shr 8) and 0xFF) / 255f * steps).roundToInt() * 255 / steps.toInt()
+            val b = ((p and 0xFF) / 255f * steps).roundToInt() * 255 / steps.toInt()
+            val a = (p ushr 24) and 0xFF
+            (a shl 24) or (r.coerceIn(0, 255) shl 16) or (g.coerceIn(0, 255) shl 8) or b.coerceIn(0, 255)
         }
         val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
         bmp.setPixels(out, 0, w, 0, 0, w, h)

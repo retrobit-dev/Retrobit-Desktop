@@ -153,11 +153,15 @@ fun AppIconTile(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(dp(5f)),
     ) {
+        // selected: the e-paper palettes invert the icon (ink plate), a native theme paints the
+        // selection colour of its desktop behind it (navy on Windows 95, system blue on Aqua)
+        val plate = p.skin?.highlight ?: p.ink
+        val plateEdge = p.skin?.highlight ?: p.ink
         Box(
             Modifier
                 .size(iconSize + dp(6f))
-                .background(if (selected) p.ink else Color.Transparent)
-                .then(if (selected) Modifier.border(dp(1.5f), p.ink) else Modifier),
+                .background(if (selected) plate else Color.Transparent)
+                .then(if (selected) Modifier.border(dp(1.5f), plateEdge) else Modifier),
             contentAlignment = Alignment.Center,
         ) {
             if (icon != null) {
@@ -177,18 +181,34 @@ fun AppIconTile(
             }
         }
         if (showLabel && labelsEnabled) {
-            // name chip: on e-paper a printed plate behind the name is far easier to read
-            RetroText(
-                text = app.label,
-                size = labelSize,
-                color = if (selected) p.paper else p.ink,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier
-                    .background(if (selected) p.ink else p.paper)
-                    .border(dp(1f), if (selected) p.paper else p.ink.copy(alpha = 0.45f))
-                    .padding(horizontal = dp(4f), vertical = dp(1f)),
-            )
+            val skin = p.skin
+            if (skin != null) {
+                // native desktops print a label straight on the desktop and highlight the whole
+                // plate when the icon is selected (Windows 95: white on teal, navy when picked)
+                RetroText(
+                    text = app.label,
+                    size = labelSize,
+                    color = if (selected) skin.highlightText else skin.deskText,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .background(if (selected) skin.highlight else Color.Transparent)
+                        .padding(horizontal = dp(4f), vertical = dp(1f)),
+                )
+            } else {
+                // name chip: on e-paper a printed plate behind the name is far easier to read
+                RetroText(
+                    text = app.label,
+                    size = labelSize,
+                    color = if (selected) p.plateText else p.ink,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .background(if (selected) p.plate else p.paper)
+                        .border(dp(1f), if (selected) p.plate else p.ink.copy(alpha = 0.45f))
+                        .padding(horizontal = dp(4f), vertical = dp(1f)),
+                )
+            }
         }
     }
 }
@@ -249,7 +269,7 @@ fun AppIconRow(
         contentAlignment = Alignment.Center,
     ) {
         androidx.compose.foundation.layout.Row(
-            modifier = Modifier.background(if (active) p.ink else Color.Transparent).padding(dp(4f)),
+            modifier = Modifier.background(if (active) p.plate else Color.Transparent).padding(dp(4f)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dp(7f)),
         ) {
@@ -271,14 +291,17 @@ fun DragGhost(size: Dp = dp(60f)) {
     val drag = LocalDragState.current
     val p = LocalPalette.current
     val info = drag.info ?: return
-    val icon = rememberAppIcon(info.app, inverted = true)
+    // e-paper drags an inverted print of the icon on an ink plate; a native theme drags the real
+    // colour icon on a plate in its own selection colour
+    val native = p.skin != null
+    val icon = rememberAppIcon(info.app, inverted = !native)
     Box(
         Modifier
             .offsetTo(info.position.x - with(androidx.compose.ui.platform.LocalDensity.current) { size.toPx() } / 2f,
                 info.position.y - with(androidx.compose.ui.platform.LocalDensity.current) { size.toPx() } / 2f)
             .size(size)
-            .background(p.ink)
-            .border(dp(2f), p.paper),
+            .background(p.plate)
+            .border(dp(2f), if (native) p.plate else p.plateText),
         contentAlignment = Alignment.Center,
     ) {
         if (icon != null) {

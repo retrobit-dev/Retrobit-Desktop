@@ -258,7 +258,9 @@ fun DockInsertMarker(slots: DockSlots, horizontal: Boolean) {
         Modifier
             .offset { IntOffset((center.x - 14f).toInt(), (center.y - 1.5f).toInt()) }
             .size(if (horizontal) dp(28f) else dp(3f), if (horizontal) dp(3f) else dp(30f))
-            .background(p.ink),
+            // the marker of the running/selected icon: ink on e-paper, the desktop's own
+            // selection colour on a native theme (navy in Windows 95, blue in Aqua, ...)
+            .background(p.plate),
     )
 }
 
@@ -275,8 +277,8 @@ fun WorkspacePager(vm: LauncherViewModel, modifier: Modifier = Modifier, boxSize
             Box(
                 Modifier
                     .size(boxSize)
-                    .background(if (active) p.ink else p.paper)
-                    .border(dp(1.3f), p.ink)
+                    .background(if (active) p.plate else p.paper)
+                    .border(dp(1.3f), p.edge)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
@@ -304,7 +306,7 @@ fun StyleChip(vm: LauncherViewModel, compact: Boolean = false) {
     val current = vm.settings.style
     Row(
         Modifier
-            .border(dp(1.2f), p.ink)
+            .border(dp(1.2f), p.edge)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                 vm.openMenu(
                     dev.retrobit.desktop.ui.MenuRequest(
@@ -352,8 +354,8 @@ fun TrayButton(glyph: Glyph, active: Boolean = false, onClick: () -> Unit) {
     Box(
         Modifier
             .size(dp(24f))
-            .background(if (active) p.ink else p.paper)
-            .border(dp(1.2f), p.ink)
+            .background(if (active) p.plate else p.paper)
+            .border(dp(1.2f), p.edge)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {

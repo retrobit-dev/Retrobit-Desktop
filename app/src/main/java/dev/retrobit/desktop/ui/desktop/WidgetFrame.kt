@@ -191,15 +191,15 @@ fun WidgetSlot(
                     Modifier
                         .align(Alignment.TopStart)
                         .offset(y = (-20).dp)
-                        .background(p.ink)
+                        .background(p.plate)
                         .padding(horizontal = dp(4f), vertical = dp(1f)),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(dp(3f)),
                 ) {
-                    RetroText(id.label, size = 10f, weight = FontWeight.Bold, color = p.paper, maxLines = 1)
+                    RetroText(id.label, size = 10f, weight = FontWeight.Bold, color = p.plateText, maxLines = 1)
                     RetroText(
                         if (height > 0f) "${width.roundToInt()}x${height.roundToInt()}" else "${width.roundToInt()}w",
-                        size = 9f, color = p.paper, maxLines = 1,
+                        size = 9f, color = p.plateText, maxLines = 1,
                     )
                 }
             }
@@ -221,7 +221,7 @@ fun WidgetSlot(
                         .align(Alignment.BottomStart)
                         .offset(y = 16.dp)
                         .background(p.paper)
-                        .border(dp(1.2f), p.ink)
+                        .border(dp(1.2f), p.edge)
                         .padding(horizontal = dp(4f)),
                 ) {
                     RetroText(
@@ -284,7 +284,7 @@ private fun AddWidgetBar(vm: LauncherViewModel, modifier: Modifier = Modifier) {
         modifier
             .width(dp(250f))
             .background(p.paper)
-            .border(dp(1.6f), p.ink)
+            .border(dp(1.6f), p.edge)
             .padding(dp(7f)),
         verticalArrangement = Arrangement.spacedBy(dp(5f)),
     ) {

@@ -30,7 +30,7 @@ import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
-import dev.retrobit.desktop.ui.theme.rememberChromeBrush
+import dev.retrobit.desktop.ui.theme.rememberPanelTexture
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -46,13 +46,14 @@ fun WidgetCard(
     content: @Composable () -> Unit,
 ) {
     val p = LocalPalette.current
-    val hatch = rememberChromeBrush(ChromePattern.STRIPES_H, p.pattern, dp(1f))
+    // native themes print a flat header bar instead of the e-paper hatch
+    val hatch = rememberPanelTexture()
     Column(
         modifier
             .width(width)
             .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
             .background(p.paper)
-            .border(dp(1.6f), p.ink)
+            .border(dp(1.6f), p.edge)
             .then(
                 if (onClick != null) Modifier.clickable(
                     interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick,
@@ -60,14 +61,21 @@ fun WidgetCard(
             ),
     ) {
         Row(
-            Modifier.fillMaxWidth().height(dp(20f)).background(hatch).padding(horizontal = dp(6f)),
+            Modifier
+                .fillMaxWidth()
+                .height(dp(20f))
+                .then(
+                    if (hatch != null) Modifier.background(hatch)
+                    else Modifier.background(p.soft)
+                )
+                .padding(horizontal = dp(6f)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dp(6f)),
         ) {
             GlyphIcon(glyph, dp(12f))
             RetroText(title, size = 11f, weight = FontWeight.Bold, maxLines = 1)
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.edge))
         Column(Modifier.padding(dp(9f)), verticalArrangement = Arrangement.spacedBy(dp(6f))) { content() }
     }
 }

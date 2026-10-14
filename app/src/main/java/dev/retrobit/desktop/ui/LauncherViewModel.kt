@@ -182,7 +182,9 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 if (raw == null) null
                 else {
                     val cropped = wallpaperRepo.cropToAspect(raw, aspect)
-                    wallpaperRepo.render(cropped, palette.paper, palette.ink, tone, cells = 260)
+                    // a native theme keeps the picture in colour; the e-paper palettes print it
+                    if (palette.isNative) wallpaperRepo.renderColor(cropped)
+                    else wallpaperRepo.render(cropped, palette.paper, palette.ink, tone, cells = 260)
                 }
             }
             wallpaperImage = result
@@ -885,6 +887,12 @@ class LauncherViewModel(app: Application) : AndroidViewModel(app) {
                 settings.style = style
                 shell.print("desktop style -> ${style.label} · ${style.tagline}")
             }
+        }
+        // a native desktop shows its app icons in colour, the e-paper palettes print them 1-bit
+        val wantedIcons = if (p.native) IconMode.COLOR else IconMode.MONO
+        if (settings.iconMode != wantedIcons) {
+            settings.iconMode = wantedIcons
+            shell.print("app icons -> ${wantedIcons.label.lowercase()} (part of the theme; change it any time)")
         }
         shell.print(
             "palette -> ${p.label}" +

@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import dev.retrobit.desktop.ui.theme.LocalPalette
 
@@ -453,8 +454,18 @@ enum class Glyph(vararg raw: String) {
     }
 }
 
+/**
+ * A 16x16 pixel-art glyph in the palette's ink. [tint] overrides the ink and [clear] the paper, so a
+ * glyph can be printed on a plate (a selected row, an active button) in the plate's own colours.
+ */
 @Composable
-fun GlyphIcon(glyph: Glyph, iconSize: Dp, modifier: Modifier = Modifier) {
+fun GlyphIcon(
+    glyph: Glyph,
+    iconSize: Dp,
+    modifier: Modifier = Modifier,
+    tint: Color? = null,
+    clear: Color? = null,
+) {
     val p = LocalPalette.current
     Canvas(modifier.size(iconSize)) {
         val cell = this.size.width / 16f
@@ -462,8 +473,8 @@ fun GlyphIcon(glyph: Glyph, iconSize: Dp, modifier: Modifier = Modifier) {
         glyph.rows.forEachIndexed { y, row ->
             row.forEachIndexed { x, ch ->
                 val c = when (ch) {
-                    '#' -> p.ink
-                    'o' -> p.paper
+                    '#' -> tint ?: p.ink
+                    'o' -> clear ?: p.paper
                     '+' -> p.mid
                     else -> null
                 }

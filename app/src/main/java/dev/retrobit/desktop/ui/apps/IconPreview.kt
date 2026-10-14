@@ -50,7 +50,7 @@ fun AppIconPreview(vm: LauncherViewModel) {
 
     Column(verticalArrangement = Arrangement.spacedBy(dp(7f))) {
         Row(
-            Modifier.fillMaxWidth().background(p.soft).border(dp(1.4f), p.ink).padding(dp(8f)),
+            Modifier.fillMaxWidth().background(p.soft).border(dp(1.4f), p.edge).padding(dp(8f)),
             horizontalArrangement = Arrangement.spacedBy(dp(8f)),
         ) {
             if (apps.isEmpty()) {

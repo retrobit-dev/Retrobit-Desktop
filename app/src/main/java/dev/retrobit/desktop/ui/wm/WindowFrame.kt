@@ -27,11 +27,12 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
@@ -49,12 +50,12 @@ import dev.retrobit.desktop.ui.components.DitherTitleBar
 import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroText
+import dev.retrobit.desktop.ui.components.retroShadow
 import dev.retrobit.desktop.ui.components.dp
 import dev.retrobit.desktop.ui.desktop.ShellContent
-import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
+import dev.retrobit.desktop.ui.theme.NativeSkin
 import dev.retrobit.desktop.ui.theme.ditherGradient
-import dev.retrobit.desktop.ui.theme.rememberChromeBrush
 import kotlin.math.roundToInt
 
 /**
@@ -130,9 +131,21 @@ private fun Modifier.dragByTitleBar(win: WinState, wm: WindowManager): Modifier 
 fun WindowFrame(win: WinState, wm: WindowManager) {
     val p = LocalPalette.current
     val style = dev.retrobit.desktop.ui.theme.LocalDesktopStyle.current
+    val skin = p.skin
     val focused = wm.focusedId == win.id
     val density = LocalDensity.current
-    val titleH = dp(24f + 6f)
+    // real desktops have their own title bar height: Windows 95 is short and square, macOS and
+    // GNOME are taller, and the e-paper palettes keep the print height
+    val titleH = when {
+        skin == null -> dp(24f + 6f)
+        skin.trafficLights -> dp(28f)
+        skin.isFlatTitle -> dp(32f)
+        else -> dp(24f)
+    }
+    // only the top corners are rounded, like every desktop window ever
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(
+        topStart = dp(p.cornerDp), topEnd = dp(p.cornerDp),
+    )
 
     // the outer box is the window plus a grab margin, so every edge can be dragged from outside
     val grab = rawPx(HandleGrabDp, density)
@@ -148,15 +161,27 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
             Modifier
                 .offset { IntOffset(grab.roundToInt(), grab.roundToInt()) }
                 .size(with(density) { win.width.toDp() }, with(density) { win.height.toDp() })
-                .then(if (focused) Modifier.retroShadowOffset(dp(5f)) else Modifier)
+                .then(if (focused) Modifier.retroShadow(dp(if (skin != null) 6f else 5f)) else Modifier)
+                .clip(shape)
                 .background(p.paper)
-                .border(dp(if (focused) 2.4f else 1.4f), if (focused) p.ink else p.mid),
+                .border(
+                    width = when {
+                        skin == null -> dp(if (focused) 2.4f else 1.4f)
+                        // Windows 95 frames its windows with a hard black box, the modern ones
+                        // barely draw a line at all
+                        skin.cornerDp == 0f -> dp(2f)
+                        else -> dp(1f)
+                    },
+                    color = if (skin == null && !focused) p.mid else p.edge,
+                    shape = shape,
+                ),
         ) {
             Column(Modifier.fillMaxSize()) {
-                when (style) {
-                    DesktopStyle.MACOS -> MacTitleBar(win, wm, focused, titleH)
-                    DesktopStyle.WINDOWS -> Win95TitleBar(win, wm, focused, titleH)
-                    DesktopStyle.LINUX -> LinuxTitleBar(win, wm, focused, titleH)
+                when {
+                    skin != null -> NativeTitleBar(skin, win, wm, focused, titleH)
+                    style == DesktopStyle.MACOS -> MacTitleBar(win, wm, focused, titleH)
+                    style == DesktopStyle.WINDOWS -> Win95TitleBar(win, wm, focused, titleH)
+                    else -> LinuxTitleBar(win, wm, focused, titleH)
                 }
                 Box(
                     Modifier
@@ -192,19 +217,6 @@ private fun keyboardPadInside(windowHeight: Float, density: Density): Dp {
 }
 
 @Composable
-private fun Modifier.retroShadowOffset(offset: Dp): Modifier {
-    val p = LocalPalette.current
-    val brush = rememberChromeBrush(ChromePattern.CHECKER, p.ink.copy(alpha = 0.85f), dp(1f))
-    return this.drawBehindBrush(brush, offset)
-}
-
-private fun Modifier.drawBehindBrush(brush: Brush, offset: Dp): Modifier =
-    this.drawBehind {
-        val o = offset.toPx()
-        drawRect(brush, topLeft = Offset(o, o), size = Size(size.width, size.height))
-    }
-
-@Composable
 private fun TitleLabel(win: WinState, focused: Boolean, color: Color? = null) {
     val p = LocalPalette.current
     RetroText(
@@ -228,6 +240,176 @@ fun glyphFor(kind: WinKind): Glyph = when (kind) {
     WinKind.TERMINAL -> Glyph.TERMINAL
 }
 
+/**
+ * The title bar of a **native** theme, in the colours of the desktop it copies:
+ *
+ *  · Windows 95 - the navy→blue gradient, bold white title, three beveled grey boxes on the right;
+ *  · Windows 11 - a flat Mica bar, white title and three small flat buttons;
+ *  · Aqua / Aqua dark - a light or graphite gradient with the red/amber/green traffic lights;
+ *  · Ubuntu / Adwaita - a dark or flat headerbar with round buttons, Ubuntu's close button in a
+ *    red circle. Everything the e-paper bars do (drag, double tap, raise, live size) still works.
+ */
+@Composable
+private fun NativeTitleBar(
+    skin: NativeSkin,
+    win: WinState,
+    wm: WindowManager,
+    focused: Boolean,
+    height: Dp,
+) {
+    val gradient = remember(skin, focused) {
+        val top = if (focused) skin.titleTop else lerp(skin.titleTop, skin.window, 0.55f)
+        val bottom = if (focused) skin.titleBottom else lerp(skin.titleBottom, skin.window, 0.55f)
+        if (top == bottom) androidx.compose.ui.graphics.SolidColor(top)
+        else Brush.verticalGradient(listOf(top, bottom))
+    }
+    val textColor = if (focused) skin.titleText else skin.titleText.copy(alpha = 0.65f)
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .background(gradient)
+            .raiseOnPress(win, wm)
+            .maximizeOnDoubleTap(win, wm)
+            .dragByTitleBar(win, wm),
+    ) {
+        if (skin.trafficLights) {
+            Row(
+                Modifier.align(Alignment.CenterStart).padding(start = dp(10f)),
+                horizontalArrangement = Arrangement.spacedBy(dp(8f)),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                TrafficLight(Sym.CLOSE, tone = TrafficTone.CLOSE, onClick = { wm.close(win.id) })
+                TrafficLight(Sym.MIN, tone = TrafficTone.MIN, onClick = { wm.minimize(win.id) })
+                TrafficLight(Sym.MAX, tone = TrafficTone.MAX, onClick = { wm.toggleMaximize(win.id) })
+            }
+            Box(Modifier.fillMaxSize().padding(horizontal = dp(84f)), contentAlignment = Alignment.Center) {
+                TitleLabel(win, focused, textColor)
+            }
+        } else {
+            Row(
+                Modifier.fillMaxSize().padding(horizontal = dp(6f)),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(dp(6f)),
+            ) {
+                GlyphIcon(glyphFor(win.kind), dp(12f))
+                Box(Modifier.weight(1f)) { TitleLabel(win, focused, textColor) }
+                if (wm.resizingId == win.id) {
+                    RetroText("${win.width.toInt()}x${win.height.toInt()}", size = 9.5f, color = textColor, maxLines = 1)
+                }
+                if (skin.flatButtons) {
+                    // Windows 11 / GNOME: three small flat discs instead of beveled boxes
+                    FlatWindowButton(Sym.MIN, skin, onClick = { wm.minimize(win.id) })
+                    FlatWindowButton(Sym.MAX, skin, onClick = { wm.toggleMaximize(win.id) })
+                    FlatWindowButton(Sym.CLOSE, skin, onClick = { wm.close(win.id) })
+                } else {
+                    // Windows 95: silver boxes with a bevelled edge and black glyphs
+                    BevelButton(Sym.MIN, skin, onClick = { wm.minimize(win.id) })
+                    BevelButton(Sym.MAX, skin, onClick = { wm.toggleMaximize(win.id) })
+                    BevelButton(Sym.CLOSE, skin, onClick = { wm.close(win.id) })
+                }
+            }
+        }
+        // the status line under the title bar that GNOME / macOS draw
+        Canvas(Modifier.fillMaxWidth().height(dp(1f)).align(Alignment.BottomCenter)) {
+            drawRect(skin.border.copy(alpha = if (focused) 0.85f else 0.45f))
+        }
+    }
+}
+
+/** Which of the three traffic lights this is: macOS colours them red, amber and green. */
+enum class TrafficTone { CLOSE, MIN, MAX }
+
+@Composable
+private fun TrafficLight(sym: Sym, tone: TrafficTone, onClick: () -> Unit) {
+    val colour = when (tone) {
+        TrafficTone.CLOSE -> Color(0xFFFF5F57)
+        TrafficTone.MIN -> Color(0xFFFEBC2E)
+        TrafficTone.MAX -> Color(0xFF28C840)
+    }
+    Box(
+        Modifier
+            .size(dp(13f))
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .background(colour)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val c = center
+            val r = size.minDimension * 0.20f
+            val ink = Color.Black.copy(alpha = 0.65f)
+            when (sym) {
+                Sym.CLOSE -> {
+                    drawLine(ink, Offset(c.x - r, c.y - r), Offset(c.x + r, c.y + r), 1.5f)
+                    drawLine(ink, Offset(c.x + r, c.y - r), Offset(c.x - r, c.y + r), 1.5f)
+                }
+                Sym.MIN -> drawRect(ink, Offset(c.x - r * 1.4f, c.y - 0.8f), Size(r * 2.8f, 1.6f))
+                Sym.MAX -> drawRect(ink, Offset(c.x - r, c.y - r), Size(r * 2f, r * 2f), style = Stroke(1.4f))
+            }
+        }
+    }
+}
+
+/** Windows 95 / classic: a grey box with a light top-left and a dark bottom-right bevel. */
+@Composable
+private fun BevelButton(sym: Sym, skin: NativeSkin, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .size(dp(17f))
+            .background(skin.buttonFace)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val light = Color.White
+            val dark = Color.Black.copy(alpha = 0.55f)
+            drawLine(light, Offset(0f, 0f), Offset(size.width, 0f), 1.2f)
+            drawLine(light, Offset(0f, 0f), Offset(0f, size.height), 1.2f)
+            drawLine(dark, Offset(0f, size.height - 1f), Offset(size.width, size.height - 1f), 1.2f)
+            drawLine(dark, Offset(size.width - 1f, 0f), Offset(size.width - 1f, size.height), 1.2f)
+            val c = center
+            val r = size.minDimension * 0.22f
+            when (sym) {
+                Sym.CLOSE -> {
+                    drawLine(skin.buttonText, Offset(c.x - r, c.y - r), Offset(c.x + r, c.y + r), 1.7f)
+                    drawLine(skin.buttonText, Offset(c.x + r, c.y - r), Offset(c.x - r, c.y + r), 1.7f)
+                }
+                Sym.MIN -> drawRect(skin.buttonText, Offset(c.x - r * 1.2f, c.y + r * 0.6f), Size(r * 2.4f, 1.8f))
+                Sym.MAX -> drawRect(skin.buttonText, Offset(c.x - r, c.y - r), Size(r * 2f, r * 2f), style = Stroke(1.7f))
+            }
+        }
+    }
+}
+
+/** Windows 11 / GNOME: a small flat disc that lights up under the glyph. */
+@Composable
+private fun FlatWindowButton(sym: Sym, skin: NativeSkin, onClick: () -> Unit) {
+    val tint = if (sym == Sym.CLOSE) Color(0xFFE81123) else skin.highlight
+    Box(
+        Modifier
+            .size(dp(22f))
+            .clip(androidx.compose.foundation.shape.CircleShape)
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val r = size.minDimension * 0.20f
+            val c = center
+            when (sym) {
+                Sym.CLOSE -> {
+                    drawLine(skin.buttonText, Offset(c.x - r, c.y - r), Offset(c.x + r, c.y + r), 1.5f)
+                    drawLine(skin.buttonText, Offset(c.x + r, c.y - r), Offset(c.x - r, c.y + r), 1.5f)
+                }
+                Sym.MIN -> drawRect(skin.buttonText, Offset(c.x - r * 1.2f, c.y - 0.8f), Size(r * 2.4f, 1.6f))
+                Sym.MAX -> drawRect(skin.buttonText, Offset(c.x - r, c.y - r), Size(r * 2f, r * 2f), style = Stroke(1.5f))
+            }
+            // the accent dot every GNOME window button keeps in the corner
+            drawCircle(tint.copy(alpha = 0.9f), radius = 1.6f, center = Offset(size.width - 4f, size.height - 4f))
+        }
+    }
+}
+
 @Composable
 private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, height: Dp) {
     val p = LocalPalette.current
@@ -235,7 +417,7 @@ private fun LinuxTitleBar(win: WinState, wm: WindowManager, focused: Boolean, he
         Modifier
             .fillMaxWidth()
             .height(height)
-            .background(if (focused) p.ink else p.soft)
+            .background(if (focused) p.plate else p.soft)
             .raiseOnPress(win, wm)
             .maximizeOnDoubleTap(win, wm)
             .dragByTitleBar(win, wm)
@@ -314,9 +496,9 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
                 horizontalArrangement = Arrangement.spacedBy(dp(7f)),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                TrafficLight(Sym.CLOSE, onClick = { wm.close(win.id) })
-                TrafficLight(Sym.MIN, onClick = { wm.minimize(win.id) })
-                TrafficLight(Sym.MAX, onClick = { wm.toggleMaximize(win.id) })
+                PrintTrafficLight(Sym.CLOSE, onClick = { wm.close(win.id) })
+                PrintTrafficLight(Sym.MIN, onClick = { wm.minimize(win.id) })
+                PrintTrafficLight(Sym.MAX, onClick = { wm.toggleMaximize(win.id) })
             }
         }
         Canvas(Modifier.fillMaxWidth().height(dp(1f))) {
@@ -326,7 +508,7 @@ private fun MacTitleBar(win: WinState, wm: WindowManager, focused: Boolean, heig
 }
 
 @Composable
-private fun TrafficLight(sym: Sym, onClick: () -> Unit) {
+private fun PrintTrafficLight(sym: Sym, onClick: () -> Unit) {
     val p = LocalPalette.current
     Box(
         Modifier

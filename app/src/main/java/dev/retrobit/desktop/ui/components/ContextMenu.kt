@@ -73,7 +73,7 @@ fun ContextMenu(
             Column(
                 Modifier
                     .background(p.paper)
-                    .border(dp(2f), p.ink)
+                    .border(dp(2f), p.edge)
                     .padding(vertical = dp(5f)),
             ) {
                 items.forEach { item ->

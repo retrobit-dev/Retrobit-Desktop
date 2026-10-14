@@ -51,7 +51,7 @@ import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
-import dev.retrobit.desktop.ui.theme.rememberChromeBrush
+import dev.retrobit.desktop.ui.theme.rememberPanelTexture
 import dev.retrobit.desktop.ui.wm.DockSlots
 import dev.retrobit.desktop.ui.wm.LocalDragState
 import dev.retrobit.desktop.ui.wm.ShellMetrics
@@ -71,8 +71,8 @@ private fun TaskButton(vm: LauncherViewModel, win: WinState) {
     Row(
         Modifier
             .height(dp(34f))
-            .background(if (active) p.ink else p.paper)
-            .border(dp(1.4f), p.ink)
+            .background(if (active) p.plate else p.paper)
+            .border(dp(1.4f), p.edge)
             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
                 vm.showWindow(win)
             }
@@ -143,16 +143,18 @@ fun WindowsShell(vm: LauncherViewModel) {
                     .width(dp(420f))
                     .fillMaxHeight(0.62f)
                     .background(p.paper)
-                    .border(dp(2.4f), p.ink)
+                    .border(dp(2.4f), p.edge)
                     .retroShadow(dp(6f))
                     .onGloballyPositioned { drag.sidebarBounds = it.boundsInRoot() },
             ) {
                 Column(Modifier.fillMaxSize()) {
-                    Row(Modifier.fillMaxWidth().height(dp(38f)).background(p.ink).padding(horizontal = dp(10f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
-                        GlyphIcon(Glyph.LOGO, dp(18f))
-                        RetroText("Retrobit 95", size = 15f, display = true, weight = FontWeight.Bold, color = p.paper)
+                    // the banner of the start menu: printed ink on e-paper, the desktop's own
+                    // highlight on a native theme (the real Windows 95 start menu is navy too)
+                    Row(Modifier.fillMaxWidth().height(dp(38f)).background(p.plate).padding(horizontal = dp(10f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+                        GlyphIcon(Glyph.LOGO, dp(18f), tint = p.plateText, clear = p.plate)
+                        RetroText("Retrobit 95", size = 15f, display = true, weight = FontWeight.Bold, color = p.plateText)
                         Spacer(Modifier.weight(1f))
-                        RetroText("${vm.settings.userName}", size = 11f, color = p.paper)
+                        RetroText("${vm.settings.userName}", size = 11f, color = p.plateText)
                     }
                     Row(Modifier.weight(1f)) {
                         Column(Modifier.weight(1.2f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(dp(8f)), verticalArrangement = Arrangement.spacedBy(dp(6f))) {
@@ -190,14 +192,14 @@ fun WindowsShell(vm: LauncherViewModel) {
         }
 
         // ── taskbar ───────────────────────────────────────────────────────────────
-        val hatch = rememberChromeBrush(ChromePattern.STRIPES_H, p.pattern, dp(1f))
+        val hatch = rememberPanelTexture()
         Row(
             Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(dp(44f))
                 .background(p.paper)
-                .border(dp(1.6f), p.ink)
+                .border(dp(1.6f), p.edge)
                 .onGloballyPositioned { drag.dockBounds = it.boundsInRoot() }
                 .padding(dp(5f)),
             verticalAlignment = Alignment.CenterVertically,
@@ -206,8 +208,8 @@ fun WindowsShell(vm: LauncherViewModel) {
             Row(
                 Modifier
                     .height(dp(34f))
-                    .background(if (vm.startMenu) p.ink else p.paper)
-                    .border(dp(1.6f), p.ink)
+                    .background(if (vm.startMenu) p.plate else p.paper)
+                    .border(dp(1.6f), p.edge)
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.startMenu = !vm.startMenu }
                     .padding(horizontal = dp(10f)),
                 verticalAlignment = Alignment.CenterVertically,
@@ -221,7 +223,7 @@ fun WindowsShell(vm: LauncherViewModel) {
             Row(
                 Modifier
                     .height(dp(38f))
-                    .border(dp(1.2f), p.ink.copy(alpha = 0.45f))
+                    .border(dp(1.2f), p.edge.copy(alpha = 0.45f))
                     .padding(horizontal = dp(3f)),
                 horizontalArrangement = Arrangement.spacedBy(dp(2f)),
                 verticalAlignment = Alignment.CenterVertically,
@@ -259,7 +261,16 @@ fun WindowsShell(vm: LauncherViewModel) {
             }
             WorkspacePager(vm, boxSize = dp(30f))
             StyleChip(vm, compact = true)
-            Row(Modifier.background(hatch).padding(horizontal = dp(8f), vertical = dp(3f)), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(dp(8f))) {
+            Row(
+                Modifier
+                    .then(
+                        if (hatch != null) Modifier.background(hatch)
+                        else Modifier.background(p.soft)
+                    )
+                    .padding(horizontal = dp(8f), vertical = dp(3f)),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(dp(8f)),
+            ) {
                 TrayStatus(vm)
                 KeyboardTrayButton(boxSize = dp(24f))
                 TrayButton(Glyph.SEARCH) { vm.spotlight = true }

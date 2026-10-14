@@ -65,7 +65,7 @@ fun TerminalView(vm: LauncherViewModel) {
                 }
             }
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
         Row(
             Modifier.fillMaxWidth().padding(dp(8f)),
             verticalAlignment = Alignment.CenterVertically,

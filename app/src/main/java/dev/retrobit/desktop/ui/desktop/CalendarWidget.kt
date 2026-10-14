@@ -69,7 +69,7 @@ fun CalendarWidget(
             .width(width)
             .then(if (height != null && height > dp(0f)) Modifier.heightIn(min = height) else Modifier)
             .background(p.paper)
-            .border(dp(1.6f), p.ink),
+            .border(dp(1.6f), p.edge),
     ) {
         // ── month + arrows, and a + that opens the inline writer ──────────────────
         Row(
@@ -83,7 +83,7 @@ fun CalendarWidget(
             RetroIconButton(label = ">", boxSize = dp(19f)) { month = month.plusMonths(1) }
             RetroIconButton(label = "+", boxSize = dp(19f), active = writing) { writing = !writing }
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.edge))
 
         // ── month grid: no boxes around the days, just the numbers and a dot ──────
         Column(Modifier.padding(horizontal = dp(6f), vertical = dp(5f)), verticalArrangement = Arrangement.spacedBy(dp(2f))) {
@@ -116,7 +116,7 @@ fun CalendarWidget(
             }
         }
 
-        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.2f)).background(p.edge))
 
         // ── one line about the selected day, then at most three entries ───────────
         Column(
@@ -227,7 +227,7 @@ fun EntryRow(
         Box(
             Modifier
                 .background(if (entry.kind == EntryKind.BIRTHDAY) p.paper else p.ink)
-                .border(dp(1f), p.ink)
+                .border(dp(1f), p.edge)
                 .padding(horizontal = dp(3f)),
         ) {
             RetroText(tag, size = 8.5f, color = if (entry.kind == EntryKind.BIRTHDAY) p.ink else p.paper, maxLines = 1)

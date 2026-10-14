@@ -101,7 +101,7 @@ fun LinuxShell(vm: LauncherViewModel) {
                 .fillMaxWidth()
                 .height(dp(30f))
                 .background(p.paper)
-                .border(dp(1.4f), p.ink)
+                .border(dp(1.4f), p.edge)
                 .padding(horizontal = dp(6f)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(dp(6f)),
@@ -142,7 +142,7 @@ fun LinuxShell(vm: LauncherViewModel) {
                 .width(dp(78f))
                 .fillMaxHeight()
                 .background(p.paper)
-                .border(dp(1.4f), p.ink)
+                .border(dp(1.4f), p.edge)
                 .onGloballyPositioned { drag.sidebarBounds = it.boundsInRoot() }
                 .padding(vertical = dp(8f)),
             horizontalAlignment = Alignment.CenterHorizontally,

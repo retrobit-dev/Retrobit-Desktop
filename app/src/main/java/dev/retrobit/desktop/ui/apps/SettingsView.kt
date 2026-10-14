@@ -77,13 +77,21 @@ fun SettingsView(vm: LauncherViewModel) {
         Section("palette")
         RetroText(
             "**E-paper**: one paper tone and one ink tone, printed with the launcher's own dither " +
-                "patterns. These are the original palettes and they fit every desktop style.\n" +
-                "**Native desktop**: the same e-paper engine wearing the colours of a real desktop, " +
-                "including the colour it paints behind its icons - Windows 95 teal, Ubuntu aubergine, " +
-                "Aqua slate blue. Picking one also switches to the desktop style it belongs to (you " +
-                "can change the style again in the section above); the e-paper palettes never move " +
-                "the style. Every native palette comes in a light and a dark take.",
-            size = 10.5f, color = p.mid, maxLines = 10,
+                "patterns, hard shadows and 1-bit title bars. These are the original palettes and " +
+                "they fit every desktop style.\n" +
+                "**Native desktop**: the real thing, not an e-paper toned version of it. Windows 95 " +
+                "gets its silver chrome, the navy-to-blue title gradient, bevelled buttons and the " +
+                "teal desk; Aqua gets snow chrome, the red/amber/green traffic lights and the blue " +
+                "desk; Ubuntu gets the dark headerbar, orange accents and the aubergine wallpaper; " +
+                "Windows 11 and Adwaita get their flat dark chrome and rounded windows. Gradients " +
+                "are real gradients here, shadows are real shadows, and the scanline overlay is off.",
+            size = 10.5f, color = p.mid, maxLines = 12,
+        )
+        RetroText(
+            "Picking a native theme also switches to the desktop style it belongs to and shows " +
+                "app icons in colour (both stay yours to change afterwards); the e-paper palettes " +
+                "never touch them.",
+            size = 10f, color = p.mid, maxLines = 4,
         )
         PaletteChips(Palettes.ePaper, s.palette) { vm.applyPalette(it) }
         RetroText("native desktop themes", size = 10f, color = p.mid)
@@ -229,7 +237,7 @@ fun SettingsView(vm: LauncherViewModel) {
         )
         Row(horizontalArrangement = Arrangement.spacedBy(dp(8f)), verticalAlignment = Alignment.CenterVertically) {
             Box(
-                Modifier.weight(1f).border(dp(1.6f), p.ink).padding(dp(9f)),
+                Modifier.weight(1f).border(dp(1.6f), p.edge).padding(dp(9f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(dp(4f))) {
@@ -241,7 +249,7 @@ fun SettingsView(vm: LauncherViewModel) {
                 }
             }
             Box(
-                Modifier.weight(1f).border(dp(1.6f), p.ink).padding(dp(9f)),
+                Modifier.weight(1f).border(dp(1.6f), p.edge).padding(dp(9f)),
                 contentAlignment = Alignment.Center,
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(dp(4f))) {
@@ -455,8 +463,8 @@ private fun ToggleRow(label: String, checked: Boolean, onGlyph: Glyph, onChange:
         Box(
             Modifier
                 .size(dp(20f))
-                .border(dp(1.6f), p.ink)
-                .background(if (checked) p.ink else p.paper),
+                .border(dp(1.6f), p.edge)
+                .background(if (checked) p.plate else p.paper),
             contentAlignment = Alignment.Center,
         ) {
             if (checked) {

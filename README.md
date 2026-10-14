@@ -41,26 +41,39 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
 | **macOS** (`Retro System 9`) | **menu bar** atas (File/Edit/View/Help), **dock** bawah, **Launchpad**, **Spotlight** (⌘/meta atau tombol cari) |
 | **Windows** (`Retrodows 95`) | **start menu** dua kolom, **taskbar** + system tray, ikon desktop bertumpuk di kiri, tombol & panel ber-bevel dither khas Win95 |
 
-### Sistem visual e-paper
-- **12 palet**, dua keluarga:
+### Sistem visual: e-paper, plus tema desktop yang **asli**
+- **12 palet**, dua keluarga yang benar-benar berbeda cara menggambarnya:
   - **E-paper** (6): Paper, Sepia, Tri-color (B&W + aksen merah), Ink (dark), Phosphor (hijau CRT),
-    Amber. Satu nada kertas + satu nada tinta, cocok dengan gaya desktop apa pun.
-  - **Tema desktop bawaan** (6): **Windows 95** (chrome perak, teks hitam, aksen navy),
-    **Windows 11** (dark, aksen Fluent), **Aqua** dan **Aqua dark** (macOS: chrome salju/graphite,
-    aksen biru sistem), **Ubuntu** (kertas hangat, tinta aubergine, aksen oranye),
-    **Adwaita** (dark, gaya GTK 4 / libadwaita). Mesin e-paper-nya sama — hanya warnanya yang
-    mengikuti desktop aslinya, **termasuk warna yang dipakai desktop itu di belakang ikonnya**
-    (teal Windows 95, aubergine Ubuntu, slate blue Aqua). Memilih tema bawaan sekaligus memindahkan
-    **desktop style** yang cocok (Win95/Win11 → Windows, Aqua/Aqua dark → macOS, Ubuntu/Adwaita →
-    Linux); gaya itu masih bisa diganti lagi setelahnya.
+    Amber. Satu nada kertas + satu nada tinta, dicetak dengan mesin e-paper launcher: **dither**,
+    bayangan keras satu kotak, garis scanline, caption &#8220;cetakan&#8221;, title bar 1-bit. Cocok
+    dengan gaya desktop apa pun.
+  - **Tema desktop bawaan** (6): **Windows 95**, **Windows 11**, **Aqua** dan **Aqua dark** (macOS),
+    **Ubuntu** (Yaru/GNOME), **Adwaita** (GTK 4 / libadwaita). Ini **bukan** versi e-paper dari
+    desktop itu — palet-palet ini menggambar **chrome desktop yang sebenarnya**, dengan warna asli:
+    | Tema | Yang digambar |
+    | --- | --- |
+    | Windows 95 | muka jendela perak `#C0C0C0`, bingkai hitam, **title bar gradient navy `#000080` > biru `#1084D0`**, tombol kotak ber-bevel, sudut **persegi**, bayangan kotak keras, desktop teal `#008080` |
+    | Windows 11 | permukaan Mica `#202020`, teks putih, **title bar rata `#2B2B2B`**, tombol glyph polos dengan **dot aksen** `#60CDFF`, sudut membulat 8 dp, bayangan lembut, desktop `#1B1F24` > `#0F1216` |
+    | Aqua / Aqua dark | chrome salju `#F4F4F6` (dark: `#1E1E20`), **title bar gradient** `#F7F7F8` > `#DCDCDE`, **traffic lights** merah `#FF5F57` / kuning `#FEBC2E` / hijau `#28C840` di kiri, sudut 10 dp, seleksi biru sistem `#0A84FF`, desktop slate blue `#3F72A8` > `#1E4E7E` |
+    | Ubuntu | muka jendela terang `#F6F5F4`, **headerbar gelap** `#3D3D3D` > `#2C2C2C`, tombol GNOME rata, aksen oranye `#E95420`, sudut 12 dp, desktop aubergine `#77216F` > `#4B1749` (**diagonal**) |
+    | Adwaita | abu-abu libadwaita `#242424`, headerbar `#303030` > `#242424`, aksen `#78AEED`, sudut 12 dp, desktop `#1A1A1A` > `#141414` |
+  - **Jadi tidak ada ranjau e-paper di tema native**: tanpa dither, tanpa scanline, tanpa
+    registration mark / caption cetakan, tanpa bayangan cetak. Ikon, label, wallpaper, dan widget
+    memakai warna asli (ikon berwarna penuh, label putih di atas desktop gelap, plate seleksi
+    memakai warna highlight desktop itu — navy di Win95, biru sistem di Aqua, oranye di Ubuntu).
+  - Memilih tema bawaan sekaligus memindahkan **desktop style** yang cocok (Win95/Win11 → Windows,
+    Aqua/Aqua dark → macOS, Ubuntu/Adwaita → Linux) dan ikon jadi berwarna; gaya & mode ikon itu
+    masih bisa diganti lagi setelahnya. Palet e-paper tidak pernah menyentuh keduanya.
   - Di *Settings - palette* setiap palet ditampilkan sebagai **pratinjau**: warna desktop + plat
     jendela + title bar aksen + namanya. Terminal: `palette` (daftar + warna sekarang),
     `palette win95`, `palette aqua-dark`, `palette ubuntu`, …
   - Perintah `invert` membalik kertas ⇄ tinta (night mode memakai palet Ink dan kembali ke palet
-    harimu saat dimatikan).
+    harimu saat dimatikan) — dan **melepas skin native**, karena &#8220;Windows 95 gelap&#8221; tidak
+    pernah ada; night mode selalu kembali ke mesin e-paper.
 - **Wallpaper** digambar di atas **warna desktop** palet (untuk palet e-paper warna itu = warna
-  kertasnya sendiri), jadi pola dither selalu berada di latar yang benar. Tiga sumber, semuanya
-  berakhir sebagai e-paper.
+  kertasnya sendiri), jadi pola dither selalu berada di latar yang benar. Di tema native wallpaper
+  tidak di-dither: gambar tetap **berwarna** (posterisasi lembut 16 level) di atas desktop aslinya.
+  Tiga sumber, semuanya coret-asal di palet e-paper.
   - *Pattern* — enam pola dither bawaan (halftone dots, grid, stipple Bayer 4×4, hatch, polos).
   - *Device* — wallpaper tablet kamu, dibaca lewat WallpaperManager, di-crop, diturunkan resolusinya
     ke ~260 sel lalu di-dither ulang (satu sel = satu titik tinta/kertas).
@@ -459,18 +472,22 @@ untuk build sideload**, bukan rahasia. Untuk build pribadi, set `RB_KEYSTORE_FIL
 app/src/main/java/dev/retrobit/desktop/
 ├─ MainActivity.kt            # HOME activity, edge-to-edge, system bar + back handling
 ├─ data/                      # AppRepository (LauncherApps), Settings (SharedPreferences),
-│                             # IconCache (render ikon e-paper), SystemInfo (baterai/RAM/disk/net)
+│                             # IconCache (render ikon), WallpaperRepository (dither e-paper + warna
+│                             # untuk tema native), SystemInfo (baterai/RAM/disk/net)
 ├─ model/Models.kt            # DesktopStyle, PaletteId, WallPattern, IconMode, WinKind, AppEntry
-├─ ui/theme/                  # Palette, font (VT323 + IBM Plex Mono), pola dither/Bayer
+├─ ui/theme/                  # Palette + NativeSkin (chrome desktop asli), font, pola dither/Bayer
 ├─ ui/components/             # Chrome retro, glyph pixel-art, context menu, icon tile, gesture
-├─ ui/wm/                     # DragState + matematika murni: GridMath, DockMath, WidgetMath
+├─ ui/wm/                     # DragState + WindowFrame (title bar e-paper & title bar native),
+│                             # matematika murni: GridMath, DockMath, WidgetMath, MaximizeMath
 ├─ ui/apps/                   # Terminal (rb-sh), Applications, Settings, System monitor, Notes, About
 ├─ ui/desktop/                # ShellHost (app sendiri penuh: rail + dock), ShellLinux/Macos/Windows,
 │                             # widget (Widgets/WidgetsExtra/CalendarWidget/WidgetFrame), Spotlight
 └─ ui/boot/BootScreen.kt      # animasi boot
 
-app/src/test/java/dev/retrobit/desktop/ui/wm/      # GridMathTest, DockMathTest, WidgetMathTest
-app/src/test/java/dev/retrobit/desktop/data/       # AppUsageTest  (CI: job "Unit tests", 50 ekspektasi)
+app/src/test/java/dev/retrobit/desktop/ui/wm/      # GridMathTest, DockMathTest, WidgetMathTest,
+│                                                  # LayoutMathTest, MaximizeMathTest
+app/src/test/java/dev/retrobit/desktop/ui/theme/   # PalettesTest (skin native, kontras, invert)
+app/src/test/java/dev/retrobit/desktop/data/       # AppUsageTest  (CI: job "Unit tests")
 ```
 
 ## Font & lisensi

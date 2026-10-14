@@ -224,6 +224,57 @@ fun DesktopApp(vm: LauncherViewModel, modifier: Modifier = Modifier) {
  * E-paper wallpaper. Either a generated dither pattern, the tablet's own wallpaper, or a picture the
  * user picked — the latter two are converted to ink/paper by [dev.retrobit.desktop.data.WallpaperRepository].
  */
+/**
+ * The desktop of a **native** theme: the gradient (or flat colour) that desktop really paints, a
+ * picture in its own colours when the user picked one, and none of the e-paper furniture — no dither
+ * pattern, no registration marks, no printed caption and no scanlines, because a real desktop has
+ * none of those either.
+ */
+@Composable
+private fun NativeDesk(
+    modifier: Modifier,
+    pattern: WallPattern,
+    source: WallpaperSource,
+    image: androidx.compose.ui.graphics.ImageBitmap?,
+    busy: Boolean,
+    note: String,
+) {
+    val p = LocalPalette.current
+    val skin = p.skin ?: return
+    // a straight-down gradient, or corner to corner for the themes that use one (Ubuntu)
+    val gradient = remember(skin.deskTop, skin.deskBottom, skin.deskDiagonal) {
+        if (skin.deskDiagonal) {
+            androidx.compose.ui.graphics.Brush.linearGradient(
+                0f to skin.deskTop, 1f to skin.deskBottom,
+                start = androidx.compose.ui.geometry.Offset.Zero,
+                end = androidx.compose.ui.geometry.Offset.Infinite,
+            )
+        } else {
+            androidx.compose.ui.graphics.Brush.verticalGradient(listOf(skin.deskTop, skin.deskBottom))
+        }
+    }
+    Box(modifier.background(gradient)) {
+        if (source != WallpaperSource.PATTERN && image != null) {
+            androidx.compose.foundation.Image(
+                bitmap = image,
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                filterQuality = androidx.compose.ui.graphics.FilterQuality.None,
+            )
+        } else if (source != WallpaperSource.PATTERN) {
+            Column(
+                Modifier.align(Alignment.Center).padding(dp(24f)),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(dp(8f)),
+            ) {
+                RetroText(if (busy) "developing image…" else "wallpaper: ${source.label.lowercase()}", size = 16f, display = true)
+                RetroText(note.ifEmpty { "choose a picture in Settings > wallpaper" }, size = 11f, color = p.mid, maxLines = 3)
+            }
+        }
+    }
+}
+
 @Composable
 fun Wallpaper(
     pattern: WallPattern,
@@ -234,6 +285,11 @@ fun Wallpaper(
     note: String = "",
 ) {
     val p = LocalPalette.current
+    val skin = p.skin
+    if (skin != null) {
+        NativeDesk(modifier, pattern, source, image, busy, note)
+        return
+    }
     // the pattern is printed on the desk, so both follow the palette's desk colour
     val brush = rememberWallpaperBrush(pattern, p.deskPattern, dp(3f))
     Box(modifier.background(p.desk)) {

@@ -13,6 +13,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_DIR = os.path.join(ROOT, "app/src/main/res/font")
 OUT = os.path.join(ROOT, "docs/ui-preview.png")
 
+SHEET_BG = (0x2A, 0x2A, 0x2A)   # background of the whole sheet, shadows blend into it
 PAPER = (0xE8, 0xE5, 0xDA)
 INK = (0x1B, 0x1B, 0x1B)
 PATTERN = tuple(int(PAPER[i] * 0.7 + INK[i] * 0.3) for i in range(3))
@@ -401,32 +402,357 @@ def float_panel():
 # ── palettes ────────────────────────────────────────────────────────────────────
 # Mirrors ui/theme/Theme.kt: the e-paper palettes paint the desk in their own paper, the native ones
 # bring the colour that desktop really uses behind its icons.
+# The twelve palettes exactly as ui/theme/Theme.kt defines them: the six e-paper tones
+# (paper / ink / accent, desk == paper) and the six native desktops with their real window skin.
 PALETTES = [
-    ("paper",    (0xE8, 0xE5, 0xDA), (0xE8, 0xE5, 0xDA), (0x1B, 0x1B, 0x1B), (0x3F, 0x3F, 0x3F)),
-    ("sepia",    (0xEA, 0xDF, 0xC6), (0xEA, 0xDF, 0xC6), (0x2E, 0x24, 0x18), (0x8C, 0x6B, 0x3F)),
-    ("tri-color",(0xED, 0xEB, 0xE4), (0xED, 0xEB, 0xE4), (0x16, 0x16, 0x16), (0xB1, 0x28, 0x1F)),
-    ("ink",      (0x17, 0x17, 0x17), (0x17, 0x17, 0x17), (0xDA, 0xD6, 0xCA), (0x8C, 0x88, 0x78)),
-    ("phosphor", (0x0B, 0x11, 0x0B), (0x0B, 0x11, 0x0B), (0x9C, 0xF0, 0x8A), (0x4F, 0xB9, 0x3F)),
-    ("amber",    (0x13, 0x0D, 0x05), (0x13, 0x0D, 0x05), (0xFF, 0xB5, 0x42), (0xE0, 0x7A, 0x16)),
-    ("windows 95", (0x00, 0x80, 0x80), (0xC0, 0xC0, 0xC0), (0x00, 0x00, 0x00), (0x00, 0x00, 0x80)),
-    ("windows 11", (0x15, 0x18, 0x1C), (0x2B, 0x2B, 0x2B), (0xF2, 0xF2, 0xF2), (0x60, 0xCD, 0xFF)),
-    ("aqua",       (0x55, 0x78, 0xA6), (0xF4, 0xF4, 0xF6), (0x1D, 0x1D, 0x1F), (0x0A, 0x84, 0xFF)),
-    ("aqua dark",  (0x10, 0x12, 0x16), (0x1E, 0x1E, 0x20), (0xF2, 0xF2, 0xF7), (0x0A, 0x84, 0xFF)),
-    ("ubuntu",     (0x77, 0x21, 0x6F), (0xF2, 0xEF, 0xEB), (0x2C, 0x00, 0x1E), (0xE9, 0x54, 0x20)),
-    ("adwaita",    (0x1A, 0x1A, 0x1A), (0x24, 0x24, 0x24), (0xFF, 0xFF, 0xFF), (0x78, 0xAE, 0xED)),
+    dict(name="paper", kind="paper", paper=(0xE8, 0xE5, 0xDA), ink=(0x1B, 0x1B, 0x1B), accent=(0x3F, 0x3F, 0x3F)),
+    dict(name="sepia", kind="paper", paper=(0xEA, 0xDF, 0xC6), ink=(0x2E, 0x24, 0x18), accent=(0x8C, 0x6B, 0x3F)),
+    dict(name="tri-color", kind="paper", paper=(0xED, 0xEB, 0xE4), ink=(0x16, 0x16, 0x16), accent=(0xB1, 0x28, 0x1F)),
+    dict(name="ink", kind="paper", paper=(0x17, 0x17, 0x17), ink=(0xDA, 0xD6, 0xCA), accent=(0x8C, 0x88, 0x78)),
+    dict(name="phosphor", kind="paper", paper=(0x0B, 0x11, 0x0B), ink=(0x9C, 0xF0, 0x8A), accent=(0x4F, 0xB9, 0x3F)),
+    dict(name="amber", kind="paper", paper=(0x13, 0x0D, 0x05), ink=(0xFF, 0xB5, 0x42), accent=(0xE0, 0x7A, 0x16)),
+    dict(name="windows 95", kind="native", paper=(0xC0, 0xC0, 0xC0), ink=(0x00, 0x00, 0x00), accent=(0x00, 0x00, 0x80),
+         border=(0x00, 0x00, 0x00), button=(0xC0, 0xC0, 0xC0), button_text=(0x00, 0x00, 0x00),
+         title=((0x00, 0x00, 0x80), (0x10, 0x84, 0xD0)), title_text=(0xFF, 0xFF, 0xFF),
+         desk=((0x00, 0x80, 0x80), (0x00, 0x80, 0x80)), corner=0, lights=False, flat=False, diagonal=False),
+    dict(name="windows 11", kind="native", paper=(0x20, 0x20, 0x20), ink=(0xFF, 0xFF, 0xFF), accent=(0x60, 0xCD, 0xFF),
+         border=(0x3A, 0x3A, 0x3A), button=(0x2B, 0x2B, 0x2B), button_text=(0xFF, 0xFF, 0xFF),
+         title=((0x2B, 0x2B, 0x2B), (0x2B, 0x2B, 0x2B)), title_text=(0xFF, 0xFF, 0xFF),
+         desk=((0x1B, 0x1F, 0x24), (0x0F, 0x12, 0x16)), corner=8, lights=False, flat=True, diagonal=False),
+    dict(name="aqua", kind="native", paper=(0xF4, 0xF4, 0xF6), ink=(0x1D, 0x1D, 0x1F), accent=(0x0A, 0x84, 0xFF),
+         border=(0xB9, 0xB9, 0xBF), button=(0xF0, 0xF0, 0xF2), button_text=(0x1D, 0x1D, 0x1F),
+         title=((0xF7, 0xF7, 0xF8), (0xDC, 0xDC, 0xDE)), title_text=(0x1D, 0x1D, 0x1F),
+         desk=((0x3F, 0x72, 0xA8), (0x1E, 0x4E, 0x7E)), corner=10, lights=True, flat=False, diagonal=False),
+    dict(name="aqua dark", kind="native", paper=(0x1E, 0x1E, 0x20), ink=(0xF2, 0xF2, 0xF7), accent=(0x0A, 0x84, 0xFF),
+         border=(0x3C, 0x3C, 0x3F), button=(0x2E, 0x2E, 0x30), button_text=(0xF2, 0xF2, 0xF7),
+         title=((0x3A, 0x3A, 0x3C), (0x2C, 0x2C, 0x2E)), title_text=(0xF2, 0xF2, 0xF7),
+         desk=((0x17, 0x19, 0x1D), (0x0B, 0x0C, 0x0F)), corner=10, lights=True, flat=False, diagonal=False),
+    dict(name="ubuntu", kind="native", paper=(0xF6, 0xF5, 0xF4), ink=(0x2E, 0x34, 0x36), accent=(0xE9, 0x54, 0x20),
+         border=(0xBE, 0xBA, 0xB6), button=(0x4A, 0x4A, 0x4A), button_text=(0xFF, 0xFF, 0xFF),
+         title=((0x3D, 0x3D, 0x3D), (0x2C, 0x2C, 0x2C)), title_text=(0xFF, 0xFF, 0xFF),
+         desk=((0x77, 0x21, 0x6F), (0x4B, 0x17, 0x49)), corner=12, lights=False, flat=True, diagonal=True),
+    dict(name="adwaita", kind="native", paper=(0x24, 0x24, 0x24), ink=(0xFF, 0xFF, 0xFF), accent=(0x78, 0xAE, 0xED),
+         border=(0x3D, 0x3D, 0x3D), button=(0x30, 0x30, 0x30), button_text=(0xFF, 0xFF, 0xFF),
+         title=((0x30, 0x30, 0x30), (0x24, 0x24, 0x24)), title_text=(0xFF, 0xFF, 0xFF),
+         desk=((0x1A, 0x1A, 0x1A), (0x14, 0x14, 0x14)), corner=12, lights=False, flat=True, diagonal=False),
 ]
 
 
-def palette_chip(d, x, y, w, h, name, desk, paper, ink, accent):
-    """One palette in the Settings picker: the desk colour, a window plate, the accent title bar
-    and the name printed in ink on the paper."""
-    d.rectangle([x, y, x + w, y + h], fill=paper, outline=ink, width=2)
-    d.rectangle([x + 2, y + 2, x + w - 2, y + 44], fill=desk)
-    wx0, wx1 = x + int(w * 0.16), x + int(w * 0.84)
-    d.rectangle([wx0, y + 9, wx1, y + 38], fill=paper, outline=ink, width=2)
-    d.rectangle([wx0 + 2, y + 11, wx1 - 2, y + 18], fill=accent)
-    tw = d.textlength(name, font=mono_tiny)
-    d.text((x + (w - tw) / 2, y + h - 24), name, font=mono_tiny, fill=ink)
+def mix(a, b, t):
+    return tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
+
+
+# The window chrome of the native themes, exactly the values in ui/theme/Theme.kt.
+SKIN_WIN95 = dict(
+    window=(0xC0, 0xC0, 0xC0), border=(0x00, 0x00, 0x00),
+    title_top=(0x00, 0x00, 0x80), title_bot=(0x10, 0x84, 0xD0), title_text=(0xFF, 0xFF, 0xFF),
+    button=(0xC0, 0xC0, 0xC0), button_text=(0x00, 0x00, 0x00), dot=(0x00, 0x00, 0x80), radius=0, lights=False,
+)
+SKIN_AQUA = dict(
+    window=(0xF4, 0xF4, 0xF6), border=(0xB9, 0xB9, 0xBF),
+    title_top=(0xF7, 0xF7, 0xF8), title_bot=(0xDC, 0xDC, 0xDE), title_text=(0x1D, 0x1D, 0x1F),
+    button=(0xE4, 0xE4, 0xE8), button_text=(0x5A, 0x5A, 0x5F), dot=(0x0A, 0x84, 0xFF), radius=10, lights=True,
+)
+SKIN_WIN11 = dict(
+    window=(0x20, 0x20, 0x20), border=(0x3A, 0x3A, 0x3A),
+    title_top=(0x2B, 0x2B, 0x2B), title_bot=(0x2B, 0x2B, 0x2B), title_text=(0xFF, 0xFF, 0xFF),
+    button=(0x2B, 0x2B, 0x2B), button_text=(0xFF, 0xFF, 0xFF), dot=(0x60, 0xCD, 0xFF), radius=8, lights=False,
+)
+SKIN_UBUNTU = dict(
+    window=(0xF6, 0xF5, 0xF4), border=(0xBE, 0xBA, 0xB6),
+    title_top=(0x3D, 0x3D, 0x3D), title_bot=(0x2C, 0x2C, 0x2C), title_text=(0xFF, 0xFF, 0xFF),
+    button=(0x4A, 0x4A, 0x4A), button_text=(0xFF, 0xFF, 0xFF), dot=(0xE9, 0x54, 0x20), radius=12, lights=False,
+)
+# the real traffic lights of macOS: close / minimize / zoom
+AQUA_LIGHTS = [(0xFF, 0x5F, 0x57), (0xFE, 0xBC, 0x2E), (0x28, 0xC8, 0x40)]
+
+
+def native_window(d, box, title, skin, glyph_kind="term", content_bg=None):
+    """A floating window dressed in the **real** chrome of a desktop theme.
+
+    Mirrors ui/wm/WindowFrame.kt: a colour gradient in the title bar, the desktop's own buttons
+    (beveled boxes or flat discs, traffic lights on macOS), rounded corners when the skin has
+    them, and a soft layered shadow instead of the e-paper printing plate and hard offset.
+    """
+    x0, y0, x1, y1 = box
+    radius = skin["radius"]
+    bar = 26 if radius == 0 else 32
+    # shadow: a single hard square for Windows 95, three translucent layers everywhere else
+    if radius == 0:
+        d.rectangle([x0 + 4, y0 + 4, x1 + 4, y1 + 4], fill=mix(SHEET_BG, (0, 0, 0), 0.45))
+    else:
+        for i, a in ((7, 0.30), (5, 0.22), (3, 0.14)):
+            d.rounded_rectangle([x0 + i, y0 + i, x1 + i, y1 + i], radius=radius + 2, fill=mix(SHEET_BG, (0, 0, 0), a))
+    if radius == 0:
+        d.rectangle(box, fill=skin["window"], outline=skin["border"], width=2)
+    else:
+        d.rounded_rectangle(box, radius=radius, fill=skin["window"], outline=skin["border"])
+    # title bar: the real gradient (Windows 95 navy -> blue, Aqua snow, Ubuntu dark headerbar)
+    for i in range(bar - 4):
+        t = i / max(1, bar - 5)
+        if radius == 0:
+            d.line([x0 + 3, y0 + 3 + i, x1 - 3, y0 + 3 + i], fill=mix(skin["title_top"], skin["title_bot"], t))
+    if radius != 0:
+        d.rounded_rectangle([x0 + 1, y0 + 1, x1 - 1, y0 + bar], radius=radius, fill=mix(skin["title_top"], skin["title_bot"], 0.5))
+        d.rectangle([x0 + 2, y0 + bar - 6, x1 - 2, y0 + bar], fill=mix(skin["title_top"], skin["title_bot"], 1.0))
+    # ~16 px pixel glyph before the name
+    gx, gy = x0 + 12, y0 + 3 + (bar - 4) // 2 - 7
+    if glyph_kind == "term":
+        for i in range(4):
+            d.rectangle([gx + i * 4, gy + i * 2, gx + i * 4 + 3, gy + 3 + i * 2], fill=skin["title_text"])
+        d.rectangle([gx, gy + 12, gx + 15, gy + 15], fill=skin["title_text"])
+    else:
+        for a in range(2):
+            for b in range(2):
+                d.rectangle([gx + a * 9, gy + b * 9, gx + a * 9 + 7, gy + b * 9 + 7], fill=skin["title_text"])
+    d.text((x0 + 34, y0 + 3 + (bar - 4) // 2 - 6), title, font=mono_tiny, fill=skin["title_text"])
+    # buttons: traffic lights on the left (macOS), boxes or discs on the right (everything else)
+    bw = 18
+    if skin["lights"]:
+        for j, col in enumerate(AQUA_LIGHTS):
+            cx = x0 + 20 + j * 20
+            cy = y0 + 3 + (bar - 4) / 2
+            d.ellipse([cx - 7, cy - 7, cx + 7, cy + 7], fill=col)
+            d.ellipse([cx - 7, cy - 7, cx + 7, cy + 7], outline=mix(col, (0, 0, 0), 0.25))
+    else:
+        for i, sym in enumerate(("x", "max", "min")):
+            bx = x1 - 8 - (i + 1) * (bw + 2)
+            by = y0 + 3 + (bar - 4) / 2 - bw / 2
+            if radius == 0:   # the beveled box of Windows 95
+                d.rectangle([bx, by, bx + bw, by + bw], fill=skin["button"], outline=(0, 0, 0))
+                d.line([bx, by, bx + bw, by], fill=(0xFF, 0xFF, 0xFF), width=2)
+                d.line([bx, by, bx, by + bw], fill=(0xFF, 0xFF, 0xFF), width=2)
+                d.line([bx, by + bw, bx + bw, by + bw], fill=(0x40, 0x40, 0x40), width=2)
+                d.line([bx + bw, by, bx + bw, by + bw], fill=(0x40, 0x40, 0x40), width=2)
+            else:             # the modern themes draw a bare glyph plus a coloured accent dot
+                pass
+            cx, cy = bx + bw / 2, by + bw / 2
+            if sym == "x":
+                d.line([cx - 4, cy - 4, cx + 4, cy + 4], fill=skin["button_text"], width=2)
+                d.line([cx + 4, cy - 4, cx - 4, cy + 4], fill=skin["button_text"], width=2)
+            elif sym == "max":
+                d.rectangle([cx - 5, cy - 5, cx + 5, cy + 5], outline=skin["button_text"], width=2)
+            else:
+                d.line([cx - 5, cy + 4, cx + 5, cy + 4], fill=skin["button_text"], width=2)
+            if radius != 0:   # GNOME keeps a coloured dot in the corner of every window button
+                dot = (0xE8, 0x11, 0x23) if sym == "x" else skin["dot"]
+                d.ellipse([bx + bw - 6, by + bw - 6, bx + bw, by + bw], fill=dot)
+    content = (x0 + 4, y0 + bar, x1 - 4, y1 - 4)
+    d.rectangle(content, fill=content_bg or skin["window"])
+    return content
+
+
+def native_desktop(kind):
+    """One panel per native desktop theme, drawn in that desktop's real colours - the same values
+    the Kotlin NativeSkin carries, so the mockup documents what the launcher actually paints."""
+    w, h = 780, 1060
+    img = Image.new("RGB", (w, h), PAPER)
+    d = ImageDraw.Draw(img)
+
+    if kind == "win95":
+        desk, panel, taskbar, ink = (0x00, 0x80, 0x80), (0xC0, 0xC0, 0xC0), (0xC0, 0xC0, 0xC0), (0x00, 0x00, 0x00)
+        d.rectangle([0, 0, w, h], fill=desk)
+        # desktop icons: silver plates, label shadows, the real navy selection under the name
+        for i, (label, sel) in enumerate([("My Computer", False), ("Recycle Bin", False), ("Terminal", True), ("Notes", False)]):
+            gx, gy = 26, 40 + i * 96
+            d.rectangle([gx, gy, gx + 52, gy + 52], fill=panel, outline=(0, 0, 0), width=2)
+            d.rectangle([gx + 13, gy + 15, gx + 39, gy + 37], fill=(0xFF, 0xFF, 0xFF), outline=(0, 0, 0))
+            d.text((gx + 17, gy + 20), ">>", font=mono_tiny, fill=(0x00, 0x80, 0x80))
+            tw = d.textlength(label, font=mono_tiny)
+            d.text((gx + 26 - tw / 2 + 1, gy + 59), label, font=mono_tiny, fill=(0x00, 0x00, 0x00))
+            d.text((gx + 26 - tw / 2, gy + 58), label, font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+            if sel:
+                d.rectangle([gx + 26 - tw / 2 - 3, gy + 56, gx + 26 + tw / 2 + 3, gy + 73], fill=(0x00, 0x00, 0x80))
+                d.text((gx + 26 - tw / 2, gy + 58), label, font=mono_tiny, fill=(0x00, 0x80, 0x80))
+        # two floating windows in the real 95 chrome
+        content = native_window(d, (150, 130, 640, 470), "terminal", SKIN_WIN95, content_bg=(0x00, 0x00, 0x00))
+        for i, line in enumerate(["rb-sh 1.0 / retrobit cyberdeck", "", "C:\\RETROBIT> palette win95",
+                                  "desk #008080", "title #000080 > #1084D0",
+                                  "panel #C0C0C0 / accent #000080", "C:\\RETROBIT> _"]):
+            d.text((content[0] + 10, content[1] + 8 + i * 20), line, font=mono_tiny,
+                   fill=(0xFF, 0xFF, 0xFF) if i == 0 else (0xC0, 0xC0, 0xC0))
+        content = native_window(d, (110, 500, 520, 800), "notes.txt", SKIN_WIN95, glyph_kind="grid")
+        for i, line in enumerate(["# real colours, not e-paper", "", "- teal desk #008080",
+                                  "- silver window face", "- navy > blue title bar",
+                                  "- beveled buttons", "- hard square shadow"]):
+            d.text((content[0] + 12, content[1] + 8 + i * 19), line, font=mono_tiny, fill=(0x00, 0x00, 0x00))
+        # taskbar, start button and the tray clock
+        d.rectangle([0, h - 44, w, h], fill=taskbar)
+        d.line([0, h - 44, w, h - 44], fill=(0xFF, 0xFF, 0xFF), width=2)
+        d.rectangle([4, h - 40, 96, h - 6], fill=taskbar, outline=(0, 0, 0))
+        d.line([4, h - 40, 96, h - 40], fill=(0xFF, 0xFF, 0xFF), width=2)
+        d.line([4, h - 40, 4, h - 6], fill=(0xFF, 0xFF, 0xFF), width=2)
+        d.text((16, h - 30), "Start", font=mono_bold, fill=ink)
+        for i, label in enumerate(["terminal", "notes.txt"]):
+            bx = 104 + i * 118
+            d.rectangle([bx, h - 40, bx + 112, h - 6], fill=taskbar, outline=(0, 0, 0))
+            d.line([bx, h - 40, bx + 112, h - 40], fill=(0xFF, 0xFF, 0xFF), width=2)
+            d.text((bx + 8, h - 30), label, font=mono_tiny, fill=ink)
+        d.rectangle([w - 150, h - 40, w - 6, h - 6], fill=taskbar, outline=(0, 0, 0))
+        d.text((w - 142, h - 30), "13:37", font=mono_tiny, fill=ink)
+    elif kind == "aqua":
+        desk_top, desk_bot = (0x3F, 0x72, 0xA8), (0x1E, 0x4E, 0x7E)
+        for y in range(h):
+            d.line([0, y, w, y], fill=mix(desk_top, desk_bot, y / h))
+        # menu bar
+        d.rectangle([0, 0, w, 30], fill=(0xF4, 0xF4, 0xF6))
+        d.line([0, 30, w, 30], fill=(0xB9, 0xB9, 0xBF))
+        d.text((12, 8), "Finder  File  Edit  View  Window  Help", font=mono_tiny, fill=(0x1D, 0x1D, 0x1F))
+        d.text((w - 96, 8), "13:37:09", font=mono_tiny, fill=(0x1D, 0x1D, 0x1F))
+        # two windows: snow chrome, grey gradient bar, real traffic lights on the left
+        content = native_window(d, (120, 96, 620, 400), "terminal", SKIN_AQUA, content_bg=(0xFF, 0xFF, 0xFF))
+        for i, line in enumerate(["macOS Aqua - window face #F4F4F6",
+                                  "title #F7F7F8 > #DCDCDE",
+                                  "lights #FF5F57 / #FEBC2E / #28C840",
+                                  "desk #3F72A8 > #1E4E7E",
+                                  "selection blue #0A84FF"]):
+            d.text((content[0] + 12, content[1] + 10 + i * 19), line, font=mono_tiny, fill=(0x1D, 0x1D, 0x1F))
+        content = native_window(d, (90, 450, 520, 780), "notes.txt", SKIN_AQUA, glyph_kind="grid", content_bg=(0xFF, 0xFF, 0xFF))
+        for i, line in enumerate(["# notes", "", "- corner radius 10", "- real soft shadow",
+                                  "- no scanlines, no dither", "- icons in full colour"]):
+            d.text((content[0] + 12, content[1] + 10 + i * 19), line, font=mono_tiny, fill=(0x1D, 0x1D, 0x1F))
+        # dock
+        dw = 400
+        dx = (w - dw) // 2
+        d.rounded_rectangle([dx, h - 84, dx + dw, h - 16], radius=16, fill=(0xF4, 0xF4, 0xF6), outline=(0xB9, 0xB9, 0xBF))
+        for i in range(6):
+            gx = dx + 24 + i * 60
+            d.rounded_rectangle([gx, h - 72, gx + 44, h - 28], radius=10, fill=(0xE4, 0xE4, 0xE8), outline=(0xB9, 0xB9, 0xBF))
+            col = [(0x0A, 0x84, 0xFF), (0x34, 0xC7, 0x59), (0xFF, 0x95, 0x00), (0xFF, 0x3B, 0x30), (0x30, 0xD1, 0x58), (0x5E, 0x5C, 0xE6)][i]
+            d.rectangle([gx + 13, h - 62, gx + 31, h - 38], fill=col)
+    elif kind == "win11":
+        desk_top, desk_bot = (0x1B, 0x1F, 0x24), (0x0F, 0x12, 0x16)
+        for y in range(h):
+            d.line([0, y, w, y], fill=mix(desk_top, desk_bot, y / h))
+        # desktop icons in colour: rounded tiles with white labels, the selected one on the accent
+        for i, (label, col, sel) in enumerate([("Terminal", (0x0C, 0xC4, 0xC4), True), ("Files", (0xFF, 0xC1, 0x2E), False),
+                                               ("Notes", (0x60, 0xCD, 0xFF), False)]):
+            gx, gy = 30, 40 + i * 100
+            d.rounded_rectangle([gx, gy, gx + 54, gy + 54], radius=8, fill=(0x2B, 0x2B, 0x2B), outline=(0x3A, 0x3A, 0x3A))
+            d.rounded_rectangle([gx + 13, gy + 13, gx + 41, gy + 41], radius=4, fill=col)
+            tw = d.textlength(label, font=mono_tiny)
+            if sel:
+                d.rounded_rectangle([gx + 27 - tw / 2 - 5, gy + 58, gx + 27 + tw / 2 + 5, gy + 74], radius=4, fill=(0x60, 0xCD, 0xFF))
+                d.text((gx + 27 - tw / 2, gy + 60), label, font=mono_tiny, fill=(0x00, 0x24, 0x3D))
+            else:
+                d.text((gx + 27 - tw / 2, gy + 60), label, font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+        # two Mica windows: flat dark title bar, 8 px corners, accent dots on the buttons
+        content = native_window(d, (150, 130, 640, 470), "terminal", SKIN_WIN11, content_bg=(0x0C, 0x0C, 0x0C))
+        for i, line in enumerate(["Windows 11 - face #202020",
+                                  "title bar #2B2B2B (flat)",
+                                  "desk #1B1F24 > #0F1216",
+                                  "accent #60CDFF, text #00243D",
+                                  "corner radius 8"]):
+            d.text((content[0] + 10, content[1] + 10 + i * 19), line, font=mono_tiny, fill=(0xE8, 0xE8, 0xE8))
+        content = native_window(d, (110, 500, 520, 800), "notes.txt", SKIN_WIN11, glyph_kind="grid")
+        for i, line in enumerate(["# notes", "", "- rounded corners (8)", "- real soft shadow",
+                                  "- flat window buttons", "- no scanlines, no dither"]):
+            d.text((content[0] + 12, content[1] + 10 + i * 19), line, font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+        # the centred taskbar of Windows 11, with the blue Start squares
+        d.rectangle([0, h - 44, w, h], fill=(0x20, 0x20, 0x20))
+        d.line([0, h - 44, w, h - 44], fill=(0x3A, 0x3A, 0x3A))
+        cx0 = w // 2 - 5 * 27
+        for i in range(5):
+            bx = cx0 + i * 54
+            if i == 0:
+                for a in range(2):
+                    for b in range(2):
+                        d.rectangle([bx + a * 12, h - 34 + b * 12, bx + a * 12 + 10, h - 34 + b * 12 + 10], fill=(0x4C, 0xC2, 0xFF))
+            else:
+                col = [(0x0C, 0xC4, 0xC4), (0xFF, 0xC1, 0x2E), (0x60, 0xCD, 0xFF), (0xE8, 0xE8, 0xE8)][i - 1]
+                d.rounded_rectangle([bx + 2, h - 34, bx + 24, h - 12], radius=4, fill=col)
+        d.text((w - 96, h - 32), "13:37", font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+    else:  # ubuntu
+        desk_top, desk_bot = (0x77, 0x21, 0x6F), (0x4B, 0x17, 0x49)
+        for y in range(h):
+            t = y / h
+            d.line([0, y, w, y], fill=mix(mix(desk_top, desk_bot, t), (0x5E, 0x1B, 0x5C), 0.25))
+        # top bar (GNOME shell)
+        d.rectangle([0, 0, w, 30], fill=(0x1D, 0x1D, 0x1D))
+        d.text((12, 8), "Activities", font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+        d.text((w - 150, 8), "17:37  EN  100%  13:37", font=mono_tiny, fill=(0xFF, 0xFF, 0xFF))
+        # windows: dark Yaru headerbar, flat GNOME discs, the close button in an orange disc
+        content = native_window(d, (130, 96, 640, 420), "terminal", SKIN_UBUNTU, content_bg=(0xFF, 0xFF, 0xFF))
+        for i, line in enumerate(["Ubuntu / Yaru - face #F6F5F4",
+                                  "headerbar #3D3D3D > #2C2C2C",
+                                  "desk #77216F > #4B1749 (diagonal)",
+                                  "accent dot + close #E81123",
+                                  "corner radius 12"]):
+            d.text((content[0] + 14, content[1] + 10 + i * 19), line, font=mono_tiny, fill=(0x2E, 0x34, 0x36))
+        content = native_window(d, (100, 460, 520, 780), "notes.txt", SKIN_UBUNTU, glyph_kind="grid", content_bg=(0xFF, 0xFF, 0xFF))
+        for i, line in enumerate(["# notes", "", "- flat GNOME buttons", "- light window face",
+                                  "- highlight #E95420", "- rounded corners (12)"]):
+            d.text((content[0] + 14, content[1] + 10 + i * 19), line, font=mono_tiny, fill=(0x2E, 0x34, 0x36))
+        # ubuntu dock, vertical, with the orange app tile
+        d.rounded_rectangle([10, 200, 76, 720], radius=14, fill=(0x1D, 0x1D, 0x1D))
+        for i in range(7):
+            gy = 216 + i * 70
+            d.rounded_rectangle([20, gy, 66, gy + 46], radius=10, fill=(0x3D, 0x3D, 0x3D))
+            col = [(0xE9, 0x54, 0x20), (0x77, 0x21, 0x6F), (0xF6, 0xF5, 0xF4), (0xE9, 0x54, 0x20),
+                   (0x5E, 0x27, 0x5B), (0xF6, 0xF5, 0xF4), (0xE9, 0x54, 0x20)][i]
+            d.rectangle([33, gy + 11, 53, gy + 35], fill=col)
+    return img
+
+
+def palette_chip(d, x, y, w, h, pal):
+    """One entry of the Settings palette picker, drawn the way the launcher paints it.
+
+    E-paper: a paper card with the ink frame and a flat accent band. Native: the desk colour
+    (gradient, or diagonal on Ubuntu) behind a window using that desktop's real chrome - rounded
+    corners, its own title gradient, its own buttons, its own selection colour.
+    """
+    x1, y1 = x + w, y + h
+    paper, ink, accent = pal["paper"], pal["ink"], pal["accent"]
+    if pal["kind"] == "paper":
+        d.rectangle([x, y, x1, y1], fill=paper, outline=ink, width=2)
+        d.rectangle([x + 3, y + 3, x1 - 3, y + 22], fill=accent, outline=ink)
+        for i, sw in enumerate([paper, ink, accent]):
+            d.rectangle([x + 8 + i * 30, y + 30, x + 30 + i * 30, y + 52], fill=sw, outline=ink)
+        d.text((x + (w - d.textlength(pal["name"], font=mono_tiny)) / 2, y1 - 24), pal["name"], font=mono_tiny, fill=ink)
+        return
+    # ── native: the desk, then a real window on top of it ──
+    (dt, db) = pal["desk"]
+    for i in range(h):
+        t = i / h
+        if pal["diagonal"]:
+            c = mix(mix(dt, db, t), mix(dt, db, 1 - t), 0.35)
+        else:
+            c = mix(dt, db, t)
+        d.line([x, y + i, x1, y + i], fill=c)
+    wx0, wx1 = x + int(w * 0.07), x1 - int(w * 0.07)
+    wy0, wy1 = y + int(h * 0.10), y1 - 44
+    bar = 22 if pal["corner"] == 0 else 26
+    if pal["corner"]:
+        d.rounded_rectangle([wx0, wy0, wx1, wy1], radius=pal["corner"], fill=paper, outline=pal["border"])
+    else:
+        d.rectangle([wx0, wy0, wx1, wy1], fill=paper, outline=pal["border"], width=2)
+    tt, tb = pal["title"]
+    for i in range(bar - 3):
+        t = i / max(1, bar - 4)
+        d.line([wx0 + 2, wy0 + 2 + i, wx1 - 2, wy0 + 2 + i], fill=mix(tt, tb, t))
+    if pal["lights"]:
+        for j, col in enumerate([(0xFF, 0x5F, 0x57), (0xFE, 0xBC, 0x2E), (0x28, 0xC8, 0x40)]):
+            cx, cy = wx0 + 12 + j * 13, wy0 + 2 + (bar - 3) / 2
+            d.ellipse([cx - 5, cy - 5, cx + 5, cy + 5], fill=col)
+    else:
+        for j in range(3):
+            bx = wx1 - 8 - (j + 1) * 12
+            by = wy0 + 2 + (bar - 3) / 2 - 5
+            if pal["flat"]:
+                d.ellipse([bx, by, bx + 10, by + 10], fill=pal["button"])
+            else:
+                d.rectangle([bx, by, bx + 10, by + 10], fill=pal["button"], outline=(0, 0, 0))
+                d.line([bx, by, bx + 10, by], fill=(0xFF, 0xFF, 0xFF))
+    d.text((wx0 + 6, wy0 + 5), "Aa", font=mono_tiny, fill=pal["title_text"])
+    # the body of the window: button face, selection colour, text
+    d.rectangle([wx0 + 2, wy0 + bar, wx1 - 2, wy1 - 2], fill=paper)
+    for i, sw in enumerate([pal["button"], accent, ink]):
+        d.rectangle([wx0 + 10 + i * 28, wy0 + bar + 8, wx0 + 32 + i * 28, wy0 + bar + 28], fill=sw, outline=pal["border"])
+    # the name sits on the desk colour, so pick the side of the desk it reads against
+    nw = d.textlength(pal["name"], font=mono_tiny)
+    luma = sum(db) / 3
+    d.text((x + (w - nw) / 2, y1 - 26), pal["name"], font=mono_tiny,
+           fill=(0x0B, 0x0B, 0x0B) if luma > 140 else (0xFF, 0xFF, 0xFF))
 
 
 def pager(d, x, y, size=26, cells=3, active=0):
@@ -807,36 +1133,56 @@ def panel(caption, style):
 
 def main():
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    panels = [
+    # the five e-paper panels on the first row, the three native desktops on the second
+    epaper = [
         panel("LINUX · retrOS GNU/Linux — desktop of icons & widgets, one icon selected (double tap opens), widget edit mode", "linux"),
         panel("macOS · Retro System 9 — menu bar, widgets, dock (an app fills the screen, never a floating window)", "macos"),
         panel("WINDOWS · Retrodows 95 — desktop icons & widgets, start menu, workspace switcher, taskbar, tray", "windows"),
         panel("APPS · third-party apps fill the screen — the drawer in the launcher's frame; an installed app gets the same title rail & dock from the chrome overlay", "apps"),
         float_panel(),
     ]
-    w = sum(p.width for p in panels) + 40 * (len(panels) + 1)
-    strip_h = 260
-    h = panels[0].height + 180 + strip_h
-    sheet = Image.new("RGB", (w, h), (0x2A, 0x2A, 0x2A))
+    native = [
+        native_desktop("win95"),
+        native_desktop("win11"),
+        native_desktop("aqua"),
+        native_desktop("ubuntu"),
+    ]
+    gap, margin = 40, 40
+    ph = epaper[0].height
+    w = max(sum(p.width for p in epaper) + gap * (len(epaper) + 1),
+            sum(p.width for p in native) + gap * (len(native) + 1))
+    row2 = 136 + ph + 56
+    strip_y = row2 + ph + 40
+    h = strip_y + 200
+    sheet = Image.new("RGB", (w, h), SHEET_BG)
     d = ImageDraw.Draw(sheet)
     big = ImageFont.truetype(os.path.join(FONT_DIR, "pixel_operator_bold.ttf"), 80)
-    d.text((40, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
-    d.text((42, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · 12 palettes: 6 e-paper + native desktop themes (Windows 95, Windows 11, Aqua, Aqua dark, Ubuntu, Adwaita) with their own desk colour · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
+    d.text((margin, 20), "RETROBIT DESKTOP", font=big, fill=PAPER)
+    d.text((margin + 2, 92), "e-paper launcher for android tablets · pixel operator typeface (cc0) · tap selects, double tap opens, hold for the menu · widgets (chrono, calendar, agenda, tasks, launcher, power, ...) you add, remove and hold to resize · hold the pen for right click · floating windows for our own apps (drag the title bar, resize from eight edges, minimize / maximize + restore / close, the size is remembered) · 12 palettes: 6 e-paper tones + 6 native desktop themes that paint their own real chrome · third-party apps fill the screen, framed by the cyberdeck chrome (border + title rail + dock) · keyboard floats over and moves nothing · safe area for the punch-hole camera",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
-    x = 40
-    for p in panels:
+    x = margin
+    for p in epaper:
         sheet.paste(p, (x, 136))
-        x += p.width + 40
-
-    # ── the palette row: e-paper on the left, native desktop themes on the right ──
-    y = 136 + panels[0].height + 28
-    d.text((40, y - 6), "PALETTES — 6 e-paper tones, then the native desktop themes: Windows 95 paints its desk teal, "
-                        "Ubuntu aubergine, Aqua slate blue (panel, windows and menus stay paper)",
+        x += p.width + gap
+    d.text((margin, row2 - 30), "NATIVE THEMES (4 of the 6) — not an e-paper tone of a desktop: the real chrome, in colour. Windows 95 keeps its silver face, "
+                                "navy > blue title gradient, beveled boxes and teal desk; Aqua its snow chrome, traffic lights and grey title gradient; "
+                                "Ubuntu its dark headerbar, orange accent and aubergine desk, Windows 11 its flat Mica chrome and 8 px corners. "
+                                "Rounded corners, real shadows, no dither, no scanlines. (Windows 11 and Adwaita are the dark flat pair, Aqua dark is the graphite macOS.)",
            font=mono, fill=(0xC9, 0xC5, 0xB8))
-    y += 34
-    chip_w = (w - 80 - 6 * 11) / 12
-    for i, (name, desk, paper, ink, accent) in enumerate(PALETTES):
-        palette_chip(d, 40 + i * (chip_w + 6), y, chip_w, 150, name, desk, paper, ink, accent)
+    row_w = sum(p.width for p in native) + gap * (len(native) - 1)
+    x = (w - row_w) // 2          # centre the native row under the five e-paper panels
+    for p in native:
+        sheet.paste(p, (x, row2))
+        x += p.width + gap
+
+    # ── the palette row: the 6 e-paper tones, then the 6 native desktops ──
+    d.text((margin, strip_y - 6), "PALETTES — every one drawn with the values the code uses: left six are e-paper (paper, ink, accent); "
+                                  "right six are native desktop skins (desk gradient behind a window with that desktop's own title bar and buttons)",
+           font=mono, fill=(0xC9, 0xC5, 0xB8))
+    y = strip_y + 34
+    chip_w = (w - 2 * margin - 6 * 11) / 12
+    for i, pal in enumerate(PALETTES):
+        palette_chip(d, margin + i * (chip_w + 6), y, chip_w, 150, pal)
     sheet.save(OUT)
     print("wrote", OUT, sheet.size)
 

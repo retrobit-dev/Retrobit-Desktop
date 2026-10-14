@@ -76,14 +76,14 @@ fun CalendarView(vm: LauncherViewModel) {
             RetroButton(label = ">", modifier = Modifier.width(dp(56f))) { month = month.plusMonths(1) }
             RetroButton(label = "+ add", modifier = Modifier.width(dp(96f)), active = editing) { editing = !editing }
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
 
         if (editing) {
             Column(Modifier.fillMaxWidth().background(p.soft).padding(dp(10f)), verticalArrangement = Arrangement.spacedBy(dp(6f))) {
                 RetroText("new entry", size = 11f, weight = FontWeight.Bold)
                 EntryEditor(vm, defaultDate = selected, onClose = { editing = false })
             }
-            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+            Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
         }
 
         Row(Modifier.weight(1f).fillMaxWidth()) {
@@ -112,7 +112,7 @@ fun CalendarView(vm: LauncherViewModel) {
                     Spacer(Modifier.height(dp(3f)))
                 }
             }
-            Box(Modifier.width(dp(1.4f)).fillMaxHeight().background(p.ink))
+            Box(Modifier.width(dp(1.4f)).fillMaxHeight().background(p.edge))
             // side panel
             Column(Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()).padding(dp(8f)), verticalArrangement = Arrangement.spacedBy(dp(7f))) {
                 Row(horizontalArrangement = Arrangement.spacedBy(dp(4f))) {
@@ -154,7 +154,7 @@ fun CalendarView(vm: LauncherViewModel) {
                 }
             }
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
         Row(
             Modifier.fillMaxWidth().background(p.soft).padding(horizontal = dp(8f), vertical = dp(5f)),
             verticalAlignment = Alignment.CenterVertically,

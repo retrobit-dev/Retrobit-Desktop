@@ -74,7 +74,7 @@ fun AppsView(vm: LauncherViewModel) {
                 RetroText("${shown.size}/${vm.apps.size}", size = 12f, color = p.mid)
             }
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
         AppDrawerList(vm, query, Modifier.weight(1f))
         Row(
             Modifier.fillMaxWidth().background(p.soft).padding(dp(6f)),
@@ -134,7 +134,7 @@ private fun DrawerRow(vm: LauncherViewModel, app: AppEntry, uses: Int) {
     Row(
         Modifier
             .fillMaxWidth()
-            .background(if (selected) p.ink else Color.Transparent)
+            .background(if (selected) p.plate else Color.Transparent)
             .desktopClick(
                 key = app.key,
                 primary = { vm.launch(app) },

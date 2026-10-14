@@ -49,7 +49,7 @@ fun NotesView(vm: LauncherViewModel) {
             RetroText(if (saved) "saved" else "saving…", size = 11f, color = p.mid)
             RetroText("${text.lines().size} L · ${text.length} C", size = 11f, color = p.mid)
         }
-        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.ink))
+        Box(Modifier.fillMaxWidth().height(dp(1.4f)).background(p.edge))
         Box(Modifier.fillMaxSize().padding(dp(10f))) {
             RetroTextField(
                 value = text,

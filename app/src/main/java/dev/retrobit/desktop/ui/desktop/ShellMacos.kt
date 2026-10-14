@@ -172,7 +172,7 @@ fun MacosShell(vm: LauncherViewModel) {
             Row(
                 Modifier
                     .background(p.paper)
-                    .border(dp(2.2f), p.ink)
+                    .border(dp(2.2f), p.edge)
                     .padding(horizontal = dp(10f), vertical = dp(7f)),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(dp(6f)),
@@ -224,7 +224,7 @@ fun MacosShell(vm: LauncherViewModel) {
                     .fillMaxWidth(0.62f)
                     .fillMaxHeight(0.76f)
                     .background(p.paper)
-                    .border(dp(2.2f), p.ink)
+                    .border(dp(2.2f), p.edge)
                     // taps on the panel's own background stay in the panel (only the desktop closes it)
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
                     .padding(dp(2f)),
@@ -240,14 +240,14 @@ fun MacosShell(vm: LauncherViewModel) {
                     RetroText("${vm.apps.size} apps", size = 10.5f, color = p.mid)
                     Box(
                         Modifier
-                            .border(dp(1.3f), p.ink)
+                            .border(dp(1.3f), p.edge)
                             .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { vm.launchpad = false }
                             .padding(horizontal = dp(7f), vertical = dp(2f)),
                     ) {
                         RetroText("close", size = 10.5f, color = p.ink)
                     }
                 }
-                Box(Modifier.fillMaxWidth().height(dp(1.6f)).background(p.ink))
+                Box(Modifier.fillMaxWidth().height(dp(1.6f)).background(p.edge))
                 Row(Modifier.fillMaxWidth().padding(dp(7f)), verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f)) {
                         RetroTextField(

@@ -83,7 +83,7 @@ fun Spotlight(vm: LauncherViewModel) {
                 .widthIn(max = dp(520f))
                 .fillMaxWidth(0.8f)
                 .background(p.paper)
-                .border(dp(2.4f), p.ink)
+                .border(dp(2.4f), p.edge)
                 .padding(dp(12f)),
             verticalArrangement = Arrangement.spacedBy(dp(8f)),
         ) {

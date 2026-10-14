@@ -59,7 +59,7 @@ fun BootScreen(vm: LauncherViewModel, onSkip: () -> Unit) {
                     RetroText("e-paper launcher · v1.0", size = 12f, color = p.mid)
                 }
             }
-            Box(Modifier.fillMaxWidth().height(dp(2f)).background(p.ink))
+            Box(Modifier.fillMaxWidth().height(dp(2f)).background(p.edge))
             Column(
                 Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(dp(4f)),

@@ -115,7 +115,7 @@ private fun ShellRail(vm: LauncherViewModel, kind: WinKind) {
             .fillMaxWidth()
             .height(dp(40f))
             .background(p.paper)
-            .border(dp(1.6f), Color.Black)
+            .border(dp(1.6f), p.edge)
             .padding(horizontal = dp(8f)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(8f)),
@@ -151,7 +151,7 @@ private fun ShellDock(vm: LauncherViewModel) {
             .fillMaxWidth()
             .height(dp(54f))
             .background(p.paper)
-            .border(dp(1.6f), Color.Black)
+            .border(dp(1.6f), p.edge)
             .padding(horizontal = dp(7f)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(6f)),
