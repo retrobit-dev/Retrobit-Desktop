@@ -194,6 +194,28 @@ fun Modifier.retroShadow(offset: Dp = dp(4f), color: Color? = null): Modifier {
             steps.forEach { (off, alpha) ->
                 drawRect(shadow.copy(alpha = alpha), topLeft = Offset(off, off), size = Size(size.width, size.height))
             }
+
+/**
+ * A floating shell surface: the start menu, the Launchpad, the Spotlight panel, a dock strip, and
+ * the rails our own apps wear.
+ *
+ * The e-paper palettes *print* it — a paper card, the ink frame and, where the caller asks for one,
+ * the classic hard checker shadow. A native theme draws the surface its desktop would draw: the
+ * corner radius of that theme, a hairline border in its border colour and a real soft shadow. That
+ * is why the start menu of Windows 11 comes up rounded while the one of Windows 95 stays square.
+ */
+@Composable
+fun Modifier.shellPanel(borderDp: Float = 2.4f, shadowDp: Float = 0f, radiusCap: Float = 10f): Modifier {
+    val p = LocalPalette.current
+    val radius = dp(if (p.isNative) p.cornerDp.coerceAtMost(radiusCap) else 0f)
+    val shape = remember(p, radius) { androidx.compose.foundation.shape.RoundedCornerShape(radius) }
+    var m = this
+    if (shadowDp > 0f) m = m.retroShadow(dp(shadowDp))
+    return m
+        .clip(shape)
+        .background(p.paper)
+        .border(dp(if (p.isNative) 1f else borderDp), p.edge, shape)
+}
         }
     }
 }

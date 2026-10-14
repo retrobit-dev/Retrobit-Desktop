@@ -142,10 +142,16 @@ fun WindowFrame(win: WinState, wm: WindowManager) {
         skin.isFlatTitle -> dp(32f)
         else -> dp(24f)
     }
-    // only the top corners are rounded, like every desktop window ever
-    val shape = androidx.compose.foundation.shape.RoundedCornerShape(
-        topStart = dp(p.cornerDp), topEnd = dp(p.cornerDp),
-    )
+    // The printed windows (e-paper palettes) keep their two rounded top corners - the classic
+    // print look. A native theme with rounded corners rounds all four, the way its own windows are
+    // drawn (Aqua, Windows 11, Ubuntu, GNOME), while Windows 95 stays a hard square.
+    val shape = if (skin != null && skin.cornerDp > 0f) {
+        androidx.compose.foundation.shape.RoundedCornerShape(dp(p.cornerDp))
+    } else {
+        androidx.compose.foundation.shape.RoundedCornerShape(
+            topStart = dp(p.cornerDp), topEnd = dp(p.cornerDp),
+        )
+    }
 
     // the outer box is the window plus a grab margin, so every edge can be dragged from outside
     val grab = rawPx(HandleGrabDp, density)

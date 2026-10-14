@@ -23,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
@@ -70,10 +71,18 @@ fun ContextMenu(
                 .padding(end = dp(4f), bottom = dp(4f))
                 .retroShadow(dp(4f)),
         ) {
+            // a native desktop rounds its menus (Windows 11, Aqua, GNOME) and frames them with the
+            // theme border; the e-paper palettes keep the square printed card with the ink frame
+            val menuShape = remember(p) {
+                androidx.compose.foundation.shape.RoundedCornerShape(
+                    dp(if (p.isNative) p.cornerDp.coerceAtMost(8f) else 0f),
+                )
+            }
             Column(
                 Modifier
+                    .clip(menuShape)
                     .background(p.paper)
-                    .border(dp(2f), p.edge)
+                    .border(dp(if (p.isNative) 1f else 2f), p.edge, menuShape)
                     .padding(vertical = dp(5f)),
             ) {
                 items.forEach { item ->

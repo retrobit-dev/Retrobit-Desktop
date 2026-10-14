@@ -82,6 +82,13 @@ lengkap dengan window manager, tiga gaya desktop yang bisa dipilih, dan sistem v
   - Perintah `invert` membalik kertas ⇄ tinta (night mode memakai palet Ink dan kembali ke palet
     harimu saat dimatikan) — dan **melepas skin native**, karena &#8220;Windows 95 gelap&#8221; tidak
     pernah ada; night mode selalu kembali ke mesin e-paper.
+- **Sudut, menu, dan permukaan mengambang ikut tema.** Tema native yang bersudut membulat
+  (Aqua 10 dp, Windows 11 8 dp, Ubuntu/Adwaita 12 dp) membulat di **keempat sudut jendela** seperti
+  desktop aslinya, sementara Windows 95 tetap kotak dan palet e-paper tetap hanya sudut atas (gaya
+  cetakan). **Menu konteks** juga membulat di tema native (maks. 8 dp) dan memakai bingkai tipis
+  warna border temanya. **Start menu, Launchpad, panel Spotlight, dock, serta title rail & dock
+  aplikasi bawaan** memakai radius + border tipis + bayangan lembut dari tema. Di palet e-paper
+  semuanya tetap kartu kotak berbingkai tinta dengan bayangan checker keras.
 - **Wallpaper** digambar di atas **warna desktop** palet (untuk palet e-paper warna itu = warna
   kertasnya sendiri), jadi pola dither selalu berada di latar yang benar. Di tema native wallpaper
   tidak di-dither: gambar tetap **berwarna** (posterisasi lembut 16 level) di atas desktop aslinya.

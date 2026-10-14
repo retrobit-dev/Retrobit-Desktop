@@ -46,10 +46,8 @@ import dev.retrobit.desktop.ui.components.Glyph
 import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
-import dev.retrobit.desktop.ui.components.retroShadow
 import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.components.px
-import dev.retrobit.desktop.ui.theme.ChromePattern
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import dev.retrobit.desktop.ui.theme.rememberPanelTexture
 import dev.retrobit.desktop.ui.wm.DockSlots
@@ -142,9 +140,7 @@ fun WindowsShell(vm: LauncherViewModel) {
                     .padding(start = dp(8f), bottom = dp(50f))
                     .width(dp(420f))
                     .fillMaxHeight(0.62f)
-                    .background(p.paper)
-                    .border(dp(2.4f), p.edge)
-                    .retroShadow(dp(6f))
+                    .shellPanel(borderDp = 2.4f, shadowDp = 6f, radiusCap = 10f)
                     .onGloballyPositioned { drag.sidebarBounds = it.boundsInRoot() },
             ) {
                 Column(Modifier.fillMaxSize()) {

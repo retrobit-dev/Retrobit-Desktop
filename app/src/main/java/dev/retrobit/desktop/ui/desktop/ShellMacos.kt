@@ -42,6 +42,7 @@ import dev.retrobit.desktop.ui.components.MenuItem
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.dp
+import dev.retrobit.desktop.ui.components.shellPanel
 import dev.retrobit.desktop.ui.components.px
 import dev.retrobit.desktop.ui.input.KeyboardTrayButton
 import dev.retrobit.desktop.ui.input.desktopClick
@@ -171,8 +172,7 @@ fun MacosShell(vm: LauncherViewModel) {
         ) {
             Row(
                 Modifier
-                    .background(p.paper)
-                    .border(dp(2.2f), p.edge)
+                    .shellPanel(borderDp = 2.2f, shadowDp = 5f, radiusCap = 24f)
                     .padding(horizontal = dp(10f), vertical = dp(7f)),
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(dp(6f)),
@@ -223,8 +223,7 @@ fun MacosShell(vm: LauncherViewModel) {
                     .align(Alignment.Center)
                     .fillMaxWidth(0.62f)
                     .fillMaxHeight(0.76f)
-                    .background(p.paper)
-                    .border(dp(2.2f), p.edge)
+                    .shellPanel(borderDp = 2.2f, shadowDp = 4f, radiusCap = 14f)
                     // taps on the panel's own background stay in the panel (only the desktop closes it)
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {}
                     .padding(dp(2f)),

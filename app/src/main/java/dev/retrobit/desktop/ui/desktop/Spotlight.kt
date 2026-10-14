@@ -39,6 +39,7 @@ import dev.retrobit.desktop.ui.components.GlyphIcon
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.RetroTextField
 import dev.retrobit.desktop.ui.components.dp
+import dev.retrobit.desktop.ui.components.shellPanel
 import dev.retrobit.desktop.ui.components.rememberAppIcon
 import dev.retrobit.desktop.ui.input.desktopClick
 import dev.retrobit.desktop.ui.theme.LocalPalette
@@ -82,8 +83,7 @@ fun Spotlight(vm: LauncherViewModel) {
                 .padding(top = dp(90f))
                 .widthIn(max = dp(520f))
                 .fillMaxWidth(0.8f)
-                .background(p.paper)
-                .border(dp(2.4f), p.edge)
+                .shellPanel(borderDp = 2.4f, shadowDp = 5f, radiusCap = 12f)
                 .padding(dp(12f)),
             verticalArrangement = Arrangement.spacedBy(dp(8f)),
         ) {

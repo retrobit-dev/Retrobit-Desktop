@@ -39,6 +39,7 @@ import dev.retrobit.desktop.ui.components.LocalUiScale
 import dev.retrobit.desktop.ui.components.RetroIconButton
 import dev.retrobit.desktop.ui.components.RetroText
 import dev.retrobit.desktop.ui.components.dp
+import dev.retrobit.desktop.ui.components.shellPanel
 import dev.retrobit.desktop.ui.input.keyboardRoom
 import dev.retrobit.desktop.ui.theme.LocalPalette
 import java.util.Date
@@ -114,8 +115,7 @@ private fun ShellRail(vm: LauncherViewModel, kind: WinKind) {
         Modifier
             .fillMaxWidth()
             .height(dp(40f))
-            .background(p.paper)
-            .border(dp(1.6f), p.edge)
+            .shellPanel(borderDp = 1.6f, radiusCap = 10f)
             .padding(horizontal = dp(8f)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(8f)),
@@ -150,8 +150,7 @@ private fun ShellDock(vm: LauncherViewModel) {
         Modifier
             .fillMaxWidth()
             .height(dp(54f))
-            .background(p.paper)
-            .border(dp(1.6f), p.edge)
+            .shellPanel(borderDp = 1.6f, radiusCap = 10f)
             .padding(horizontal = dp(7f)),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(dp(6f)),

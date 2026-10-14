@@ -81,6 +81,20 @@ berwarna, tapi juga berbentuk seperti desktop itu.
   palet e-paper tidak memin apa pun, "follow palette" lebih memilih palet daripada gaya shell,
   pilihan eksplisit selalu menang, dan daftar bentuk tetap rapi untuk baris chip.
 
+### Sudut, menu, dan permukaan mengambang kini mengikuti tema juga
+Tiga detail chrome yang tersisa disesuaikan supaya tema native benar-benar terasa seperti desktop
+aslinya:
+
+- **Jendela**: tema native yang bersudut membulat (Aqua 10 dp, Windows 11 8 dp, Ubuntu/Adwaita
+  12 dp) sekarang membulat di **keempat sudut**, seperti jendela asli desktop itu. Windows 95 tetap
+  kotak, dan palet e-paper tetap hanya sudut atas (gaya cetakan).
+- **Menu konteks**: di tema native menunya membulat (maksimal 8 dp) dengan bingkai tipis warna
+  border tema; di Windows 95 dan palet e-paper tetap kotak bergaris tinta.
+- **Permukaan mengambang** memakai satu helper (`Modifier.shellPanel`): **start menu**, **Launchpad**,
+  **panel Spotlight**, **dock macOS**, serta **title rail dan dock** yang dipakai aplikasi bawaan —
+  semuanya mengambil radius tema, bingkai tipis tema, dan bayangan lembut; di palet e-paper tetap
+  kartu kotak berbingkai tinta dengan bayangan checker keras.
+
 ### Widget desktop: sekarang ikut tema paletnya
 Tema palet sudah membawa warna, chrome, dan bentuk ikon. Sekarang **widget** ikut juga: di tema
 desktop native widget menggambar chrome desktop itu, bukan cetakan e-paper berwarna.
